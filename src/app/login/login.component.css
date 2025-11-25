@@ -1,0 +1,162 @@
+/* Full page container */
+.login-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: linear-gradient(135deg, #ece9e6, #ffffff);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Main container for the two columns */
+.login-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: 100%;
+  max-width: 1200px;
+  height: 90vh;
+  max-height: 700px;
+  background-color: white;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  border-radius: 15px;
+  overflow: hidden;
+}
+
+/* Left side - Branding and Scripture */
+.branding-section {
+  background: linear-gradient(to bottom, #3a7bd5, #00d2ff);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 4rem;
+}
+
+.logo {
+  font-size: 2.5rem;
+  font-weight: bold;
+  opacity: 0.9;
+}
+
+.scripture-container {
+  text-align: left;
+}
+
+.scripture-text {
+  font-size: 1.5rem;
+  font-style: italic;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+.scripture-verse {
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-align: right;
+}
+
+/* Right side - Login Form */
+.login-section {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+}
+
+.login-form-card {
+  width: 100%;
+  max-width: 380px;
+}
+
+.login-form-card h2 {
+  font-size: 2rem;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.login-form-card p {
+  color: #777;
+  margin-bottom: 2.5rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #555;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #3a7bd5;
+  box-shadow: 0 0 0 3px rgba(58, 123, 213, 0.2);
+}
+
+/* Styles for the password input container and toggle icon */
+.password-input-container {
+  position: relative;
+}
+
+/* Add more padding to the right of the password input to make space for the icon */
+.password-input-container input {
+  padding-right: 1rem; /* 1rem default + 1.5rem for icon */
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.5rem;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: #aaa;
+}
+
+.login-btn {
+  width: 100%;
+  padding: 1rem;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(to right, #3a7bd5, #00d2ff);
+  color: white;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.3s;
+  margin-top: 1rem;
+}
+
+.login-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(58, 123, 213, 0.3);
+}
+
+/* Responsive adjustments */
+@media (max-width: 900px) {
+  .login-container {
+    grid-template-columns: 1fr;
+    height: auto;
+    max-height: none;
+  }
+
+  .branding-section {
+    display: none; /* Hide branding on smaller screens for focus */
+  }
+
+  .login-page {
+    align-items: flex-start;
+    padding-top: 5vh;
+  }
+}

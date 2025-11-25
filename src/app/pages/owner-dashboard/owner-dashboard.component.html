@@ -1,0 +1,125 @@
+<div class="dashboard-container">
+  <!-- Header -->
+  <header class="header">
+    <div class="header-left">
+      <h1>Owner Dashboard</h1>
+      <p>Welcome back, User.name!</p>
+    </div>
+    <div class="header-right">
+      <button class="logout-btn" (click)="handleLogout()">Logout</button>
+    </div>
+  </header>
+
+  <!-- KPI Cards -->
+  <div class="kpi-cards">
+    <div class="card kpi-card">
+      <div class="card-header">Total Revenue (Month)</div>
+      <div class="card-body">
+        <p class="kpi-value">$45,890</p>
+        <p class="kpi-change">+12.5% vs last month</p>
+      </div>
+    </div>
+    <div class="card kpi-card">
+      <div class="card-header">Total Stock Value</div>
+      <div class="card-body">
+        <p class="kpi-value">$152,300</p>
+        <p class="kpi-change">Updated today</p>
+      </div>
+    </div>
+    <div class="card kpi-card">
+      <div class="card-header">Active Sales Persons</div>
+      <div class="card-body">
+        <p class="kpi-value">12</p>
+        <p class="kpi-change">+1 new this month</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content Grid -->
+  <div class="main-content-grid">
+    <!-- Chart Section -->
+    <div class="card chart-card">
+      <div class="card-header">
+        <h3>Sales vs. Stock Trends</h3>
+      </div>
+      <div class="card-body">
+        <!-- In a real app, a chart component like ngx-charts would go here -->
+        <div class="chart-placeholder">
+          <p>Chart showing sales and stock levels over the past 30 days.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stock Management Section -->
+    <div class="card stock-management-card">
+      <div class="card-header">
+        <h3>Manage Stock</h3>
+      </div>
+      <div class="card-body">
+        <p class="form-instruction">Add a new product or select one to update its stock and price.</p>
+        <form [formGroup]="stockForm" (ngSubmit)="onSubmit()">
+          <div class="form-group">
+            <label for="existingProduct">Select Existing Product:</label>
+            <select id="existingProduct" formControlName="product_id" [disabled]="stockForm.get('name')?.value">
+              <option value="">-- Choose to update --</option>
+              <option *ngFor="let p of products" [value]="p.id">{{ p.name }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="productName">New Product Name:</label>
+            <input id="productName" type="text" formControlName="name" placeholder="e.g., Chocolate Fudge">
+          </div>
+          <div class="form-group">
+            <label for="quantity">Quantity:</label>
+            <input id="quantity" type="number" formControlName="quantity" placeholder="e.g., 100">
+          </div>
+          <div class="form-group">
+            <label for="unitPrice">Unit Price:</label>
+            <input id="unitPrice" type="number" formControlName="unit_price" placeholder="e.g., 4.50">
+          </div>
+          <button type="submit" class="submit-btn" [disabled]="!stockForm.valid">Record Stock</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Sales Person Management Section -->
+    <div class="card sales-person-card">
+      <div class="card-header">
+        <h3>Manage Sales Persons</h3>
+      </div>
+      <div class="card-body">
+        <p class="form-instruction">Create a new account for a sales person.</p>
+        <!-- Assume you have a 'salesPersonForm' FormGroup in your component -->
+        <form [formGroup]="salesPersonForm" (ngSubmit)="createSalesPerson()">
+          <div class="form-group">
+            <label for="salesPersonName">Full Name:</label>
+            <input id="salesPersonName" type="text" formControlName="name" placeholder="e.g., Jane Doe">
+          </div>
+          <div class="form-group">
+            <label for="salesPersonEmail">Email:</label>
+            <input id="salesPersonEmail" type="email" formControlName="email" placeholder="e.g., jane.doe@example.com">
+          </div>
+          
+          <button type="submit" class="submit-btn" [disabled]="!salesPersonForm.valid">Create Account</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Current Stock Overview -->
+    <div class="card stock-overview-card">
+      <div class="card-header">
+        <h3>Current Stock Levels</h3>
+      </div>
+      <div class="card-body stock-list">
+        @for (product of products; track product.id) {
+        <div class="stock-item">
+          <span class="product-name">{{ product.name }}</span>
+          <span class="product-unit">{{ product.unit }} units</span>
+        </div>
+        } @empty {
+        <p>No products currently in stock.</p>
+        }
+      </div>
+    </div>
+  </div>
+</div>
