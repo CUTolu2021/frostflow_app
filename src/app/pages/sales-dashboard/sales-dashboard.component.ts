@@ -24,6 +24,7 @@ products: any[] = [];
   ) {
     // Initialize the form
     this.salesForm = this.fb.group({
+      name: ['', Validators.min(1)],
       product_id: ['', Validators.required], // Dropdown value
       quantity: [0, [Validators.required, Validators.min(1)]],
       unit_price: [0, [Validators.required, Validators.min(0)]]
@@ -71,7 +72,7 @@ products: any[] = [];
   onSubmit() {
     if (this.salesForm.valid) {
       console.log('Sending to n8n:', this.salesForm.value);
-      this.n8n.sendOwnerStock(this.salesForm.value);
+      this.n8n.sendSalesEntry(this.salesForm.value);
     } else {
       alert('Please fill the form correctly');
     }
