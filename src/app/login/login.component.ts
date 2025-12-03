@@ -25,7 +25,7 @@ export class LoginComponent {
       this.email.value!,
       this.password.value!
     );
-
+//console.log(data.user?.email);
     if (error) {
       console.error('Login failed:', error.message);
       alert('Login failed: ' + error.message);
@@ -34,7 +34,7 @@ export class LoginComponent {
 
     if (data.session) {
       const profile = await this.supabase.getUserProfile(data.session.user.id);
-      console.log(profile);
+      //console.log(profile);
       if (profile && profile.role === roles.admin) {
         alert('Login successful');
         this.router.navigate(['/admin']);
@@ -45,9 +45,10 @@ export class LoginComponent {
         this.router.navigate(['/login']);
         alert('Login failed');
       }
-        localStorage.setItem('user_id', data.session.user.id);
-        localStorage.setItem('user_role', profile!.role);
-        localStorage.setItem('user_name', profile!.name);
+      localStorage.setItem('user_id', data.session.user.id);
+      localStorage.setItem('user_role', profile!.role);
+      localStorage.setItem('user_name', profile!.name);
+      localStorage.setItem('user_email', profile!.email);
     }
         
         

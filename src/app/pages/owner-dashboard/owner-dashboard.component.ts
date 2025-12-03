@@ -17,6 +17,8 @@ export class OwnerDashboardComponent implements OnInit {
   stockForm: FormGroup;
   salesPersonForm: FormGroup;
   passwordVisible: boolean = false;
+  public name: string = localStorage.getItem('user_name') || '';
+  email: string = localStorage.getItem('user_email') || '';
 
 
   constructor(
@@ -25,12 +27,14 @@ export class OwnerDashboardComponent implements OnInit {
     private n8n: WebhookService,
     private router: Router
   ) {
-    // Initialize the form
+    //this.initializeUser();
     this.stockForm = this.fb.group({
       name: ['', Validators.min(1)],
       product_id: ['', Validators.required], // Dropdown value
-      quantity: [0, [Validators.required, Validators.min(1)]],
-      unit_price: [0, [Validators.required, Validators.min(0)]]
+      quantity: [[Validators.required, Validators.min(1)]],
+      unit_price: [ [Validators.required, Validators.min(0)]],
+      total_cost: [ [Validators.required, Validators.min(0)]],
+      recorded_by: [this.email, Validators.required]
     });
 
     this.salesPersonForm = this.fb.group({
@@ -40,6 +44,20 @@ export class OwnerDashboardComponent implements OnInit {
     });
   
   }
+  // private async initializeUser(): Promise<void> {
+  //   try {
+  //     const user = await this.supabase.getCurrentUser();
+  //     console.log("Owner Dashboard - Current User:", user);
+  //     if (user) {
+  //       this.email = user?.user_metadata['email'] || 'Unknown';
+  //       this.name = user?.user_metadata['name'] || 'Unknown';
+  //       // Update the recorded_by field with the actual email
+  //       this.stockForm.get('recorded_by')?.setValue(this.email);
+  //     }
+  //   } catch (error) {
+  //     console.error('Error getting current user:', error);
+  //   }
+  // }
 
   ngOnInit(): void {
     this.loadProducts();
@@ -86,6 +104,10 @@ export class OwnerDashboardComponent implements OnInit {
     } else {
       alert('Please fill the form correctly');
     }
+    alert('Stock Recorded Successfully');
+    this.stockForm.reset();
+    window.location.reload();
+
   }
 
   createSalesPerson() {
@@ -99,13 +121,11 @@ export class OwnerDashboardComponent implements OnInit {
           role: role
         }
       });
-
-      console.log('Sending to n8n:', this.salesPersonForm.value);
-      console.log((this.salesPersonForm.value.name).split('')[0],"@password")
-      this.n8n.sendSalesPerson(this.salesPersonForm.value,);
     } else {
       alert('Please fill the form correctly');
     }
+    alert('Sales Person Account Created Successfully');
+    this.salesPersonForm.reset();
   }
 
 

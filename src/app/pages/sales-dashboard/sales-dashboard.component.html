@@ -3,7 +3,7 @@
   <header class="header">
     <div class="header-left">
       <h1>Sales Dashboard</h1>
-      <p>Welcome back, User.name!</p>
+      <p>Welcome back, {{name}}</p>
     </div>
     <div class="header-right">
       <button class="logout-btn" (click)="handleLogout()">Logout</button>
@@ -34,6 +34,55 @@
       </div>
     </div>
   </div>
+  
+<div>
+  <!-- Daily Sales Input Section -->
+  <div class="card stock-form-card">
+      <div class="card-header">
+        <h3>Record Daily Sales</h3>
+      </div>
+      <div class="card-body">
+        <p class="form-instruction">Select a product from the dropdown.</p>
+
+        <form [formGroup]="dailySalesForm" (ngSubmit)="onSalesRecordSubmit()">
+          <div class="form-group">
+            <label for="product">Select a Product:</label>
+            <select id="product" formControlName="product_id">
+              <option value="">-- Choose a product --</option>
+              <option *ngFor="let p of products" [value]="p.id">{{ p.name }}</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="quantity">Quantity:</label>
+            <input id="quantity" type="number" formControlName="quantity" placeholder="e.g., 50">
+          </div>
+
+          <div class="form-group">
+            <label for="unitPrice">Selling Price Per kg:</label>
+            <input id="unitPrice" type="number" formControlName="unit_price" placeholder="e.g., 3.99">
+          </div>
+
+          <div class="form-group">
+            <label for="totalPrice">Total Price:</label>
+            <input id="totalPrice" type="number" formControlName="total_price" placeholder="e.g., 30.99">
+          </div>
+
+          <div class="form-group">
+            <label for="paymentMethod">Payment Method:</label>
+            <select id="paymentMethod" formControlName="payment_method">
+              <option value="">-- Choose a method --</option>
+              <option *ngFor="let m of paymentMethods" [value]="m">{{ m }}</option>
+            </select>
+          </div>
+
+          <input id="recordedBy" type="text" formControlName="recorded_by" value="{{ email }}" hidden>
+
+          <button type="submit" class="submit-btn" [disabled]="!dailySalesForm.valid">Record Sale</button>
+        </form>
+      </div>
+    </div>
+</div>
 
   <!-- Main Content Area -->
   <div class="main-content">

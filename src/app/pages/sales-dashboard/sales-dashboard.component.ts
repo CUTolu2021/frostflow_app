@@ -14,26 +14,55 @@ import { CommonModule } from '@angular/common';
 })
 export class SalesDashboardComponent {
 products: any[] = [];
-  salesForm: FormGroup; // <--- This holds your form logic
+  salesForm: FormGroup; 
+  dailySalesForm: FormGroup;
+  paymentMethods: string[] = ['Cash', 'Card', 'Transfer'];
+  public name: string = localStorage.getItem('user_name') || '';
+  email: string = localStorage.getItem('user_email') || '';
+  
 
   constructor(
     private supabase: SupabaseService,
-    private fb: FormBuilder, // <--- Inject FormBuilder
+    private fb: FormBuilder,
     private n8n: WebhookService,
-    private router: Router
+    private router: Router,
   ) {
-    // Initialize the form
+    //this.initializeUser();
     this.salesForm = this.fb.group({
-      name: ['', Validators.min(1)],
-      product_id: ['', Validators.required], // Dropdown value
+      name: ['', Validators.minLength(1)],
+      product_id: ['', Validators.required], 
       quantity: [0, [Validators.required, Validators.min(1)]],
+      recorded_by: [this.email, Validators.required],
       unit_price: [0, [Validators.required, Validators.min(0)]]
     });
+
+    this.dailySalesForm = this.fb.group({
+      product_id: ['', Validators.required], 
+      quantity: [0, [Validators.required, Validators.min(1)]],
+      unit_price: [0, [Validators.required, Validators.min(0)]],
+      total_price: [0, [Validators.required, Validators.min(0)]],
+      payment_method: ['', Validators.required],
+      recorded_by: [this.email, Validators.required]
+    });    
   }
+
+  // private async initializeUser(): Promise<void> {
+  //   try {
+  //     const user = await this.supabase.getCurrentUser();
+  //     if (user) {
+  //       this.email = user?.user_metadata['email'] || 'Unknown';
+  //       this.name = user?.user_metadata['name'] || 'Unknown';
+  //       this.dailySalesForm.get('recorded_by')?.setValue(this.email);
+  //     }
+  //   } catch (error) {
+  //     console.error('Error getting current user:', error);
+  //   }
+  // }
 
   ngOnInit(): void {
     this.loadProducts();
     this.setupFormListeners();
+    console.log("User name:", this.name);
   }
 
   setupFormListeners() {
@@ -42,7 +71,6 @@ products: any[] = [];
       const nameControl = this.salesForm.get('name');
       
       if (selectedId) {
-        // If user selects a product, disable the Name input
         nameControl?.disable({ emitEvent: false }); 
         nameControl?.setValue(''); // Clear any text they typed
       } else {
@@ -72,10 +100,23 @@ products: any[] = [];
   onSubmit() {
     if (this.salesForm.valid) {
       console.log('Sending to n8n:', this.salesForm.value);
-      this.n8n.sendSalesEntry(this.salesForm.value);
+      this.n8n.sendSalesStock(this.salesForm.value);
     } else {
       alert('Please fill the form correctly');
     }
+    alert('Stock Recorded Successfully');
+    this.salesForm.reset();
+  }
+
+  onSalesRecordSubmit() {
+    if (this.dailySalesForm.valid) {
+      console.log('Sending Daily Sales Record to n8n:', this.dailySalesForm.value);
+      this.n8n.sendDailySales(this.dailySalesForm.value);
+    } else {
+      alert('Please fill the form correctly');
+    }
+    alert('Daily Sales Recorded Successfully');
+    this.dailySalesForm.reset();
   }
 
   handleLogout() {

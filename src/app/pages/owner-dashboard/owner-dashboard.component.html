@@ -3,7 +3,7 @@
   <header class="header">
     <div class="header-left">
       <h1>Owner Dashboard</h1>
-      <p>Welcome back, User.name!</p>
+      <p>Welcome back, {{name}}!</p>
     </div>
     <div class="header-right">
       <button class="logout-btn" (click)="handleLogout()">Logout</button>
@@ -77,6 +77,11 @@
             <label for="unitPrice">Unit Price:</label>
             <input id="unitPrice" type="number" formControlName="unit_price" placeholder="e.g., 4.50">
           </div>
+          <div class="form-group">
+            <label for="totalCost">Total Cost:</label>
+            <input id="totalCost" type="number" formControlName="total_cost" placeholder="e.g., 4.50">
+          </div>
+          <input id="recordedBy" type="text" formControlName="recorded_by" value="{{ email }}" hidden>
           <button type="submit" class="submit-btn" [disabled]="!stockForm.valid">Record Stock</button>
         </form>
       </div>
@@ -88,7 +93,7 @@
         <h3>Manage Sales Persons</h3>
       </div>
       <div class="card-body">
-        <p class="form-instruction">Create a new account for a sales person.</p>
+        <p class="form-instruction">Create a new account for a sales person. Their default password is &#64;password.</p>
         <!-- Assume you have a 'salesPersonForm' FormGroup in your component -->
         <form [formGroup]="salesPersonForm" (ngSubmit)="createSalesPerson()">
           <div class="form-group">
