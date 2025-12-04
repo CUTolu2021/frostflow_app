@@ -1,6 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'; // <--- Import these
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'; 
 import { SupabaseService } from '../../services/supabase.service';
 import { WebhookService } from '../../services/webhook.service';
 import { Router } from '@angular/router';
@@ -8,12 +8,20 @@ import { Router } from '@angular/router';
 @Component({
   selector: 'app-owner-dashboard',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule], // <--- Add ReactiveFormsModule here
+  imports: [CommonModule, ReactiveFormsModule], 
   templateUrl: './owner-dashboard.component.html',
   styleUrls: ['./owner-dashboard.component.css']
 })
-export class OwnerDashboardComponent implements OnInit {
+export class OwnerDashboardComponent implements OnInit, OnDestroy {
   products: any[] = [];
+  metrics = {
+    totalValue: 0,
+    lowStock: 0,
+    totalItems: 0
+  };
+  showUnitCostField: boolean = false;
+  
+  private refreshInterval: any;
   stockForm: FormGroup;
   salesPersonForm: FormGroup;
   passwordVisible: boolean = false;
@@ -27,14 +35,15 @@ export class OwnerDashboardComponent implements OnInit {
     private n8n: WebhookService,
     private router: Router
   ) {
-    //this.initializeUser();
+    
     this.stockForm = this.fb.group({
       name: ['', Validators.min(1)],
-      product_id: ['', Validators.required], // Dropdown value
+      product_id: ['', Validators.required], 
       quantity: [[Validators.required, Validators.min(1)]],
       unit_price: [ [Validators.required, Validators.min(0)]],
       total_cost: [ [Validators.required, Validators.min(0)]],
-      recorded_by: [this.email, Validators.required]
+      recorded_by: [this.email, Validators.required],
+      unit_cost: [ [Validators.min(0)]]
     });
 
     this.salesPersonForm = this.fb.group({
@@ -44,50 +53,79 @@ export class OwnerDashboardComponent implements OnInit {
     });
   
   }
-  // private async initializeUser(): Promise<void> {
-  //   try {
-  //     const user = await this.supabase.getCurrentUser();
-  //     console.log("Owner Dashboard - Current User:", user);
-  //     if (user) {
-  //       this.email = user?.user_metadata['email'] || 'Unknown';
-  //       this.name = user?.user_metadata['name'] || 'Unknown';
-  //       // Update the recorded_by field with the actual email
-  //       this.stockForm.get('recorded_by')?.setValue(this.email);
-  //     }
-  //   } catch (error) {
-  //     console.error('Error getting current user:', error);
-  //   }
-  // }
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
   ngOnInit(): void {
     this.loadProducts();
     this.setupFormListeners();
+
+    this.loadData();
+    
+    
+    this.refreshInterval = setInterval(() => {
+      this.loadData();
+    }, 30000); 
   }
 
+  ngOnDestroy() {
+    
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval);
+    }
+  }
+
+  async loadData() {
+    console.log('Refreshing Dashboard Data...');
+    
+    
+    this.products = await this.supabase.getProducts();
+
+    
+    this.metrics = await this.supabase.getDashboardMetrics();
+  }
+  
   setupFormListeners() {
-    // 1. Listen to Dropdown Changes
+    
     this.stockForm.get('product_id')?.valueChanges.subscribe((selectedId) => {
       const nameControl = this.stockForm.get('name');
       
       if (selectedId) {
-        // If user selects a product, disable the Name input
+        
         nameControl?.disable({ emitEvent: false }); 
-        nameControl?.setValue(''); // Clear any text they typed
+        nameControl?.setValue(''); 
       } else {
-        // If user selects "Choose", enable the Name input
+        
         nameControl?.enable({ emitEvent: false });
       }
     });
 
-    // 2. Listen to Name Input Changes
+    
     this.stockForm.get('name')?.valueChanges.subscribe((text) => {
       const dropdownControl = this.stockForm.get('product_id');
 
       if (text && text.length > 0) {
-        // If user types text, disable the Dropdown
+        this.showUnitCostField = true;
+        
         dropdownControl?.disable({ emitEvent: false });
-        dropdownControl?.setValue(''); // Reset dropdown
+        dropdownControl?.setValue('');
+        this.stockForm.get('unit_cost')?.setValue(0);
       } else {
+        
+        this.showUnitCostField = false;
         dropdownControl?.enable({ emitEvent: false });
       }
     });
@@ -114,7 +152,7 @@ export class OwnerDashboardComponent implements OnInit {
     if (this.salesPersonForm.valid) {
       const { name, email, role } = this.salesPersonForm.value;
 
-      // Pass name and role in the options.data object
+      
       this.supabase.signUpWithPassword(email!, "@password", {
         data: {
           name: name,

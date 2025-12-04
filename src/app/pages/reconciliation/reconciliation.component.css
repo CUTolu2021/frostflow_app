@@ -1,0 +1,17 @@
+.metrics-row { display: flex; gap: 20px; margin-bottom: 20px; }
+.card { padding: 15px; border-radius: 8px; border: 1px solid #ccc; width: 150px; text-align: center; }
+.card.warning { background: #fff3cd; border-color: #ffecb5; } /* Yellow */
+.card.danger { background: #f8d7da; border-color: #f5c6cb; } /* Red */
+
+.row-missing { background-color: #ffe6e6; } /* Light Red Row for missing items */
+.text-red { color: red; font-weight: bold; }
+.text-danger { color: red; }
+
+.badge { padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; }
+.badge.mismatch { background: #ffc107; color: #000; }
+.badge.missing_in_sales { background: #dc3545; color: #fff; }
+
+.actions button { margin-right: 5px; cursor: pointer; padding: 5px 10px; }
+.btn-sales { background: #6c757d; color: white; border: none; }
+.btn-owner { background: #007bff; color: white; border: none; }
+.btn-manual { background: transparent; border: 1px solid #333; }

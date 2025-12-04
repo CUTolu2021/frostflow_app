@@ -1,0 +1,66 @@
+<div class="recon-container">
+  <h2>⚡ Reconciliation Center</h2>
+
+  <div class="metrics-row">
+    <div class="card warning">
+      <h3>{{ totalMismatches }}</h3>
+      <p>Pending Issues</p>
+    </div>
+    <div class="card danger">
+      <h3>{{ criticalItems }}</h3>
+      <p>High Discrepancies (>5)</p>
+    </div>
+  </div>
+
+  <div class="table-wrapper" *ngIf="!isLoading">
+    <table border="1" cellpadding="10">
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Owner Said (In)</th>
+          <th>Sales Said (Recv)</th>
+          <th>Difference</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let m of mismatches" [class.row-missing]="m.status === 'missing_in_sales'">
+          
+          <td>
+            <strong>{{ m.products?.name }}</strong><br>
+          </td>
+
+          <td>{{ m.owner_quantity }}</td>
+
+          <td [class.text-red]="!m.staff_quantity">
+            {{ m.staff_quantity !== null ? m.staff_quantity : 'NO ENTRY' }}
+          </td>
+
+          <td [class.text-danger]="m.difference > 0">
+            {{ m.difference !== null ? m.difference : '?' }}
+          </td>
+
+          <td>
+            <span class="badge" [ngClass]="m.status">{{ m.status }}</span>
+          </td>
+
+          <td class="actions">
+            <button class="btn-sales" (click)="trustSales(m)" *ngIf="m.staff_quantity !== null">
+              Accept Sales ({{ m.staff_quantity }})
+            </button>
+
+            <button class="btn-owner" (click)="trustOwner(m)">
+              Force Owner ({{ m.owner_quantity }})
+            </button>
+
+            <button class="btn-manual" (click)="manualFix(m)">Manual</button>
+          </td>
+
+        </tr>
+      </tbody>
+    </table>
+
+    <p *ngIf="mismatches.length === 0" class="good-news">✅ No discrepancies found. Good job!</p>
+  </div>
+</div>

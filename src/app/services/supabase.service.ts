@@ -64,5 +64,123 @@ export class SupabaseService {
   }
 
   
+private async createAuditLog(
+  tableName: string,
+  recordId: string,
+  action: string,
+  beforeData: any,
+  afterData: any
+) {
+  
+  const { data: { user } } = await this.supabase.auth.getUser();
+  const userEmail = user?.email || 'unknown_admin';
 
+  const { error } = await this.supabase
+    .schema("frostflow_data")
+    .from('audit_logs')
+    .insert({
+      table_name: tableName,
+      record_id: recordId,
+      action: action,
+      changed_by: userEmail,
+      before_data: JSON.stringify(beforeData), 
+      after_data: JSON.stringify(afterData)    
+    });
+
+  if (error) console.error('Audit Log Failed:', error);
+}
+  
+async getPendingMismatches() {
+  
+  const { data, error } = await this.supabase
+    .schema("frostflow_data")
+    .from('reconciliation')
+    
+    .select('*, products!product_id(name, unit)')
+    .neq('status', 'match') 
+    .neq('status', 'resolved')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching mismatches:', error);
+    return [];
+  }
+  return data;
+}
+
+
+async resolveMismatch(item:any, finalQuantity: number, resolutionNote: string) {
+  
+  const { error: invError } = await this.supabase
+    .schema("frostflow_data")
+    .from('products')
+    .update({ unit: item.products.unit + finalQuantity }) 
+    .eq('id', item.product_id);
+
+  if (invError) throw invError;
+
+  await this.createAuditLog(
+    'reconciliation',         
+    item.id,     
+    `RESOLVED_MISMATCH: ${resolutionNote}`, 
+    { 
+      Product: item.products.name,
+      Quantity: item.products.unit
+     }, 
+    { 
+      Product: item.products.name,
+      Quantity: item.products.unit + finalQuantity
+    } 
+  );
+  const { error: logError } = await this.supabase
+    .schema("frostflow_data")
+    .from('reconciliation')
+    .update({ 
+      status: 'resolved',
+      
+    })
+    .eq('id', item.id);
+
+  if (logError) throw logError;
+  return true;
+}
+
+async getDashboardMetrics() {
+  const { data: products, error } = await this.supabase
+    .schema("frostflow_data")
+    .from('products')
+    .select('unit, unit_price');
+
+  if (error || !products) return { totalValue: 0, lowStock: 0, totalItems: 0 };  
+  const totalValue = products.reduce((sum, item) => {
+    return sum + (item.unit * item.unit_price);
+  }, 0);
+
+  
+  const lowStock = products.filter(item => item.unit < 10).length;
+  const totalItems = products.length;
+
+  return {
+    totalValue,
+    lowStock,
+    totalItems
+  };
+}
+
+async getChartData() {
+  const { data, error } = await this.supabase
+    .from('inventory_balance')
+    .select(`
+      current_balance,
+      total_sold,
+      products ( name )
+    `)
+    .limit(10); 
+
+  if (error) {
+    console.error('Chart Data Error:', error);
+    return [];
+  }
+  return data;
+}
 }

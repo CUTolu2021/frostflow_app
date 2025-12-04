@@ -3,7 +3,7 @@
   <header class="header">
     <div class="header-left">
       <h1>Owner Dashboard</h1>
-      <p>Welcome back, {{name}}!</p>
+      <p>Welcome back, {{ name }}!</p>
     </div>
     <div class="header-right">
       <button class="logout-btn" (click)="handleLogout()">Logout</button>
@@ -13,37 +13,40 @@
   <!-- KPI Cards -->
   <div class="kpi-cards">
     <div class="card kpi-card">
-      <div class="card-header">Total Revenue (Month)</div>
+      <div class="card-header">💰 Inventory Value</div>
       <div class="card-body">
-        <p class="kpi-value">$45,890</p>
-        <p class="kpi-change">+12.5% vs last month</p>
+        <p class="kpi-value">{{ metrics.totalValue | currency : "NGN" }}</p>
+        <p class="kpi-change">Total asset value</p>
+      </div>
+    </div>
+
+    <div class="card kpi-card">
+      <div class="card-header">⚠️ Low Stock Items</div>
+      <div class="card-body">
+        <p
+          class="kpi-value"
+          [style.color]="metrics.lowStock > 0 ? 'red' : 'green'"
+        >
+          {{ metrics.lowStock }}
+        </p>
+        <p class="kpi-change">Items below 10 units</p>
       </div>
     </div>
     <div class="card kpi-card">
-      <div class="card-header">Total Stock Value</div>
+      <div class="card-header">📦 Total Products</div>
       <div class="card-body">
-        <p class="kpi-value">$152,300</p>
-        <p class="kpi-change">Updated today</p>
-      </div>
-    </div>
-    <div class="card kpi-card">
-      <div class="card-header">Active Sales Persons</div>
-      <div class="card-body">
-        <p class="kpi-value">12</p>
-        <p class="kpi-change">+1 new this month</p>
+        <p class="kpi-value">{{ metrics.totalItems }}</p>
+        <p class="kpi-change">Unique SKUs</p>
       </div>
     </div>
   </div>
-
-  <!-- Main Content Grid -->
+  
   <div class="main-content-grid">
-    <!-- Chart Section -->
     <div class="card chart-card">
       <div class="card-header">
         <h3>Sales vs. Stock Trends</h3>
       </div>
       <div class="card-body">
-        <!-- In a real app, a chart component like ngx-charts would go here -->
         <div class="chart-placeholder">
           <p>Chart showing sales and stock levels over the past 30 days.</p>
         </div>
@@ -56,33 +59,84 @@
         <h3>Manage Stock</h3>
       </div>
       <div class="card-body">
-        <p class="form-instruction">Add a new product or select one to update its stock and price.</p>
+        <p class="form-instruction">
+          Add a new product or select one to update its stock and price.
+        </p>
         <form [formGroup]="stockForm" (ngSubmit)="onSubmit()">
           <div class="form-group">
             <label for="existingProduct">Select Existing Product:</label>
-            <select id="existingProduct" formControlName="product_id" [disabled]="stockForm.get('name')?.value">
+            <select
+              id="existingProduct"
+              formControlName="product_id"
+              [disabled]="stockForm.get('name')?.value"
+            >
               <option value="">-- Choose to update --</option>
-              <option *ngFor="let p of products" [value]="p.id">{{ p.name }}</option>
+              <option *ngFor="let p of products" [value]="p.id">
+                {{ p.name }}
+              </option>
             </select>
           </div>
           <div class="form-group">
             <label for="productName">New Product Name:</label>
-            <input id="productName" type="text" formControlName="name" placeholder="e.g., Chocolate Fudge">
+            <input
+              id="productName"
+              type="text"
+              formControlName="name"
+              placeholder="e.g., Chocolate Fudge"
+            />
           </div>
+          @if (showUnitCostField){
+          <div class="form-group">
+            <label for="unitCost">Unit Cost:</label>
+            <input
+              id="unitCost"
+              type="number"
+              formControlName="unit_cost"
+              placeholder="e.g., 3.00"
+            />
+          </div>
+          }
           <div class="form-group">
             <label for="quantity">Quantity:</label>
-            <input id="quantity" type="number" formControlName="quantity" placeholder="e.g., 100">
+            <input
+              id="quantity"
+              type="number"
+              formControlName="quantity"
+              placeholder="e.g., 100"
+            />
           </div>
           <div class="form-group">
             <label for="unitPrice">Unit Price:</label>
-            <input id="unitPrice" type="number" formControlName="unit_price" placeholder="e.g., 4.50">
+            <input
+              id="unitPrice"
+              type="number"
+              formControlName="unit_price"
+              placeholder="e.g., 4.50"
+            />
           </div>
           <div class="form-group">
             <label for="totalCost">Total Cost:</label>
-            <input id="totalCost" type="number" formControlName="total_cost" placeholder="e.g., 4.50">
+            <input
+              id="totalCost"
+              type="number"
+              formControlName="total_cost"
+              placeholder="e.g., 4.50"
+            />
           </div>
-          <input id="recordedBy" type="text" formControlName="recorded_by" value="{{ email }}" hidden>
-          <button type="submit" class="submit-btn" [disabled]="!stockForm.valid">Record Stock</button>
+          <input
+            id="recordedBy"
+            type="text"
+            formControlName="recorded_by"
+            value="{{ email }}"
+            hidden
+          />
+          <button
+            type="submit"
+            class="submit-btn"
+            [disabled]="!stockForm.valid"
+          >
+            Record Stock
+          </button>
         </form>
       </div>
     </div>
@@ -93,19 +147,38 @@
         <h3>Manage Sales Persons</h3>
       </div>
       <div class="card-body">
-        <p class="form-instruction">Create a new account for a sales person. Their default password is &#64;password.</p>
+        <p class="form-instruction">
+          Create a new account for a sales person. Their default password is
+          &#64;password.
+        </p>
         <!-- Assume you have a 'salesPersonForm' FormGroup in your component -->
         <form [formGroup]="salesPersonForm" (ngSubmit)="createSalesPerson()">
           <div class="form-group">
             <label for="salesPersonName">Full Name:</label>
-            <input id="salesPersonName" type="text" formControlName="name" placeholder="e.g., Jane Doe">
+            <input
+              id="salesPersonName"
+              type="text"
+              formControlName="name"
+              placeholder="e.g., Jane Doe"
+            />
           </div>
           <div class="form-group">
             <label for="salesPersonEmail">Email:</label>
-            <input id="salesPersonEmail" type="email" formControlName="email" placeholder="e.g., jane.doe@example.com">
+            <input
+              id="salesPersonEmail"
+              type="email"
+              formControlName="email"
+              placeholder="e.g., jane.doe@example.com"
+            />
           </div>
-          
-          <button type="submit" class="submit-btn" [disabled]="!salesPersonForm.valid">Create Account</button>
+
+          <button
+            type="submit"
+            class="submit-btn"
+            [disabled]="!salesPersonForm.valid"
+          >
+            Create Account
+          </button>
         </form>
       </div>
     </div>

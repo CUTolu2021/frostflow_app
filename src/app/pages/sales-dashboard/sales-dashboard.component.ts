@@ -27,10 +27,10 @@ products: any[] = [];
     private n8n: WebhookService,
     private router: Router,
   ) {
-    //this.initializeUser();
+    
     this.salesForm = this.fb.group({
       name: ['', Validators.minLength(1)],
-      product_id: ['', Validators.required], 
+      product_id: [' ', Validators.required], 
       quantity: [0, [Validators.required, Validators.min(1)]],
       recorded_by: [this.email, Validators.required],
       unit_price: [0, [Validators.required, Validators.min(0)]]
@@ -46,18 +46,18 @@ products: any[] = [];
     });    
   }
 
-  // private async initializeUser(): Promise<void> {
-  //   try {
-  //     const user = await this.supabase.getCurrentUser();
-  //     if (user) {
-  //       this.email = user?.user_metadata['email'] || 'Unknown';
-  //       this.name = user?.user_metadata['name'] || 'Unknown';
-  //       this.dailySalesForm.get('recorded_by')?.setValue(this.email);
-  //     }
-  //   } catch (error) {
-  //     console.error('Error getting current user:', error);
-  //   }
-  // }
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
   ngOnInit(): void {
     this.loadProducts();
@@ -66,27 +66,27 @@ products: any[] = [];
   }
 
   setupFormListeners() {
-    // 1. Listen to Dropdown Changes
+    
     this.salesForm.get('product_id')?.valueChanges.subscribe((selectedId) => {
       const nameControl = this.salesForm.get('name');
       
       if (selectedId) {
         nameControl?.disable({ emitEvent: false }); 
-        nameControl?.setValue(''); // Clear any text they typed
+        nameControl?.setValue(''); 
       } else {
-        // If user selects "Choose", enable the Name input
+        
         nameControl?.enable({ emitEvent: false });
       }
     });
 
-    // 2. Listen to Name Input Changes
+    
     this.salesForm.get('name')?.valueChanges.subscribe((text) => {
       const dropdownControl = this.salesForm.get('product_id');
 
       if (text && text.length > 0) {
-        // If user types text, disable the Dropdown
+        
         dropdownControl?.disable({ emitEvent: false });
-        dropdownControl?.setValue(''); // Reset dropdown
+        dropdownControl?.setValue(''); 
       } else {
         dropdownControl?.enable({ emitEvent: false });
       }
