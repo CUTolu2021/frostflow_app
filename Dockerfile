@@ -18,9 +18,9 @@ ARG N8N_WEBHOOK_URL
 # We use 'print' to write the file dynamically based on what Coolify sends us
 RUN printf "export const environment = {\n\
   production: true,\n\
-  supabaseUrl: '%s',\n\
-  supabaseKey: '%s',\n\
-  n8nWebhookBaseUrl: '%s'\n\
+  supabase_URL: '%s',\n\
+  supabase_anon_key: '%s',\n\
+  n8n_webhook: '%s'\n\
 };\n" "$SUPABASE_URL" "$SUPABASE_KEY" "$N8N_WEBHOOK_URL" > src/environments/environment.ts
 
 # Copy to prod just in case
