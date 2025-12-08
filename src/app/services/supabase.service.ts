@@ -183,4 +183,37 @@ async getChartData() {
   }
   return data;
 }
+
+
+// 1. Get Unread Notifications
+async getUnreadNotifications() {
+  const { data } = await this.supabase
+  .schema("frostflow_data")
+    .from('notifications')
+    .select('*')
+    .eq('is_read', false)
+    .order('created_at', { ascending: false });
+  return data || [];
+}
+
+// 2. Mark as Read (When clicked)
+async markNotificationAsRead(id: string) {
+  await this.supabase
+  .schema("frostflow_data")
+    .from('notifications')
+    .update({ is_read: true })
+    .eq('id', id);
+}
+
+// 3. Listen for NEW Notifications (Realtime)
+subscribeToNotifications(callback: (payload: any) => void) {
+  return this.supabase
+    .channel('frostflow_data:notifications')
+    .on(
+      'postgres_changes', 
+      { event: 'INSERT', schema: 'frostflow_data', table: 'notifications' }, 
+      callback
+    )
+    .subscribe();
+}
 }

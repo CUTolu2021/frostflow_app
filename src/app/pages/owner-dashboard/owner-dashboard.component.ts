@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { SupabaseService } from '../../services/supabase.service';
 import { WebhookService } from '../../services/webhook.service';
 import { Router } from '@angular/router';
+import { ToastService } from '../../services/toast.service';
 
 @Component({
   selector: 'app-owner-dashboard',
@@ -14,6 +15,8 @@ import { Router } from '@angular/router';
 })
 export class OwnerDashboardComponent implements OnInit, OnDestroy {
   products: any[] = [];
+  notifications: any[] = [];
+  showDropdown = false;
   metrics = {
     totalValue: 0,
     lowStock: 0,
@@ -27,12 +30,14 @@ export class OwnerDashboardComponent implements OnInit, OnDestroy {
   passwordVisible: boolean = false;
   public name: string = localStorage.getItem('user_name') || '';
   email: string = localStorage.getItem('user_email') || '';
+  id: string = localStorage.getItem('user_id') || '';
 
 
   constructor(
     private supabase: SupabaseService,
     private fb: FormBuilder, 
     private n8n: WebhookService,
+    private toast: ToastService,
     private router: Router
   ) {
     
@@ -42,7 +47,7 @@ export class OwnerDashboardComponent implements OnInit, OnDestroy {
       quantity: [[Validators.required, Validators.min(1)]],
       unit_price: [ [Validators.required, Validators.min(0)]],
       total_cost: [ [Validators.required, Validators.min(0)]],
-      recorded_by: [this.email, Validators.required],
+      recorded_by: [this.id, Validators.required],
       unit_cost: [ [Validators.min(0)]]
     });
 
@@ -53,32 +58,44 @@ export class OwnerDashboardComponent implements OnInit, OnDestroy {
     });
   
   }
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
 
-  ngOnInit(): void {
+
+  async ngOnInit() {
     this.loadProducts();
     this.setupFormListeners();
 
     this.loadData();
+    // Load initial
+    this.notifications = await this.supabase.getUnreadNotifications();
+    
+    // Listen for new ones from n8n
+    this.supabase.subscribeToNotifications((payload) => {
+      // Add new alert to the top of the list
+      this.notifications.unshift(payload.new);
+      // Optional: Play a sound here?
+    });
     
     
     this.refreshInterval = setInterval(() => {
       this.loadData();
     }, 30000); 
+  }
+
+  toggleNotifications() {
+    this.showDropdown = !this.showDropdown;
+  }
+
+  async onNotificationClick(notif: any) {
+    // Mark as read in DB
+    await this.supabase.markNotificationAsRead(notif.id);
+    
+    // Remove from UI list
+    this.notifications = this.notifications.filter(n => n.id !== notif.id);
+    
+    // Navigate if there is a link
+    if (notif.link) {
+      // this.router.navigate([notif.link]);
+    }
   }
 
   ngOnDestroy() {
@@ -93,7 +110,6 @@ export class OwnerDashboardComponent implements OnInit, OnDestroy {
     
     
     this.products = await this.supabase.getProducts();
-
     
     this.metrics = await this.supabase.getDashboardMetrics();
   }
@@ -139,10 +155,10 @@ export class OwnerDashboardComponent implements OnInit, OnDestroy {
     if (this.stockForm.valid) {
       console.log('Sending to n8n:', this.stockForm.value);
       this.n8n.sendOwnerStock(this.stockForm.value);
+      this.toast.show('Stock recorded successfully!', 'success')
     } else {
-      alert('Please fill the form correctly');
+      this.toast.show('Please fill the form correctly.', 'error');
     }
-    alert('Stock Recorded Successfully');
     this.stockForm.reset();
     window.location.reload();
 
@@ -151,18 +167,16 @@ export class OwnerDashboardComponent implements OnInit, OnDestroy {
   createSalesPerson() {
     if (this.salesPersonForm.valid) {
       const { name, email, role } = this.salesPersonForm.value;
-
-      
       this.supabase.signUpWithPassword(email!, "@password", {
         data: {
           name: name,
           role: role
         }
       });
+      this.toast.show('Sales person account created successfully!', 'success')
     } else {
-      alert('Please fill the form correctly');
+      this.toast.show('Please fill the form correctly.', 'error');
     }
-    alert('Sales Person Account Created Successfully');
     this.salesPersonForm.reset();
   }
 
@@ -170,6 +184,7 @@ export class OwnerDashboardComponent implements OnInit, OnDestroy {
   handleLogout() {
     localStorage.clear();
     this.supabase.signOut();
+    this.toast.show('Logout successful!', 'logout');
     this.router.navigate(['/login']);
   }
 

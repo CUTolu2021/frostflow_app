@@ -9,8 +9,10 @@ import { authGuard } from './auth.guard';
 import { roles } from './enums/role';
 import { ReconciliationComponent } from './pages/reconciliation/reconciliation.component';
 import { SalesChartComponent } from './components/sales-chart/sales-chart.component';
+import { AiInsightCardComponent } from './components/ai-insight-card/ai-insight-card.component';
 
 export const routes: Routes = [
+  { path: '', redirectTo: 'login', pathMatch: 'full' },
   
   { path: '*', redirectTo: 'login', pathMatch: 'full' },
 
@@ -41,6 +43,14 @@ export const routes: Routes = [
     title: 'Fix Mismatch',
     canActivate: [authGuard],
     data: { roles: [roles.admin] }
-  }
+  },
+
+  {
+    path: 'ai-insights',
+    component: AiInsightCardComponent,
+    title: 'Insights',
+    canActivate: [authGuard],
+    data: { roles: [roles.admin] }
+  },
 
 ];

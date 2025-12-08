@@ -9,6 +9,39 @@
       <button class="logout-btn" (click)="handleLogout()">Logout</button>
     </div>
   </header>
+  <div class="header-right">
+    <div class="notification-container">
+      <button class="bell-btn" (click)="toggleNotifications()">
+        🔔
+        <span class="badge" *ngIf="notifications.length > 0">
+          {{ notifications.length }}
+        </span>
+      </button>
+
+      <div class="notif-dropdown" *ngIf="showDropdown">
+        <div class="notif-header">Notifications</div>
+
+        <div
+          *ngFor="let n of notifications"
+          class="notif-item"
+          (click)="onNotificationClick(n)"
+        >
+          <div class="notif-icon">
+            {{ n.type === "alert" ? "🔴" : "ℹ️" }}
+          </div>
+          <div class="notif-content">
+            <strong>{{ n.title }}</strong>
+            <p>{{ n.message }}</p>
+            <small>{{ n.created_at | date : "shortTime" }}</small>
+          </div>
+        </div>
+
+        <div class="empty-state" *ngIf="notifications.length === 0">
+          No new notifications
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- KPI Cards -->
   <div class="kpi-cards">
@@ -40,7 +73,7 @@
       </div>
     </div>
   </div>
-  
+
   <div class="main-content-grid">
     <div class="card chart-card">
       <div class="card-header">

@@ -3,6 +3,7 @@ import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterOutlet } from '@angular/router';
 import { SupabaseService } from '../services/supabase.service';
 import { roles } from '../enums/role';
+import { ToastService } from '../services/toast.service';
 
 
 @Component({
@@ -14,7 +15,7 @@ import { roles } from '../enums/role';
 })
 export class LoginComponent {
   //name = new FormControl('');
-  constructor(private supabase: SupabaseService, private router: Router) {}
+  constructor(private supabase: SupabaseService, private router: Router, private toast: ToastService) {}
 
   email = new FormControl('');
   password = new FormControl('');
@@ -36,14 +37,14 @@ export class LoginComponent {
       const profile = await this.supabase.getUserProfile(data.session.user.id);
       //console.log(profile);
       if (profile && profile.role === roles.admin) {
-        alert('Login successful');
+        this.toast.show('Login successful!', 'login');
         this.router.navigate(['/admin']);
       } else if (profile && profile.role === roles.sales) {
-        alert('Login successful');
+        this.toast.show('Login successful!', 'login');
         this.router.navigate(['/sales']);
       } else {
         this.router.navigate(['/login']);
-        alert('Login failed');
+        this.toast.show('Logout successful!', 'logout');
       }
       localStorage.setItem('user_id', data.session.user.id);
       localStorage.setItem('user_role', profile!.role);

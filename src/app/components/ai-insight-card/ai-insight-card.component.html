@@ -1,0 +1,66 @@
+<div class="insight-card" *ngIf="data">
+  
+  <div class="card-header">
+    <div class="title-group">
+      <span class="pulse-dot"></span>
+      <h3>AI Business Daily Brief</h3>
+    </div>
+    <span class="agent-name">🤖 Ops Agent v1</span>
+  </div>
+
+  <div class="summary-section">
+    <p>"{{ data.summary }}"</p>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-pill add">
+      <span class="label">Added</span>
+      <span class="value">+{{ data.stock_movement?.total_items_added }}</span>
+    </div>
+    <div class="stat-pill sold">
+      <span class="label">Sold</span>
+      <span class="value">-{{ data.stock_movement?.total_items_sold }}</span>
+    </div>
+    <div class="stat-pill net">
+      <span class="label">Net Change</span>
+      <span class="value" [class.pos]="data.stock_movement?.net_change.includes('+')">
+        {{ data.stock_movement?.net_change }}
+      </span>
+    </div>
+  </div>
+
+  <div class="details-grid">
+    <div class="alert-column">
+      
+      <h4 class="section-title text-orange">⚠️ Low Stock Alerts</h4>
+      <div class="stock-item" *ngFor="let item of data.low_stock_items">
+        <div class="stock-info">
+          <span>{{ item.product }}</span>
+          <small>{{ item.current_quantity }} / {{ item.threshold }}</small>
+        </div>
+        <div class="progress-bg">
+          <div class="progress-fill" 
+               [style.width.%]="getStockPercentage(item.current_quantity, item.threshold)"></div>
+        </div>
+      </div>
+
+      <h4 class="section-title text-red" *ngIf="data.mismatch_records?.length">🚨 Reconciliation Needed</h4>
+      <div class="mismatch-tag" *ngFor="let m of data.mismatch_records">
+        <strong>{{ m.product }}</strong>: {{ m.status === 'missing_in_sales' ? 'Missing in Sales' : 'Count Mismatch (' + m.difference + ')' }}
+      </div>
+    </div>
+
+    <div class="action-column">
+      <h4 class="section-title text-blue">💡 Strategic Recommendations</h4>
+      <ul class="action-list">
+        <li *ngFor="let rec of data.recommendations">
+          <label class="checkbox-container">
+            <input type="checkbox">
+            <span class="checkmark"></span>
+            {{ rec }}
+          </label>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>

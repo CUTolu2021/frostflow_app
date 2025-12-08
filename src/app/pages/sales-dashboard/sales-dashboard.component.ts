@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { SupabaseService } from '../../services/supabase.service';
 import { WebhookService } from '../../services/webhook.service';
 import { CommonModule } from '@angular/common';
+import { ToastService } from '../../services/toast.service';
 
 @Component({
   selector: 'app-sales-dashboard',
@@ -19,11 +20,13 @@ products: any[] = [];
   paymentMethods: string[] = ['Cash', 'Card', 'Transfer'];
   public name: string = localStorage.getItem('user_name') || '';
   email: string = localStorage.getItem('user_email') || '';
+  id: string = localStorage.getItem('user_id') || '';
   
 
   constructor(
     private supabase: SupabaseService,
     private fb: FormBuilder,
+    private toast: ToastService,
     private n8n: WebhookService,
     private router: Router,
   ) {
@@ -32,7 +35,7 @@ products: any[] = [];
       name: ['', Validators.minLength(1)],
       product_id: [' ', Validators.required], 
       quantity: [0, [Validators.required, Validators.min(1)]],
-      recorded_by: [this.email, Validators.required],
+      recorded_by: [this.id, Validators.required],
       unit_price: [0, [Validators.required, Validators.min(0)]]
     });
 
@@ -42,27 +45,15 @@ products: any[] = [];
       unit_price: [0, [Validators.required, Validators.min(0)]],
       total_price: [0, [Validators.required, Validators.min(0)]],
       payment_method: ['', Validators.required],
-      recorded_by: [this.email, Validators.required]
+      recorded_by: [this.id, Validators.required]
     });    
   }
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   
 
   ngOnInit(): void {
     this.loadProducts();
     this.setupFormListeners();
-    console.log("User name:", this.name);
   }
 
   setupFormListeners() {
@@ -101,10 +92,10 @@ products: any[] = [];
     if (this.salesForm.valid) {
       console.log('Sending to n8n:', this.salesForm.value);
       this.n8n.sendSalesStock(this.salesForm.value);
+      this.toast.show('Stock recorded successfully!', 'success');
     } else {
-      alert('Please fill the form correctly');
+      this.toast.show('Please fill the form correctly', 'error');
     }
-    alert('Stock Recorded Successfully');
     this.salesForm.reset();
   }
 
@@ -112,16 +103,17 @@ products: any[] = [];
     if (this.dailySalesForm.valid) {
       console.log('Sending Daily Sales Record to n8n:', this.dailySalesForm.value);
       this.n8n.sendDailySales(this.dailySalesForm.value);
+      this.toast.show('Daily Sales Recorded Successfully', 'success');
     } else {
-      alert('Please fill the form correctly');
+      this.toast.show('Please fill the Daily Sales form correctly', 'error');
     }
-    alert('Daily Sales Recorded Successfully');
     this.dailySalesForm.reset();
   }
 
   handleLogout() {
     localStorage.clear();
     this.supabase.signOut();
+    this.toast.show('Logout successful!', 'logout');
     this.router.navigate(['/login']);
   }
 
