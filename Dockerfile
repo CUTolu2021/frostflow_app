@@ -16,6 +16,8 @@ ARG N8N_WEBHOOK_URL
 # 2. Create the file using the Arguments
 # ---------------------------------------------
 # We use 'print' to write the file dynamically based on what Coolify sends us
+RUN mkdir -p src/environments
+
 RUN printf "export const environment = {\n\
   production: true,\n\
   supabase_URL: '%s',\n\
