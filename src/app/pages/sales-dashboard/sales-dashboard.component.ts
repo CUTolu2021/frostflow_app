@@ -17,6 +17,10 @@ export class SalesDashboardComponent {
 products: any[] = [];
   salesForm: FormGroup; 
   dailySalesForm: FormGroup;
+  salesMetrics = {
+    totalSalesValue: 0,
+    totalUnitsSold: 0
+  };
   paymentMethods: string[] = ['Cash', 'Card', 'Transfer'];
   public name: string = localStorage.getItem('user_name') || '';
   email: string = localStorage.getItem('user_email') || '';
@@ -51,7 +55,9 @@ products: any[] = [];
 
   
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
+    this.salesMetrics = await this.supabase.getSalesDashboardMetrics();
+    console.log('Sales Metrics:', this.salesMetrics);
     this.loadProducts();
     this.setupFormListeners();
   }

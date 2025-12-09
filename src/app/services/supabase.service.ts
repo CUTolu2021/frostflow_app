@@ -63,6 +63,20 @@ export class SupabaseService {
     return data as any[] || [];
   }
 
+  async getAIReports(): Promise<any> {
+    const { data, error } = await this.supabase
+      .schema("frostflow_data")
+      .from('ai_stock_reports')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(1);
+    if (error) {
+      console.error('Error fetching AI reports:', error);
+      return [];
+    }
+    return data as any;
+  }
+
   
 private async createAuditLog(
   tableName: string,
@@ -164,6 +178,26 @@ async getDashboardMetrics() {
     totalValue,
     lowStock,
     totalItems
+  };
+}
+
+async getSalesDashboardMetrics() {
+  const { data: sales, error } = await this.supabase
+    .schema("frostflow_data")
+    .from('sales')
+    .select('quantity, total_price');
+  if (error || !sales) return { totalSalesValue: 0, totalUnitsSold: 0 };  
+
+  const totalSalesValue = sales.reduce((sum, item) => {
+    return sum + (item.total_price);
+  }, 0);
+  const totalUnitsSold = sales.reduce((sum, item) => {
+    return sum + (item.quantity);
+  }, 0);
+
+  return {
+    totalSalesValue,
+    totalUnitsSold
   };
 }
 

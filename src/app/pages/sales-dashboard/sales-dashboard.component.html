@@ -15,22 +15,21 @@
     <div class="card kpi-card">
       <div class="card-header">Total Revenue</div>
       <div class="card-body">
-        <p class="kpi-value">$12,345</p>
-        <p class="kpi-change">+5.2% vs last month</p>
+        <p class="kpi-value">{{ salesMetrics.totalSalesValue | currency: "NGN" }}</p>
       </div>
     </div>
     <div class="card kpi-card">
       <div class="card-header">Items Sold</div>
       <div class="card-body">
-        <p class="kpi-value">678</p>
-        <p class="kpi-change">-1.8% vs last month</p>
+        <p class="kpi-value">{{ salesMetrics.totalUnitsSold }}</p>
+        
       </div>
     </div>
     <div class="card kpi-card">
       <div class="card-header">Products in Stock</div>
       <div class="card-body">
         <p class="kpi-value">{{ products.length }}</p>
-        <p class="kpi-change">2 new products added</p>
+        
       </div>
     </div>
   </div>

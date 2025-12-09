@@ -15,6 +15,7 @@ import { ToastService } from '../../services/toast.service';
 })
 export class OwnerDashboardComponent implements OnInit, OnDestroy {
   products: any[] = [];
+  reportData: any = [];
   notifications: any[] = [];
   showDropdown = false;
   metrics = {
@@ -42,18 +43,18 @@ export class OwnerDashboardComponent implements OnInit, OnDestroy {
   ) {
     
     this.stockForm = this.fb.group({
-      name: ['', Validators.min(1)],
-      product_id: ['', Validators.required], 
-      quantity: [[Validators.required, Validators.min(1)]],
-      unit_price: [ [Validators.required, Validators.min(0)]],
-      total_cost: [ [Validators.required, Validators.min(0)]],
-      recorded_by: [this.id, Validators.required],
-      unit_cost: [ [Validators.min(0)]]
+      name: ['', [Validators.minLength(1)]],
+      product_id: [''],
+      quantity: [null, [Validators.required, Validators.min(1)]],
+      unit_price: [null, [Validators.required, Validators.min(0)]],
+      total_cost: [null, [Validators.required, Validators.min(0)]],
+      recorded_by: [this.id || '', [Validators.required]],
+      unit_cost: [null, [Validators.min(0)]]
     });
 
     this.salesPersonForm = this.fb.group({
-      name: ['', Validators.min(1)],
-      role:['sales'],
+      name: ['', [Validators.minLength(1)]],
+      role: ['sales'],
       email: ['', [Validators.required, Validators.email]],
     });
   
@@ -65,6 +66,12 @@ export class OwnerDashboardComponent implements OnInit, OnDestroy {
     this.setupFormListeners();
 
     this.loadData();
+    
+    // Load report data early to prevent template undefined errors
+    const reports = await this.supabase.getAIReports();
+    this.reportData = reports && reports.length > 0 ? reports[0] : null;
+    console.log('AI Report Data:', this.reportData);
+    
     // Load initial
     this.notifications = await this.supabase.getUnreadNotifications();
     
@@ -78,7 +85,7 @@ export class OwnerDashboardComponent implements OnInit, OnDestroy {
     
     this.refreshInterval = setInterval(() => {
       this.loadData();
-    }, 30000); 
+    }, 30000);
   }
 
   toggleNotifications() {
@@ -107,8 +114,6 @@ export class OwnerDashboardComponent implements OnInit, OnDestroy {
 
   async loadData() {
     console.log('Refreshing Dashboard Data...');
-    
-    
     this.products = await this.supabase.getProducts();
     
     this.metrics = await this.supabase.getDashboardMetrics();
@@ -190,6 +195,10 @@ export class OwnerDashboardComponent implements OnInit, OnDestroy {
 
   togglePasswordVisibility() {
     this.passwordVisible = !this.passwordVisible;
+  }
+
+  trackByProductId(index: number, product: any) {
+    return product.id;
   }
 
 }

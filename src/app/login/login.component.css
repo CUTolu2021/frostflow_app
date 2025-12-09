@@ -97,6 +97,7 @@
   border-radius: 8px;
   font-size: 1rem;
   transition: border-color 0.3s, box-shadow 0.3s;
+  box-sizing: border-box;
 }
 
 .form-group input:focus {
@@ -112,13 +113,13 @@
 
 /* Add more padding to the right of the password input to make space for the icon */
 .password-input-container input {
-  padding-right: 1rem; /* 1rem default + 1.5rem for icon */
+  padding-right: 0rem; /* 1rem default + 1.5rem for icon */
 }
 
 .password-toggle {
   position: absolute;
   top: 50%;
-  right: 0.5rem;
+  right: 1rem;
   transform: translateY(-50%);
   cursor: pointer;
   color: #aaa;
@@ -134,13 +135,39 @@
   font-size: 1.1rem;
   font-weight: bold;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.3s;
+  transition: all 0.3s ease;
   margin-top: 1rem;
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
 }
 
 .login-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(58, 123, 213, 0.3);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 25px rgba(58, 123, 213, 0.4);
+}
+
+.login-btn:active {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 15px rgba(58, 123, 213, 0.3);
+}
+
+.login-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.login-btn:active::before {
+  width: 300px;
+  height: 300px;
 }
 
 /* Responsive adjustments */
@@ -157,6 +184,6 @@
 
   .login-page {
     align-items: flex-start;
-    padding-top: 5vh;
+    padding-top: 20vh;
   }
 }

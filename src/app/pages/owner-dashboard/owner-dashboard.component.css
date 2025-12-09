@@ -83,6 +83,60 @@
   margin-top: 0.5rem;
 }
 
+.report-card .card-body {
+  background: #fafafa;
+  border-radius: 10px;
+  padding: 1.5rem;
+}
+
+.report-card h4 {
+  color: #444;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 0.25rem;
+}
+
+.movement-stats {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  text-align: center;
+}
+
+.movement-stats .stat {
+  flex: 1;
+  background: #fff;
+  padding: 0.8rem;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+}
+
+.movement-stats .up span { color: green; font-weight: 600; }
+.movement-stats .down span { color: red; font-weight: 600; }
+.movement-stats .net span { color: #007bff; font-weight: 600; }
+
+.low-stock ul, .mismatch ul, .recommendations ul {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0;
+}
+
+.low-stock li, .mismatch li, .recommendations li {
+  background: #fff;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-left: 4px solid #5cb85c;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.mismatch li span.mismatch { color: #e44d26; font-weight: bold; }
+.mismatch li span.missing { color: #ff9800; font-weight: bold; }
+
+.recommendations li {
+  border-left: 4px solid #007bff;
+}
+
 /* Main Content Grid Styles */
 .main-content-grid {
   display: grid;
@@ -129,6 +183,7 @@
   font-size: 1rem;
   color: #333;
   transition: border-color 0.3s ease;
+  box-sizing: border-box;
 }
 
 .form-group input:focus,
@@ -148,6 +203,7 @@
   font-size: 1.1rem;
   font-weight: bold;
   transition: background-color 0.3s ease;
+  box-sizing: border-box;
 }
 
 .submit-btn:hover {

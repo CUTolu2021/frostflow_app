@@ -75,16 +75,93 @@
   </div>
 
   <div class="main-content-grid">
-    <div class="card chart-card">
-      <div class="card-header">
-        <h3>Sales vs. Stock Trends</h3>
-      </div>
-      <div class="card-body">
-        <div class="chart-placeholder">
-          <p>Chart showing sales and stock levels over the past 30 days.</p>
+      <div class="card report-card" *ngIf="reportData">
+        <div class="card-header">
+          <h3>📊 AI-Generated Stock Health Report</h3>
+          <p class="report-date">
+            Week of {{ reportData.report_period_start | date }} -
+            {{ reportData.report_period_end | date }}
+          </p>
+        </div>
+
+        <div class="card-body">
+          <div class="summary">
+            <h4>🧠 Summary</h4>
+            <p>{{ reportData.summary }}</p>
+          </div>
+
+          <div class="stock-movement" *ngIf="reportData.stock_movement">
+            <h4>📦 Stock Movement</h4>
+            <div class="movement-stats">
+              <div class="stat up">
+                <span>⬆️ Added</span>
+                <p>{{ reportData.stock_movement.total_items_added }}</p>
+              </div>
+              <div class="stat down">
+                <span>⬇️ Sold</span>
+                <p>{{ reportData.stock_movement.total_items_sold }}</p>
+              </div>
+              <div class="stat net">
+                <span>🔄 Net Change</span>
+                <p>{{ reportData.stock_movement.net_change }}</p>
+              </div>
+            </div>
+          </div>
+
+          <div
+            class="low-stock mt-2"
+            *ngIf="reportData.low_stock_items?.length"
+          >
+            <h4>⚠️ Low Stock Items</h4>
+            <ul>
+              <li *ngFor="let item of reportData.low_stock_items">
+                {{ item.product }} —
+                <strong
+                  [style.color]="
+                    item.current_quantity < item.threshold ? 'red' : 'green'
+                  "
+                >
+                  {{ item.current_quantity }}/{{ item.threshold }}
+                </strong>
+              </li>
+            </ul>
+          </div>
+
+          <div
+            class="mismatch mt-2"
+            *ngIf="reportData.mismatch_records?.length"
+          >
+            <h4>🚨 Mismatch Records</h4>
+            <ul>
+              <li *ngFor="let mismatch of reportData.mismatch_records">
+                {{ mismatch.product }} —
+                <span
+                  [ngClass]="{
+                    mismatch: mismatch.status === 'mismatch',
+                    missing: mismatch.status === 'missing_in_sales'
+                  }"
+                >
+                  {{ mismatch.status | titlecase }} (Difference:
+                  {{ mismatch.difference }})
+                </span>
+              </li>
+            </ul>
+          </div>
+
+          <div
+            class="recommendations mt-2"
+            *ngIf="reportData.recommendations?.length"
+          >
+            <h4>💡 Recommendations</h4>
+            <ul>
+              <li *ngFor="let tip of reportData.recommendations">
+                ✅ {{ tip }}
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
-    </div>
+    
 
     <!-- Stock Management Section -->
     <div class="card stock-management-card">
@@ -118,8 +195,7 @@
               placeholder="e.g., Chocolate Fudge"
             />
           </div>
-          @if (showUnitCostField){
-          <div class="form-group">
+          <div class="form-group" *ngIf="showUnitCostField">
             <label for="unitCost">Unit Cost:</label>
             <input
               id="unitCost"
@@ -128,7 +204,6 @@
               placeholder="e.g., 3.00"
             />
           </div>
-          }
           <div class="form-group">
             <label for="quantity">Quantity:</label>
             <input
@@ -222,14 +297,14 @@
         <h3>Current Stock Levels</h3>
       </div>
       <div class="card-body stock-list">
-        @for (product of products; track product.id) {
-        <div class="stock-item">
+        <div
+          class="stock-item"
+          *ngFor="let product of products; trackBy: trackByProductId"
+        >
           <span class="product-name">{{ product.name }}</span>
           <span class="product-unit">{{ product.unit }} units</span>
         </div>
-        } @empty {
-        <p>No products currently in stock.</p>
-        }
+        <p *ngIf="!products?.length">No products currently in stock.</p>
       </div>
     </div>
   </div>
