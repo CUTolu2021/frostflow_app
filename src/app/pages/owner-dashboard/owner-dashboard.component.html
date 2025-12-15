@@ -74,6 +74,38 @@
     </div>
   </div>
 
+  <div class="card action-card">
+  <div class="card-header">
+    <h3>⚡ Daily Reconciliation</h3>
+  </div>
+  <div class="card-body">
+    
+    <div class="status-steps">
+      <div class="step" [class.done]="stockEntryStatus.ownerReady">
+        <span class="icon">{{ stockEntryStatus.ownerReady ? '✅' : '⏳' }}</span>
+        <span>Owner Sent Stock</span>
+      </div>
+      <div class="arrow">→</div>
+      <div class="step" [class.done]="stockEntryStatus.salesReady">
+        <span class="icon">{{ stockEntryStatus.salesReady ? '✅' : '⏳' }}</span>
+        <span>Sales Confirmed</span>
+      </div>
+    </div>
+
+    <button 
+      class="recon-btn" 
+      [disabled]="!reconcileReady"
+      (click)="triggerReconciliation()">
+      {{ reconcileReady ? 'Run Mismatch Check' : 'Waiting for Inputs...' }}
+    </button>
+    
+    <p *ngIf="!reconcileReady" class="hint-text">
+      Both parties must submit stock entries for today before you can reconcile.
+    </p>
+
+  </div>
+</div>
+
   <div class="main-content-grid">
       <div class="card report-card" *ngIf="reportData">
         <div class="card-header">
@@ -115,13 +147,13 @@
             <h4>⚠️ Low Stock Items</h4>
             <ul>
               <li *ngFor="let item of reportData.low_stock_items">
-                {{ item.product }} —
+                {{ item.product || "N/A" }} —
                 <strong
                   [style.color]="
                     item.current_quantity < item.threshold ? 'red' : 'green'
                   "
                 >
-                  {{ item.current_quantity }}/{{ item.threshold }}
+                  {{ item.current_quantity || "0" }}/{{ item.threshold || "0" }}
                 </strong>
               </li>
             </ul>
@@ -301,7 +333,7 @@
           class="stock-item"
           *ngFor="let product of products; trackBy: trackByProductId"
         >
-          <span class="product-name">{{ product.name }}</span>
+          <span class="product-name">{{ product.name || 'N/A' }}</span>
           <span class="product-unit">{{ product.unit }} units</span>
         </div>
         <p *ngIf="!products?.length">No products currently in stock.</p>

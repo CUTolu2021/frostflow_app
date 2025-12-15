@@ -239,6 +239,34 @@ async markNotificationAsRead(id: string) {
     .eq('id', id);
 }
 
+// Check if entries exist for the current day (UTC dates)
+async getDailyEntryStatus() {
+  const today = new Date().toISOString().split('T')[0];
+  console.log('Today:', today); // "2023-12-11"
+
+  // 1. Check Owner Entries
+  const { count: ownerCount } = await this.supabase
+  .schema("frostflow_data")
+    .from('stock_in')
+    .select('*', { count: 'exact', head: true }) // 'head' means don't fetch data, just count
+    .gte('created_at', today);
+
+  // 2. Check Salesgirl Entries
+  const { count: salesCount } = await this.supabase
+  .schema("frostflow_data")
+    .from('stock_in_staff')
+    .select('*', { count: 'exact', head: true })
+    .gte('created_at', today);
+
+    console.log('Owner Count:', ownerCount);
+    console.log('Sales Count:', salesCount);
+
+  return {
+    ownerReady: (ownerCount || 0) > 0,
+    salesReady: (salesCount || 0) > 0
+  };
+}
+
 // 3. Listen for NEW Notifications (Realtime)
 subscribeToNotifications(callback: (payload: any) => void) {
   return this.supabase

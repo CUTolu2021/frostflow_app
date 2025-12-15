@@ -31,4 +31,10 @@ export class WebhookService {
       this.http.post(`${this.n8nUrl}/sales-entry`, data)
     );
   }
+
+  async triggerManualReconcile() {
+    return await 
+      this.http.get(`${this.n8nUrl}/trigger-reconcile`)
+    
+  }
 }

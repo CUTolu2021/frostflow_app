@@ -32,6 +32,8 @@ export class OwnerDashboardComponent implements OnInit, OnDestroy {
   public name: string = localStorage.getItem('user_name') || '';
   email: string = localStorage.getItem('user_email') || '';
   id: string = localStorage.getItem('user_id') || '';
+  reconcileReady = false;
+  stockEntryStatus = { ownerReady: false, salesReady: false };
 
 
   constructor(
@@ -70,7 +72,6 @@ export class OwnerDashboardComponent implements OnInit, OnDestroy {
     // Load report data early to prevent template undefined errors
     const reports = await this.supabase.getAIReports();
     this.reportData = reports && reports.length > 0 ? reports[0] : null;
-    console.log('AI Report Data:', this.reportData);
     
     // Load initial
     this.notifications = await this.supabase.getUnreadNotifications();
@@ -83,10 +84,26 @@ export class OwnerDashboardComponent implements OnInit, OnDestroy {
     });
     
     
-    this.refreshInterval = setInterval(() => {
-      this.loadData();
-    }, 30000);
+    // this.refreshInterval = setInterval(() => {
+    //   this.loadData();
+    // }, 30000);
+    await this.checkStatus();
   }
+
+  async checkStatus() {
+  this.stockEntryStatus = await this.supabase.getDailyEntryStatus();
+  
+  // LOGIC: Only ready if BOTH have entered data
+  this.reconcileReady = this.stockEntryStatus.ownerReady && this.stockEntryStatus.salesReady;
+}
+
+async triggerReconciliation() {
+  if (!this.reconcileReady) return;
+  
+  // Call n8n to run the math
+  await this.n8n.triggerManualReconcile();
+  this.toast.show('Reconciliation started...', 'info');
+}
 
   toggleNotifications() {
     this.showDropdown = !this.showDropdown;
@@ -165,7 +182,6 @@ export class OwnerDashboardComponent implements OnInit, OnDestroy {
       this.toast.show('Please fill the form correctly.', 'error');
     }
     this.stockForm.reset();
-    window.location.reload();
 
   }
 
