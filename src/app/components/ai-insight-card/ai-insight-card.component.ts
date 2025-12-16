@@ -9,7 +9,7 @@ import { CommonModule } from '@angular/common';
   styleUrls: ['./ai-insight-card.component.css']
 })
 export class AiInsightCardComponent {
-  // This receives the JSON from your Parent Dashboard
+  
   @Input() data: any = {
 
   "summary": "General business health summary in 2–3 sentences.",
@@ -52,9 +52,9 @@ export class AiInsightCardComponent {
 
 }; 
 
-  // Helper to calculate percentage for progress bars
+  
   getStockPercentage(current: number, threshold: number): number {
-    // If current is 12 and threshold is 20, return 60%
+    
     return Math.min(100, (current / (threshold * 1.5)) * 100);
   }
 }

@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { SupabaseService } from '../../services/supabase.service';
 import { FormsModule } from '@angular/forms'; 
@@ -16,11 +17,15 @@ export class ReconciliationComponent implements OnInit {
   isLoading = true;
   totalMismatches = 0;
   criticalItems = 0;
+  highlightId: string | null = null;
 
-  constructor(private supabase: SupabaseService) {}
+  constructor(private supabase: SupabaseService, private route: ActivatedRoute) {}
 
   ngOnInit() {
-    this.loadData();
+    this.route.queryParams.subscribe(params => {
+      this.highlightId = params['id'] || null;
+      this.loadData();
+    });
   }
 
   async loadData() {
@@ -28,10 +33,21 @@ export class ReconciliationComponent implements OnInit {
     this.mismatches = await this.supabase.getPendingMismatches();
     this.totalMismatches = this.mismatches.length;
     this.criticalItems = this.mismatches.filter(m => m.difference > 5).length; 
-    
     this.isLoading = false;
+    
+    if (this.highlightId) {
+      setTimeout(() => {
+        const el = document.getElementById('mismatch-' + this.highlightId);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 200);
+      
+      setTimeout(() => {
+        this.highlightId = null;
+      }, 3000);
+    }
     console.log(this.mismatches);
-  
   }
 
   async trustOwner(item: any) {

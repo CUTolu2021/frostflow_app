@@ -219,7 +219,7 @@ async getChartData() {
 }
 
 
-// 1. Get Unread Notifications
+
 async getUnreadNotifications() {
   const { data } = await this.supabase
   .schema("frostflow_data")
@@ -230,7 +230,7 @@ async getUnreadNotifications() {
   return data || [];
 }
 
-// 2. Mark as Read (When clicked)
+
 async markNotificationAsRead(id: string) {
   await this.supabase
   .schema("frostflow_data")
@@ -239,19 +239,19 @@ async markNotificationAsRead(id: string) {
     .eq('id', id);
 }
 
-// Check if entries exist for the current day (UTC dates)
+
 async getDailyEntryStatus() {
   const today = new Date().toISOString().split('T')[0];
-  console.log('Today:', today); // "2023-12-11"
+  console.log('Today:', today); 
 
-  // 1. Check Owner Entries
+  
   const { count: ownerCount } = await this.supabase
   .schema("frostflow_data")
     .from('stock_in')
-    .select('*', { count: 'exact', head: true }) // 'head' means don't fetch data, just count
+    .select('*', { count: 'exact', head: true }) 
     .gte('created_at', today);
 
-  // 2. Check Salesgirl Entries
+  
   const { count: salesCount } = await this.supabase
   .schema("frostflow_data")
     .from('stock_in_staff')
@@ -267,7 +267,7 @@ async getDailyEntryStatus() {
   };
 }
 
-// 3. Listen for NEW Notifications (Realtime)
+
 subscribeToNotifications(callback: (payload: any) => void) {
   return this.supabase
     .channel('frostflow_data:notifications')

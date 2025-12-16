@@ -18,9 +18,9 @@ export const routes: Routes = [
 
   { path: 'login', component: LoginComponent, title: 'Login Page'},
 
-  { path: 'add-stock', component: StockentryComponent, title: 'Add New Product' },
+  
 
-  {path: 'sales-chart', component: SalesChartComponent, title: 'Sales Chart'},
+  
   {
     path: 'admin',
     component: OwnerDashboardComponent,

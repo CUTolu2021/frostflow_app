@@ -2,13 +2,13 @@ import { Component, OnInit, ViewChild, ElementRef, AfterViewInit } from '@angula
 import { CommonModule } from '@angular/common';
 import { SupabaseService } from '../../services/supabase.service';
 
-// Chart.js is loaded via CDN in index.html. Use the global Chart variable.
+
 declare const Chart: any;
 
 @Component({
   selector: 'app-sales-chart',
   standalone: true,
-  imports: [CommonModule], // <--- Add NgChartsModule
+  imports: [CommonModule], 
   templateUrl: './sales-chart.component.html',
   styleUrls: ['./sales-chart.component.css']
 })
@@ -16,19 +16,19 @@ export class SalesChartComponent implements OnInit {
   @ViewChild('chartCanvas', { static: true }) private chartCanvas!: ElementRef<HTMLCanvasElement>;
   private chartInstance: any = null;
 
-  // Chart data holder
+  
   private labels: string[] = [];
   private stockData: number[] = [];
   private soldData: number[] = [];
 
   constructor(private supabase: SupabaseService) {}
   
-  //     { data: [], label: 'Total Sold', backgroundColor: '#10b981' }    // Green
-  //   ]
-  // };
+  
+  
+  
 
   ngOnInit(): void {
-    // Start loading data and render when available
+    
     this.loadChartData();
   }
 
@@ -40,7 +40,7 @@ export class SalesChartComponent implements OnInit {
         this.stockData = rawData.map((item: any) => Number(item.current_balance || 0));
         this.soldData = rawData.map((item: any) => Number(item.total_sold || 0));
       } else {
-        // Fallback/mock data when Supabase returns nothing or not configured
+        
         this.labels = ['Chicken', 'Beef', 'Fish', 'Rice', 'Vegetables'];
         this.stockData = [120, 80, 60, 200, 150];
         this.soldData = [30, 45, 20, 55, 40];
@@ -56,7 +56,7 @@ export class SalesChartComponent implements OnInit {
   }
 
   private renderChart() {
-    // Destroy existing chart if present
+    
     if (this.chartInstance) {
       this.chartInstance.destroy();
       this.chartInstance = null;

@@ -14,7 +14,7 @@ import { ToastService } from '../services/toast.service';
   styleUrl: './login.component.css',
 })
 export class LoginComponent {
-  //name = new FormControl('');
+  
   constructor(private supabase: SupabaseService, private router: Router, private toast: ToastService) {}
 
   email = new FormControl('');
@@ -26,7 +26,7 @@ export class LoginComponent {
       this.email.value!,
       this.password.value!
     );
-//console.log(data.user?.email);
+
     if (error) {
       console.error('Login failed:', error.message);
       alert('Login failed: ' + error.message);
@@ -35,7 +35,7 @@ export class LoginComponent {
 
     if (data.session) {
       const profile = await this.supabase.getUserProfile(data.session.user.id);
-      //console.log(profile);
+      
       if (profile && profile.role === roles.admin) {
         this.toast.show('Login successful!', 'login');
         this.router.navigate(['/admin']);

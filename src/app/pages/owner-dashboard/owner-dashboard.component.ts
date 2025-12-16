@@ -97,13 +97,13 @@ export class OwnerDashboardComponent implements OnInit, OnDestroy {
   this.reconcileReady = this.stockEntryStatus.ownerReady && this.stockEntryStatus.salesReady;
 }
 
-async triggerReconciliation() {
-  if (!this.reconcileReady) return;
+// async triggerReconciliation() {
+//   if (!this.reconcileReady) return;
   
-  // Call n8n to run the math
-  await this.n8n.triggerManualReconcile();
-  this.toast.show('Reconciliation started...', 'info');
-}
+//   // Call n8n to run the math
+//   //await this.n8n.triggerManualReconcile();
+//   this.toast.show('Reconciliation started...', 'info');
+// }
 
   toggleNotifications() {
     this.showDropdown = !this.showDropdown;
@@ -112,13 +112,14 @@ async triggerReconciliation() {
   async onNotificationClick(notif: any) {
     // Mark as read in DB
     await this.supabase.markNotificationAsRead(notif.id);
-    
     // Remove from UI list
     this.notifications = this.notifications.filter(n => n.id !== notif.id);
-    
-    // Navigate if there is a link
-    if (notif.link) {
-      // this.router.navigate([notif.link]);
+
+    // Navigate to mismatch if link_type is 'mismatch'
+    if (notif.link_type === 'mismatch' && notif.id) {
+      this.router.navigate(['/mismatch'], { queryParams: { id: notif.id } });
+    } else if (notif.link) {
+      this.router.navigate([notif.link]);
     }
   }
 

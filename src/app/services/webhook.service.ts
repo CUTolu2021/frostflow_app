@@ -32,9 +32,9 @@ export class WebhookService {
     );
   }
 
-  async triggerManualReconcile() {
-    return await 
-      this.http.get(`${this.n8nUrl}/trigger-reconcile`)
+  // async triggerManualReconcile() {
+  //   return await 
+  //     this.http.get(`${this.n8nUrl}/trigger-reconcile`)
     
-  }
+  // }
 }

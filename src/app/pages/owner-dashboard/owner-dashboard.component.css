@@ -1,3 +1,50 @@
+/* Header right section and notification bell beautification */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 2.5rem;
+}
+
+.notification-container {
+  position: relative;
+  margin-right: 1.5rem;
+  display: flex;
+  align-items: center;
+}
+
+.bell-btn {
+  background: linear-gradient(135deg, #f9d423 0%, #ff4e50 100%);
+  border: none;
+  font-size: 2rem;
+  cursor: pointer;
+  position: relative;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(255, 78, 80, 0.15);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+.bell-btn:hover {
+  box-shadow: 0 4px 16px rgba(255, 78, 80, 0.25);
+  transform: translateY(-2px) scale(1.07);
+}
+
+.badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: #e44d26;
+  color: white;
+  font-size: 0.85rem;
+  font-weight: bold;
+  padding: 2px 7px;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(228,77,38,0.15);
+  border: 2px solid #fff;
+}
 /* General Dashboard Styles */
 .dashboard-container {
   padding: 2rem;
@@ -292,7 +339,7 @@
   margin-top: 0.25rem;
 }
 
-.notification-container { position: relative; margin-right: 20px; }
+.notification-container { position: relative; padding: 0 40px; }
 .bell-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; position: relative; }
 
 .badge {

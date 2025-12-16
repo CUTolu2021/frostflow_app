@@ -13,7 +13,7 @@
   </div>
 
   <div class="table-wrapper" *ngIf="!isLoading">
-    <table border="1" cellpadding="10">
+    <table border="1" cellpadding="10" class="desktop-table">
       <thead>
         <tr>
           <th>Product</th>
@@ -21,45 +21,58 @@
           <th>Sales Said (Recv)</th>
           <th>Difference</th>
           <th>Status</th>
+          <th>Date</th>
           <th>Action</th>
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let m of mismatches" [class.row-missing]="m.status === 'missing_in_sales'">
-          
+        <tr *ngFor="let m of mismatches" [id]="'mismatch-' + m.id" [class.row-missing]="m.status === 'missing_in_sales'" [class.row-highlight]="highlightId == m.id">
           <td>
             <strong>{{ m.products?.name }}</strong><br>
           </td>
-
           <td>{{ m.owner_quantity }}</td>
-
           <td [class.text-red]="!m.staff_quantity">
             {{ m.staff_quantity !== null ? m.staff_quantity : 'NO ENTRY' }}
           </td>
-
           <td [class.text-danger]="m.difference > 0">
             {{ m.difference !== null ? m.difference : '?' }}
           </td>
-
           <td>
             <span class="badge" [ngClass]="m.status">{{ m.status }}</span>
           </td>
-
+          <td>
+            <span *ngIf="m.created_at">{{ m.created_at | date:'short' }}</span>
+            <span *ngIf="!m.created_at">—</span>
+          </td>
           <td class="actions">
             <button class="btn-sales" (click)="trustSales(m)" *ngIf="m.staff_quantity !== null">
               Accept Sales ({{ m.staff_quantity }})
             </button>
-
             <button class="btn-owner" (click)="trustOwner(m)">
               Force Owner ({{ m.owner_quantity }})
             </button>
-
             <button class="btn-manual" (click)="manualFix(m)">Manual</button>
           </td>
-
         </tr>
       </tbody>
     </table>
+
+    <!-- Mobile card layout -->
+    <div class="mobile-mismatch-list">
+      <div *ngFor="let m of mismatches" class="mismatch-card" [id]="'mismatch-' + m.id" [class.row-highlight]="highlightId == m.id">
+        <div class="mismatch-row"><span class="label">Product:</span> <strong>{{ m.products?.name }}</strong></div>
+        <div class="mismatch-row"><span class="label">Owner:</span> {{ m.owner_quantity }}</div>
+        <div class="mismatch-row"><span class="label">Sales:</span> <span [class.text-red]="!m.staff_quantity">{{ m.staff_quantity !== null ? m.staff_quantity : 'NO ENTRY' }}</span></div>
+        <div class="mismatch-row"><span class="label">Diff:</span> <span [class.text-danger]="m.difference > 0">{{ m.difference !== null ? m.difference : '?' }}</span></div>
+        <div class="mismatch-row"><span class="label">Status:</span> <span class="badge" [ngClass]="m.status">{{ m.status }}</span></div>
+        <div class="mismatch-row"><span class="label">Date:</span> <span *ngIf="m.created_at">{{ m.created_at | date:'short' }}</span><span *ngIf="!m.created_at">—</span></div>
+        <div class="mismatch-actions">
+          <button class="btn-sales" (click)="trustSales(m)" *ngIf="m.staff_quantity !== null">Accept Sales ({{ m.staff_quantity }})</button>
+          <button class="btn-owner" (click)="trustOwner(m)">Force Owner ({{ m.owner_quantity }})</button>
+          <button class="btn-manual" (click)="manualFix(m)">Manual</button>
+        </div>
+      </div>
+    </div>
 
     <p *ngIf="mismatches.length === 0" class="good-news">✅ No discrepancies found. Good job!</p>
   </div>
