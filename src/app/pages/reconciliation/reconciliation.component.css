@@ -1,141 +1,210 @@
 /* Modern desktop table styles */
 table {
-	font-size: 1rem;
-	min-width: 900px;
-	width: 100%;
-	border-collapse: separate;
-	border-spacing: 0;
-	background: #fff;
-	box-shadow: 0 2px 12px rgba(0,0,0,0.07);
-	border-radius: 12px;
-	overflow: hidden;
+    font-size: 1rem;
+    min-width: 900px;
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: #fff;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
+    border-radius: 12px;
+    overflow: hidden;
 }
-table th, table td {
-	padding: 1.1rem 0.7rem;
-	text-align: left;
-	border-bottom: 1px solid #f0f0f0;
+table th,
+table td {
+    padding: 1.1rem 0.7rem;
+    text-align: left;
+    border-bottom: 1px solid #f0f0f0;
 }
 table th {
-	font-size: 1.05rem;
-	color: #444;
-	font-weight: 700;
-	background: #f6f6f6;
-	border-bottom: 2px solid #e0e0e0;
+    font-size: 1.05rem;
+    color: #444;
+    font-weight: 700;
+    background: #f6f6f6;
+    border-bottom: 2px solid #e0e0e0;
 }
 table tr:last-child td {
-	border-bottom: none;
+    border-bottom: none;
 }
 table td {
-	vertical-align: middle;
+    vertical-align: middle;
 }
 .actions button {
-	margin-bottom: 0.3rem;
+    margin-bottom: 0.3rem;
 }
 
 /* Always show mobile cards, hide on desktop */
 .mobile-mismatch-list {
-	margin-top: 1.5rem;
+    margin-top: 1.5rem;
 }
 @media (max-width: 700px) {
-	.desktop-table { display: none !important; }
-	.mobile-mismatch-list { display: block !important; }
+    .desktop-table {
+        display: none !important;
+    }
+    .mobile-mismatch-list {
+        display: block !important;
+    }
 }
 @media (min-width: 701px) {
-	.mobile-mismatch-list { display: none !important; }
+    .mobile-mismatch-list {
+        display: none !important;
+    }
 }
 /* Hide desktop table and show card layout on mobile */
 @media (max-width: 700px) {
-	.desktop-table { display: none; }
-	.mobile-mismatch-list { display: block; }
+    .desktop-table {
+        display: none;
+    }
+    .mobile-mismatch-list {
+        display: block;
+    }
 }
 @media (min-width: 701px) {
-	.mobile-mismatch-list { display: none; }
+    .mobile-mismatch-list {
+        display: none;
+    }
 }
 
 .mobile-mismatch-list {
-	display: none;
-	margin-top: 1.5rem;
+    display: none;
+    margin-top: 1.5rem;
 }
 .mismatch-card {
-	background: #fff;
-	border-radius: 8px;
-	box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-	margin-bottom: 1.2rem;
-	padding: 1.1rem 1rem 1rem 1rem;
-	border-left: 4px solid #ffc107;
-	position: relative;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+    margin-bottom: 1.2rem;
+    padding: 1.1rem 1rem 1rem 1rem;
+    border-left: 4px solid #ffc107;
+    position: relative;
 }
 .mismatch-row {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	margin-bottom: 0.5rem;
-	font-size: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
 }
 .mismatch-row .label {
-	font-weight: 600;
-	color: #555;
-	min-width: 80px;
+    font-weight: 600;
+    color: #555;
+    min-width: 80px;
 }
 .mismatch-actions {
-	display: flex;
-	flex-direction: column;
-	gap: 0.5rem;
-	margin-top: 0.7rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.7rem;
 }
 .mismatch-actions button {
-	width: 100%;
-	font-size: 1rem;
-	padding: 0.7rem 0.5rem;
-	margin: 0;
+    width: 100%;
+    font-size: 1rem;
+    padding: 0.7rem 0.5rem;
+    margin: 0;
 }
 /* Responsive table for mobile */
 @media (max-width: 700px) {
-	.table-wrapper {
-		overflow-x: auto;
-	}
-	table {
-		font-size: 0.95rem;
-		min-width: 600px;
-	}
-	.metrics-row {
-		flex-direction: column;
-		gap: 10px;
-	}
-	.card {
-		width: 100%;
-		min-width: 0;
-	}
-	.actions button {
-		font-size: 0.95rem;
-		padding: 4px 7px;
-	}
+    .table-wrapper {
+        overflow-x: auto;
+    }
+    table {
+        font-size: 0.95rem;
+        min-width: 600px;
+    }
+    .metrics-row {
+        flex-direction: column;
+        gap: 10px;
+    }
+    .card {
+        width: 100%;
+        min-width: 0;
+    }
+    .actions button {
+        font-size: 0.95rem;
+        padding: 4px 7px;
+    }
 }
 .row-highlight {
-	animation: highlight-fade 2.5s cubic-bezier(0.4,0,0.2,1);
-	background: #fffbe6 !important;
-	box-shadow: 0 0 0 2px #ffe066, 0 2px 8px rgba(255, 224, 102, 0.15);
+    animation: highlight-fade 2.5s cubic-bezier(0.4, 0, 0.2, 1);
+    background: #fffbe6 !important;
+    box-shadow:
+        0 0 0 2px #ffe066,
+        0 2px 8px rgba(255, 224, 102, 0.15);
 }
 
 @keyframes highlight-fade {
-	0% { background: #ffe066; }
-	60% { background: #fffbe6; }
- 100% { background: inherit; }
+    0% {
+        background: #ffe066;
+    }
+    60% {
+        background: #fffbe6;
+    }
+    100% {
+        background: inherit;
+    }
 }
-.metrics-row { display: flex; gap: 20px; margin-bottom: 20px; }
-.card { padding: 15px; border-radius: 8px; border: 1px solid #ccc; width: 150px; text-align: center; }
-.card.warning { background: #fff3cd; border-color: #ffecb5; } /* Yellow */
-.card.danger { background: #f8d7da; border-color: #f5c6cb; } /* Red */
+.metrics-row {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+.card {
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    width: 150px;
+    text-align: center;
+}
+.card.warning {
+    background: #fff3cd;
+    border-color: #ffecb5;
+} /* Yellow */
+.card.danger {
+    background: #f8d7da;
+    border-color: #f5c6cb;
+} /* Red */
 
-.row-missing { background-color: #ffe6e6; } /* Light Red Row for missing items */
-.text-red { color: red; font-weight: bold; }
-.text-danger { color: red; }
+.row-missing {
+    background-color: #ffe6e6;
+} /* Light Red Row for missing items */
+.text-red {
+    color: red;
+    font-weight: bold;
+}
+.text-danger {
+    color: red;
+}
 
-.badge { padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; }
-.badge.mismatch { background: #ffc107; color: #000; }
-.badge.missing_in_sales { background: #dc3545; color: #fff; }
+.badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+}
+.badge.mismatch {
+    background: #ffc107;
+    color: #000;
+}
+.badge.missing_in_sales {
+    background: #dc3545;
+    color: #fff;
+}
 
-.actions button { margin-right: 5px; cursor: pointer; padding: 5px 10px; }
-.btn-sales { background: #6c757d; color: white; border: none; }
-.btn-owner { background: #007bff; color: white; border: none; }
-.btn-manual { background: transparent; border: 1px solid #333; }
+.actions button {
+    margin-right: 5px;
+    cursor: pointer;
+    padding: 5px 10px;
+}
+.btn-sales {
+    background: #6c757d;
+    color: white;
+    border: none;
+}
+.btn-owner {
+    background: #007bff;
+    color: white;
+    border: none;
+}
+.btn-manual {
+    background: transparent;
+    border: 1px solid #333;
+}

@@ -1,60 +1,47 @@
-import { Component, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, Input } from '@angular/core'
+import { CommonModule } from '@angular/common'
 
 @Component({
-  selector: 'app-ai-insight-card',
-  standalone: true,
-  imports: [CommonModule],
-  templateUrl: './ai-insight-card.component.html',
-  styleUrls: ['./ai-insight-card.component.css']
+    selector: 'app-ai-insight-card',
+    standalone: true,
+    imports: [CommonModule],
+    templateUrl: './ai-insight-card.component.html',
+    styleUrls: ['./ai-insight-card.component.css'],
 })
 export class AiInsightCardComponent {
-  
-  @Input() data: any = {
+    @Input() data: any = {
+        summary: 'General business health summary in 2–3 sentences.',
 
-  "summary": "General business health summary in 2–3 sentences.",
+        low_stock_items: [
+            { product: 'Chicken Wings', current_quantity: 12, threshold: 20 },
 
-  "low_stock_items": [
+            { product: 'Frozen Fish', current_quantity: 8, threshold: 20 },
+        ],
 
-    {"product": "Chicken Wings", "current_quantity": 12, "threshold": 20},
+        mismatch_records: [
+            { product: 'Shrimps', difference: 10, status: 'mismatch' },
 
-    {"product": "Frozen Fish", "current_quantity": 8, "threshold": 20}
+            { product: 'Turkey', difference: 6, status: 'missing_in_sales' },
+        ],
 
-  ],
+        stock_movement: {
+            total_items_added: 150,
 
-  "mismatch_records": [
+            total_items_sold: 120,
 
-    {"product": "Shrimps", "difference": 10, "status": "mismatch"},
+            net_change: '+30',
+        },
 
-    {"product": "Turkey", "difference": 6, "status": "missing_in_sales"}
+        recommendations: [
+            'Reorder Chicken Wings and Frozen Fish immediately.',
 
-  ],
+            'Verify reconciliation mismatches for Shrimp and Turkey.',
 
-  "stock_movement": {
+            'Review supplier pricing — unit cost for some items increased this week.',
+        ],
+    }
 
-    "total_items_added": 150,
-
-    "total_items_sold": 120,
-
-    "net_change": "+30"
-
-  },
-
-  "recommendations": [
-
-    "Reorder Chicken Wings and Frozen Fish immediately.",
-
-    "Verify reconciliation mismatches for Shrimp and Turkey.",
-
-    "Review supplier pricing — unit cost for some items increased this week."
-
-  ]
-
-}; 
-
-  
-  getStockPercentage(current: number, threshold: number): number {
-    
-    return Math.min(100, (current / (threshold * 1.5)) * 100);
-  }
+    getStockPercentage(current: number, threshold: number): number {
+        return Math.min(100, (current / (threshold * 1.5)) * 100)
+    }
 }

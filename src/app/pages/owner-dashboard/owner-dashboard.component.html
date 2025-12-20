@@ -1,80 +1,104 @@
 <div class="dashboard-container">
-  <!-- Header -->
+    <!-- Header -->
 
-  <header class="header">
-    <div class="header-left">
-      <h1>Owner Dashboard</h1>
-      <p>Welcome back, {{ name }}!</p>
-    </div>
-    <div class="header-right">
-      <button class="logout-btn" (click)="handleLogout()">Logout</button>
-    
-      <div class="notification-container">
-        <button class="bell-btn" (click)="toggleNotifications()">
-          🔔
-          <span class="badge" *ngIf="notifications.length > 0">
-            {{ notifications.length }}
-          </span>
-        </button>
-
-        <div class="notif-dropdown" *ngIf="showDropdown">
-          <div class="notif-header">Notifications</div>
-
-          <div
-            *ngFor="let n of notifications"
-            class="notif-item"
-            (click)="onNotificationClick(n)"
-          >
-            <div class="notif-icon">
-              {{ n.type === "alert" ? "🔴" : "ℹ️" }}
-            </div>
-            <div class="notif-content">
-              <strong>{{ n.title }}</strong>
-              <p>{{ n.message }}</p>
-              <small>{{ n.created_at | date : "shortTime" }}</small>
-            </div>
-          </div>
-
-          <div class="empty-state" *ngIf="notifications.length === 0">
-            No new notifications
-          </div>
+    <header class="header">
+        <div class="header-left">
+            <h1>Owner Dashboard</h1>
+            <p>Welcome back, {{ name }}!</p>
         </div>
-      </div>
-    </div>
-  </header>
+        <div class="header-right">
+            <button class="logout-btn" (click)="handleLogout()">Logout</button>
 
-  <!-- KPI Cards -->
-  <div class="kpi-cards">
-    <div class="card kpi-card">
-      <div class="card-header">💰 Inventory Value</div>
-      <div class="card-body">
-        <p class="kpi-value">{{ metrics.totalValue | currency : "NGN" }}</p>
-        <p class="kpi-change">Total asset value</p>
-      </div>
+            <div class="notification-container">
+                <button class="bell-btn" (click)="toggleNotifications()">
+                    🔔
+                    <span class="badge" *ngIf="notifications.length > 0">
+                        {{ notifications.length }}
+                    </span>
+                </button>
+
+                <div class="notif-dropdown" *ngIf="showDropdown">
+                    <div class="notif-header">Notifications</div>
+
+                    <div
+                        *ngFor="let n of notifications"
+                        class="notif-item"
+                        (click)="onNotificationClick(n)"
+                    >
+                        <div class="notif-icon">
+                            {{ n.type === 'alert' ? '🔴' : 'ℹ️' }}
+                        </div>
+                        <div class="notif-content">
+                            <strong>{{ n.title }}</strong>
+                            <p>{{ n.message }}</p>
+                            <small>{{
+                                n.created_at | date: 'shortTime'
+                            }}</small>
+                        </div>
+                    </div>
+
+                    <div class="empty-state" *ngIf="notifications.length === 0">
+                        No new notifications
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- KPI Cards -->
+    <div class="kpi-cards">
+        <div class="card kpi-card">
+            <div class="card-header">💰 Inventory Value</div>
+            <div class="card-body">
+                <p class="kpi-value">
+                    {{ metrics.totalValue | currency: 'NGN' }}
+                </p>
+                <p class="kpi-change">Total asset value</p>
+            </div>
+        </div>
+
+        <div class="card kpi-card">
+            <div class="card-header">⚠️ Low Stock Items</div>
+            <div class="card-body">
+                <p
+                    class="kpi-value"
+                    [style.color]="metrics.lowStock > 0 ? 'red' : 'green'"
+                >
+                    {{ metrics.lowStock }}
+                </p>
+                <p class="kpi-change">Items below 10 units</p>
+            </div>
+        </div>
+        <div class="card kpi-card">
+            <div class="card-header">📦 Total Products</div>
+            <div class="card-body">
+                <p class="kpi-value">{{ metrics.totalItems }}</p>
+                <p class="kpi-change">Unique SKUs</p>
+            </div>
+        </div>
     </div>
 
-    <div class="card kpi-card">
-      <div class="card-header">⚠️ Low Stock Items</div>
-      <div class="card-body">
-        <p
-          class="kpi-value"
-          [style.color]="metrics.lowStock > 0 ? 'red' : 'green'"
-        >
-          {{ metrics.lowStock }}
-        </p>
-        <p class="kpi-change">Items below 10 units</p>
-      </div>
-    </div>
-    <div class="card kpi-card">
-      <div class="card-header">📦 Total Products</div>
-      <div class="card-body">
-        <p class="kpi-value">{{ metrics.totalItems }}</p>
-        <p class="kpi-change">Unique SKUs</p>
-      </div>
-    </div>
-  </div>
+    <div class="kpi-cards">
+        <div class="card kpi-card">
+            <div class="card-header">💵 Total Revenue</div>
+            <div class="card-body">
+                <p class="kpi-value">
+                    {{ salesMetrics.totalSalesValue | currency: 'NGN' }}
+                </p>
+                <p class="kpi-change">Total sales value</p>
+            </div>
+        </div>
 
-  <!-- <div class="card action-card">
+        <div class="card kpi-card">
+            <div class="card-header">📊 Items Sold</div>
+            <div class="card-body">
+                <p class="kpi-value">{{ salesMetrics.totalUnitsSold }}</p>
+                <p class="kpi-change">Total units sold</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- <div class="card action-card">
   <div class="card-header">
     <h3>⚡ Daily Reconciliation</h3>
   </div>
@@ -104,156 +128,206 @@
     </p>
 
   </div> -->
-<!-- </div> -->
+    <!-- </div> -->
 
-  <div class="main-content-grid">
-      <div class="card report-card" *ngIf="reportData">
-        <div class="card-header">
-          <h3>📊 AI-Generated Stock Health Report</h3>
-          <p class="report-date">
-            Week of {{ reportData.report_period_start | date }} -
-            {{ reportData.report_period_end | date }}
-          </p>
-        </div>
-
-        <div class="card-body">
-          <div class="summary">
-            <h4>🧠 Summary</h4>
-            <p>{{ reportData.summary }}</p>
-          </div>
-
-          <div class="stock-movement" *ngIf="reportData.stock_movement">
-            <h4>📦 Stock Movement</h4>
-            <div class="movement-stats">
-              <div class="stat up">
-                <span>⬆️ Added</span>
-                <p>{{ reportData.stock_movement.total_items_added }}</p>
-              </div>
-              <div class="stat down">
-                <span>⬇️ Sold</span>
-                <p>{{ reportData.stock_movement.total_items_sold }}</p>
-              </div>
-              <div class="stat net">
-                <span>🔄 Net Change</span>
-                <p>{{ reportData.stock_movement.net_change }}</p>
-              </div>
+    <div class="main-content-grid">
+        <div class="card report-card" *ngIf="reportData">
+            <div class="card-header">
+                <h3>📊 AI-Generated Stock Health Report</h3>
+                <p class="report-date">
+                    Week of {{ reportData.report_period_start | date }} -
+                    {{ reportData.report_period_end | date }}
+                </p>
             </div>
-          </div>
 
-          <div
-            class="low-stock mt-2"
-            *ngIf="reportData.low_stock_items?.length"
-          >
-            <h4>⚠️ Low Stock Items</h4>
-            <ul>
-              <li *ngFor="let item of reportData.low_stock_items">
-                {{ item.product || "N/A" }} —
-                <strong
-                  [style.color]="
-                    item.current_quantity < item.threshold ? 'red' : 'green'
-                  "
+            <div class="card-body">
+                <div class="summary">
+                    <h4>🧠 Summary</h4>
+                    <p>{{ reportData.summary }}</p>
+                </div>
+
+                <div class="stock-movement" *ngIf="reportData.stock_movement">
+                    <h4>📦 Stock Movement</h4>
+                    <div class="movement-stats">
+                        <div class="stat up">
+                            <span>⬆️ Added</span>
+                            <p>
+                                {{
+                                    reportData.stock_movement.total_items_added
+                                }}
+                            </p>
+                        </div>
+                        <div class="stat down">
+                            <span>⬇️ Sold</span>
+                            <p>
+                                {{ reportData.stock_movement.total_items_sold }}
+                            </p>
+                        </div>
+                        <div class="stat net">
+                            <span>🔄 Net Change</span>
+                            <p>{{ reportData.stock_movement.net_change }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    class="low-stock mt-2"
+                    *ngIf="reportData.low_stock_items?.length"
                 >
-                  {{ item.current_quantity || "0" }}/{{ item.threshold || "0" }}
-                </strong>
-              </li>
-            </ul>
-          </div>
+                    <h4>⚠️ Low Stock Items</h4>
+                    <ul>
+                        <li *ngFor="let item of reportData.low_stock_items">
+                            {{ item.product || 'N/A' }} —
+                            <strong
+                                [style.color]="
+                                    item.current_quantity < item.threshold
+                                        ? 'red'
+                                        : 'green'
+                                "
+                            >
+                                {{ item.current_quantity || '0' }}/{{
+                                    item.threshold || '0'
+                                }}
+                            </strong>
+                        </li>
+                    </ul>
+                </div>
 
-          <div
-            class="mismatch mt-2"
-            *ngIf="reportData.mismatch_records?.length"
-          >
-            <h4>🚨 Mismatch Records</h4>
-            <ul>
-              <li *ngFor="let mismatch of reportData.mismatch_records">
-                {{ mismatch.product }} —
-                <span
-                  [ngClass]="{
-                    mismatch: mismatch.status === 'mismatch',
-                    missing: mismatch.status === 'missing_in_sales'
-                  }"
+                <div
+                    class="mismatch mt-2"
+                    *ngIf="reportData.mismatch_records?.length"
                 >
-                  {{ mismatch.status | titlecase }} (Difference:
-                  {{ mismatch.difference }})
-                </span>
-              </li>
-            </ul>
-          </div>
+                    <h4>🚨 Mismatch Records</h4>
+                    <ul>
+                        <li
+                            *ngFor="let mismatch of reportData.mismatch_records"
+                        >
+                            {{ mismatch.product }} —
+                            <span
+                                [ngClass]="{
+                                    mismatch: mismatch.status === 'mismatch',
+                                    missing:
+                                        mismatch.status === 'missing_in_sales',
+                                }"
+                            >
+                                {{ mismatch.status | titlecase }} (Difference:
+                                {{ mismatch.difference }})
+                            </span>
+                        </li>
+                    </ul>
+                </div>
 
-          <div
-            class="recommendations mt-2"
-            *ngIf="reportData.recommendations?.length"
-          >
-            <h4>💡 Recommendations</h4>
-            <ul>
-              <li *ngFor="let tip of reportData.recommendations">
-                ✅ {{ tip }}
-              </li>
-            </ul>
-          </div>
+                <div
+                    class="recommendations mt-2"
+                    *ngIf="reportData.recommendations?.length"
+                >
+                    <h4>💡 Recommendations</h4>
+                    <ul>
+                        <li *ngFor="let tip of reportData.recommendations">
+                            ✅ {{ tip }}
+                        </li>
+                    </ul>
+                </div>
+            </div>
         </div>
-      </div>
-    
 
-    <!-- Stock Management Section -->
-    <div class="card stock-management-card">
-      <div class="card-header">
-        <h3>Manage Stock</h3>
-      </div>
-      <div class="card-body">
-        <p class="form-instruction">
-          Add a new product or select one to update its stock and price.
-        </p>
-        <form [formGroup]="stockForm" (ngSubmit)="onSubmit()">
-          <div class="form-group">
-            <label for="existingProduct">Select Existing Product:</label>
-            <select
-              id="existingProduct"
-              formControlName="product_id"
-              [disabled]="stockForm.get('name')?.value"
-            >
-              <option value="">-- Choose to update --</option>
-              <option *ngFor="let p of products" [value]="p.id">
-                {{ p.name }}
-              </option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="productName">New Product Name:</label>
-            <input
-              id="productName"
-              type="text"
-              formControlName="name"
-              placeholder="e.g., Chocolate Fudge"
-            />
-          </div>
-          <div class="form-group" *ngIf="showUnitCostField">
-            <label for="unitCost">Unit Cost:</label>
-            <input
-              id="unitCost"
-              type="number"
-              formControlName="unit_cost"
-              placeholder="e.g., 3.00"
-            />
-          </div>
-          <div class="form-group">
-            <label for="quantity">Quantity:</label>
-            <input
-              id="quantity"
-              type="number"
-              formControlName="quantity"
-              placeholder="e.g., 100"
-            />
-          </div>
-          <div class="form-group">
-            <label for="unitPrice">Unit Price:</label>
-            <input
-              id="unitPrice"
-              type="number"
-              formControlName="unit_price"
-              placeholder="e.g., 4.50"
-            />
-          </div>
+        <!-- Stock Management Section -->
+        <div class="card stock-management-card">
+            <div class="card-header">
+                <h3>Manage Stock</h3>
+            </div>
+            <div class="card-body">
+                <p class="form-instruction">
+                    Add a new product or select one to update its stock and
+                    price.
+                </p>
+                <form [formGroup]="stockForm" (ngSubmit)="onSubmit()">
+                    <div class="form-group">
+                        <label for="existingProduct"
+                            >Select Existing Product:
+                        </label>
+                        <select
+                            id="existingProduct"
+                            formControlName="product_id"
+                            [disabled]="stockForm.get('name')?.value"
+                        >
+                            <option value="">-- Choose to update --</option>
+                            <option *ngFor="let p of products" [value]="p.id">
+                                {{ p.name }}
+                            </option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="productName">New Product Name: </label>
+                        <input
+                            id="productName"
+                            type="text"
+                            formControlName="name"
+                            placeholder="e.g., Chocolate Fudge"
+                        />
+                    </div>
+                    <div class="form-group">
+                        <label>Unit Type <span class="required">*</span></label>
+                        <select id="unitType" formControlName="unit_type">
+                            <option value="kg">Kilograms (kg)</option>
+                            <option value="box">Box / Carton</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="unitCost"
+                            >Cost of One unit:
+                            <span class="required">*</span>
+                        </label>
+                        <input
+                            id="unitCost"
+                            type="number"
+                            formControlName="unit_cost"
+                            placeholder="e.g., 3.00"
+                        />
+                    </div>
+                    <div class="form-group">
+                        <label for="quantity">
+                            Quantity:
+                            <span class="required">*</span></label
+                        >
+                        <input
+                            id="quantity"
+                            type="number"
+                            formControlName="quantity"
+                            placeholder="e.g., 100"
+                        />
+                    </div>
+
+                    <div
+                        class="form-group"
+                        *ngIf="stockForm.value.unit_type === 'box'"
+                    >
+                        <label
+                            >Total Weight (from Invoice)
+                            <span class="required">*</span></label
+                        >
+                        <input
+                            id="totalWeight"
+                            type="number"
+                            formControlName="total_weight"
+                            placeholder="e.g. 205.5"
+                        />
+                        <small class="hint"
+                            >Please enter the exact total weight in KG.</small
+                        >
+                    </div>
+                    <div class="form-group">
+                        <label for="unitPrice"
+                            >How much should 1kg be sold for? :</label
+                        >
+                        <input
+                            id="unitPrice"
+                            type="number"
+                            formControlName="unit_price"
+                            placeholder="e.g., 4.50"
+                        />
+                    </div>
+                    <!-- 
           <div class="form-group">
             <label for="totalCost">Total Cost:</label>
             <input
@@ -269,75 +343,86 @@
             formControlName="recorded_by"
             value="{{ email }}"
             hidden
-          />
-          <button
-            type="submit"
-            class="submit-btn"
-            [disabled]="!stockForm.valid"
-          >
-            Record Stock
-          </button>
-        </form>
-      </div>
-    </div>
-
-    <!-- Sales Person Management Section -->
-    <div class="card sales-person-card">
-      <div class="card-header">
-        <h3>Manage Sales Persons</h3>
-      </div>
-      <div class="card-body">
-        <p class="form-instruction">
-          Create a new account for a sales person. Their default password is
-          &#64;password.
-        </p>
-        <!-- Assume you have a 'salesPersonForm' FormGroup in your component -->
-        <form [formGroup]="salesPersonForm" (ngSubmit)="createSalesPerson()">
-          <div class="form-group">
-            <label for="salesPersonName">Full Name:</label>
-            <input
-              id="salesPersonName"
-              type="text"
-              formControlName="name"
-              placeholder="e.g., Jane Doe"
-            />
-          </div>
-          <div class="form-group">
-            <label for="salesPersonEmail">Email:</label>
-            <input
-              id="salesPersonEmail"
-              type="email"
-              formControlName="email"
-              placeholder="e.g., jane.doe@example.com"
-            />
-          </div>
-
-          <button
-            type="submit"
-            class="submit-btn"
-            [disabled]="!salesPersonForm.valid"
-          >
-            Create Account
-          </button>
-        </form>
-      </div>
-    </div>
-
-    <!-- Current Stock Overview -->
-    <div class="card stock-overview-card">
-      <div class="card-header">
-        <h3>Current Stock Levels</h3>
-      </div>
-      <div class="card-body stock-list">
-        <div
-          class="stock-item"
-          *ngFor="let product of products; trackBy: trackByProductId"
-        >
-          <span class="product-name">{{ product.name || 'N/A' }}</span>
-          <span class="product-unit">{{ product.unit }} units</span>
+          /> -->
+                    <button
+                        type="submit"
+                        class="submit-btn"
+                        [disabled]="!stockForm.valid"
+                    >
+                        Record Stock
+                    </button>
+                </form>
+            </div>
         </div>
-        <p *ngIf="!products?.length">No products currently in stock.</p>
-      </div>
+
+        <!-- Sales Person Management Section -->
+        <div class="card sales-person-card">
+            <div class="card-header">
+                <h3>Manage Sales Persons</h3>
+            </div>
+            <div class="card-body">
+                <p class="form-instruction">
+                    Create a new account for a sales person. Their default
+                    password is &#64;password.
+                </p>
+                <!-- Assume you have a 'salesPersonForm' FormGroup in your component -->
+                <form
+                    [formGroup]="salesPersonForm"
+                    (ngSubmit)="createSalesPerson()"
+                >
+                    <div class="form-group">
+                        <label for="salesPersonName"
+                            >Full Name:
+                            <span class="required">*</span>
+                        </label>
+                        <input
+                            id="salesPersonName"
+                            type="text"
+                            formControlName="name"
+                            placeholder="e.g., Jane Doe"
+                        />
+                    </div>
+                    <div class="form-group">
+                        <label for="salesPersonEmail"
+                            >Email:
+                            <span class="required">*</span>
+                        </label>
+                        <input
+                            id="salesPersonEmail"
+                            type="email"
+                            formControlName="email"
+                            placeholder="e.g., jane.doe@example.com"
+                        />
+                    </div>
+
+                    <button
+                        type="submit"
+                        class="submit-btn"
+                        [disabled]="!salesPersonForm.valid"
+                    >
+                        Create Account
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Current Stock Overview -->
+        <div class="card stock-overview-card">
+            <div class="card-header">
+                <h3>Current Stock Levels</h3>
+            </div>
+            <div class="card-body stock-list">
+                <div
+                    class="stock-item"
+                    *ngFor="let product of products; trackBy: trackByProductId"
+                >
+                    <span class="product-name">{{
+                        product.name || 'N/A'
+                    }}</span>
+                    <span class="product-unit">{{ product.unit }} units</span>
+                </div>
+                <p *ngIf="!products?.length">No products currently in stock.</p>
+            </div>
+        </div>
     </div>
-  </div>
 </div>

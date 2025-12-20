@@ -1,37 +1,56 @@
 <div class="login-page">
-  <div class="login-container">
-    <!-- Left Side: Branding and Scripture -->
-    <div class="branding-section">
-      <div class="logo">Frostflow</div>
-      <div class="scripture-container">
-        <!-- <p class="scripture-text">"{{ currentScripture.text }}"</p>
+    <div class="login-container">
+        <!-- Left Side: Branding and Scripture -->
+        <div class="branding-section">
+            <div class="logo">Frostflow</div>
+            <div class="scripture-container">
+                <!-- <p class="scripture-text">"{{ currentScripture.text }}"</p>
         <p class="scripture-verse">{{ currentScripture.verse }}</p> -->
-      </div>
-    </div>
-
-    <!-- Right Side: Login Form -->
-    <div class="login-section">
-      <div class="login-form-card">
-        <h2>Welcome Back</h2>
-        <p>Please enter your details to sign in.</p>
-
-        <div class="form-group">
-          <label for="email">Email</label>
-          <input id="email" type="email" placeholder="you@example.com" [formControl]="email">
+            </div>
         </div>
 
-        <div class="form-group">
-          <label for="password">Password</label>
-          <div class="password-input-container">
-            <input id="password" [type]="passwordVisible ? 'text' : 'password'" placeholder="Enter your password" [formControl]="password">
-            <span class="password-toggle" (click)="togglePasswordVisibility()">
-              <i class="fa" [class.fa-eye]="!passwordVisible" [class.fa-eye-slash]="passwordVisible"></i>
-            </span>
-          </div>
-        </div>
+        <!-- Right Side: Login Form -->
+        <div class="login-section">
+            <div class="login-form-card">
+                <h2>Welcome Back</h2>
+                <p>Please enter your details to sign in.</p>
 
-        <button class="login-btn" type="button" (click)="handleLogin()">Login</button>
-      </div>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input
+                        id="email"
+                        type="email"
+                        placeholder="you@example.com"
+                        [formControl]="email"
+                    />
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="password-input-container">
+                        <input
+                            id="password"
+                            [type]="passwordVisible ? 'text' : 'password'"
+                            placeholder="Enter your password"
+                            [formControl]="password"
+                        />
+                        <span
+                            class="password-toggle"
+                            (click)="togglePasswordVisibility()"
+                        >
+                            <i
+                                class="fa"
+                                [class.fa-eye]="!passwordVisible"
+                                [class.fa-eye-slash]="passwordVisible"
+                            ></i>
+                        </span>
+                    </div>
+                </div>
+
+                <button class="login-btn" type="button" (click)="handleLogin()">
+                    Login
+                </button>
+            </div>
+        </div>
     </div>
-  </div>
 </div>
