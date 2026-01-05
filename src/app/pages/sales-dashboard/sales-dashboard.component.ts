@@ -26,6 +26,10 @@ export class SalesDashboardComponent {
         totalSalesValue: 0,
         totalUnitsSold: 0,
     }
+    todaySalesMetrics = {
+        todaySalesValue: 0,
+        todayUnitsSold: 0,
+    }
     private productSubscription: any
     paymentMethods: string[] = ['Cash', 'Card', 'Transfer']
     public name: string = localStorage.getItem('user_name') || ''
@@ -60,6 +64,7 @@ export class SalesDashboardComponent {
 
     async ngOnInit(): Promise<void> {
         this.salesMetrics = await this.supabase.getSalesDashboardMetrics()
+        this.todaySalesMetrics = await this.supabase.getTodaySalesMetrics()
         this.loadProducts()
         this.setupFormListeners()
         this.productSubscription = this.supabase.subscribeToProductChanges(
@@ -98,20 +103,8 @@ export class SalesDashboardComponent {
 
     async loadProducts() {
         this.products = await this.supabase.getProducts()
-    }
-
-    onSubmit() {
-        if (this.salesForm.valid) {
-            this.n8n.sendSalesStock(this.salesForm.value)
-            this.toast.show('Stock recorded successfully!', 'success')
-        } else {
-            this.toast.show('Please fill the form correctly', 'error')
-        }
-        // Reset form with initial values to keep it valid for next submission
-        this.salesForm.reset({
-            recorded_by: this.id,
-            unit_type: 'kg',
-        })
+        this.salesMetrics = await this.supabase.getSalesDashboardMetrics()
+        this.todaySalesMetrics = await this.supabase.getTodaySalesMetrics()
     }
 
     onSalesRecordSubmit() {

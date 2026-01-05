@@ -1,0 +1,130 @@
+:host {
+    display: block;
+    height: 100%;
+}
+
+.sidebar-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 24px;
+    background-color: #ffffff;
+    font-family: 'Inter', sans-serif;
+}
+
+/* Header */
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 32px;
+    padding-left: 8px;
+}
+
+.logo-box {
+    width: 40px;
+    height: 40px;
+    background-color: #137fec;
+    /* Primary Blue */
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.logo-icon {
+    font-size: 24px;
+}
+
+.brand-text h1 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+    /* Slate 900 */
+    margin: 0;
+    line-height: 1.2;
+}
+
+.brand-text p {
+    font-size: 12px;
+    color: #64748b;
+    /* Slate 500 */
+    margin: 0;
+}
+
+/* Navigation */
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex-grow: 1;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: #64748b;
+    /* Slate 500 */
+    transition: all 0.2s ease;
+}
+
+.nav-item:hover {
+    background-color: #f1f5f9;
+    /* Slate 100 */
+    color: #0f172a;
+}
+
+.nav-item.active {
+    background-color: #eff6ff;
+    /* Blue 50 */
+    color: #137fec;
+    /* Primary Blue */
+}
+
+.nav-icon {
+    font-size: 20px;
+}
+
+.nav-text {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.nav-divider {
+    height: 1px;
+    background-color: #e2e8f0;
+    /* Slate 200 */
+    margin: 16px 0;
+}
+
+/* Footer */
+.sidebar-footer {
+    padding-top: 16px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.collapse-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 12px 16px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #64748b;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+}
+
+.collapse-btn:hover {
+    background-color: #f1f5f9;
+    color: #0f172a;
+}

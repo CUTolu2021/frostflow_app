@@ -1,0 +1,286 @@
+<div class="products-page">
+    <!-- Header -->
+    <div class="page-header">
+        <div>
+            <div class="breadcrumb">Dashboard / Products</div>
+            <h1 class="page-title">Products Catalog</h1>
+            <p class="page-subtitle">Manage your inventory, prices, and product details.</p>
+        </div>
+        <button *ngIf="viewMode === 'admin'" (click)="openAddModal()" class="btn btn-primary">
+            <span class="material-symbols-outlined">add</span>
+            Add Product
+        </button>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-content">
+                <p class="stat-label">Total Products</p>
+                <h3 class="stat-value">{{totalProducts}}</h3>
+                <span class="stat-badge badge-green">
+                    +5%
+                </span>
+            </div>
+            <div class="stat-icon icon-blue">
+                <span class="material-symbols-outlined">inventory_2</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-content">
+                <p class="stat-label">Low Stock</p>
+                <h3 class="stat-value">{{lowStock}}</h3>
+                <span class="stat-badge badge-amber">
+                    Attention
+                </span>
+            </div>
+            <div class="stat-icon icon-amber">
+                <span class="material-symbols-outlined">warning</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-content">
+                <p class="stat-label">Out of Stock</p>
+                <h3 class="stat-value">{{outOfStock}}</h3>
+                <span class="stat-badge badge-slate">
+                    No change
+                </span>
+            </div>
+            <div class="stat-icon icon-red">
+                <span class="material-symbols-outlined">remove_shopping_cart</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-content">
+                <p class="stat-label">Categories</p>
+                <h3 class="stat-value">{{categoriesCount}}</h3>
+                <span class="stat-badge badge-green">
+                    +1%
+                </span>
+            </div>
+            <div class="stat-icon icon-purple">
+                <span class="material-symbols-outlined">category</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters & Table -->
+    <div class="table-container">
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <div class="search-wrapper">
+                <span class="material-symbols-outlined search-icon">search</span>
+                <input type="text" (input)="onSearch($event)" placeholder="Search products, SKU, or category..."
+                    class="search-input">
+            </div>
+
+            <div class="actions-group">
+                <button class="btn btn-outline">
+                    <span class="material-symbols-outlined">filter_list</span>
+                    Filter
+                </button>
+                <button class="btn btn-outline">
+                    <span class="material-symbols-outlined">download</span>
+                    Export
+                </button>
+            </div>
+        </div>
+
+        <!-- Table (Desktop) -->
+        <div class="table-responsive desktop-view">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th class="w-checkbox">
+                            <input type="checkbox">
+                        </th>
+                        <th>Product</th>
+                        <th>Category</th>
+                        <th>Status</th>
+                        <th>Price</th>
+                        <th class="actions-col">
+                            <span class="sr-only">Actions</span>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let product of filteredProducts">
+                        <td>
+                            <input type="checkbox">
+                        </td>
+                        <td>
+                            <div class="product-cell">
+                                <div class="product-image">
+                                    <span class="material-symbols-outlined" *ngIf="!product.image_url">image</span>
+                                    <img *ngIf="product.image_url" [src]="product.image_url" alt="">
+                                </div>
+                                <div class="product-info">
+                                    <div class="product-name">{{product.name}}</div>
+                                    <div class="product-unit">Unit: {{product.base_unit}}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="category-badge">
+                                {{product.category || 'Uncategorized'}}
+                            </span>
+                        </td>
+                        <td>
+                            <!-- Status Badges Logic -->
+                            <span *ngIf="(product.unit ?? 0) > 10" class="status-badge status-instock">
+                                <span class="status-dot"></span>
+                                In Stock ({{product.unit ?? 'N/A'}})
+                            </span>
+                            <span *ngIf="(product.unit ?? 0) <= 10 && (product.unit ?? 0) > 0"
+                                class="status-badge status-lowstock">
+                                <span class="status-dot"></span>
+                                Low Stock ({{product.unit}})
+                            </span>
+                            <span *ngIf="(product.unit ?? 0) === 0" class="status-badge status-outstock">
+                                <span class="status-dot"></span>
+                                Out of Stock
+                            </span>
+                        </td>
+                        <td class="price-cell">
+                            {{product.unit_price | currency: '₦'}}
+                        </td>
+                        <td class="actions-cell">
+                            <button (click)="openEditModal(product)" class="action-btn edit-btn">Edit</button>
+                            <button *ngIf="viewMode === 'admin'" (click)="deleteProduct(product.id)"
+                                class="action-btn delete-btn">Delete</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Mobile Card View -->
+        <div class="mobile-view mobile-product-list">
+            <div *ngFor="let product of filteredProducts" class="product-card">
+                <div class="card-header">
+                    <div class="product-cell">
+                        <div class="product-image">
+                            <span class="material-symbols-outlined" *ngIf="!product.image_url">image</span>
+                            <img *ngIf="product.image_url" [src]="product.image_url" alt="">
+                        </div>
+                        <div class="product-info">
+                            <div class="product-name">{{product.name}}</div>
+                            <span class="category-badge">{{product.category || 'Uncategorized'}}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <div class="info-row">
+                        <span class="label">Price:</span>
+                        <span class="value price">{{product.unit_price | currency: '₦'}}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Unit:</span>
+                        <span class="value">{{product.base_unit}}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Status:</span>
+                        <span *ngIf="(product.unit ?? 0) > 10" class="status-badge status-instock">
+                            In Stock ({{product.unit}})
+                        </span>
+                        <span *ngIf="(product.unit ?? 0) <= 10 && (product.unit ?? 0) > 0"
+                            class="status-badge status-lowstock">
+                            Low Stock ({{product.unit}})
+                        </span>
+                        <span *ngIf="(product.unit ?? 0) === 0" class="status-badge status-outstock">
+                            Out of Stock
+                        </span>
+                    </div>
+                </div>
+
+                <div class="card-footer">
+                    <button (click)="openEditModal(product)" class="btn btn-outline btn-sm">Edit</button>
+                    <button *ngIf="viewMode === 'admin'" (click)="deleteProduct(product.id)"
+                        class="btn btn-outline btn-sm text-red-600">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div *ngIf="showModal" class="modal-overlay" (click)="closeModal()">
+    <div class="modal-container" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+            <h3 class="modal-title">
+                {{ isEditing ? (viewMode === 'lookup' ? 'Update Price' : 'Edit Product') : 'Add New Product' }}
+            </h3>
+        </div>
+
+        <div class="modal-body">
+            <form [formGroup]="productForm" class="form-grid">
+                <!-- Standard Fields -->
+                <div class="form-group full-width">
+                    <label>Name</label>
+                    <input type="text" formControlName="name" class="form-input">
+                </div>
+
+                <div class="form-group">
+                    <label>Selling Price</label>
+                    <input type="number" formControlName="unit_price" class="form-input" min="0">
+                </div>
+
+                <div class="form-group">
+                    <label>Category</label>
+                    <input type="text" formControlName="category" class="form-input" placeholder="e.g. Frozen Food">
+                </div>
+
+                <div class="divider full-width"></div>
+
+                <!-- Unit Strategy Logic -->
+                <h4 class="section-title full-width">Unit Strategy</h4>
+
+                <div class="form-group full-width">
+                    <label>Base Unit</label>
+                    <select formControlName="base_unit" class="form-select">
+                        <option value="kg">KG</option>
+                        <option value="liters">Liters</option>
+                        <option value="pcs">Pieces</option>
+                        <option value="box">Box</option>
+                    </select>
+                </div>
+
+                <div class="form-group checkbox-group full-width">
+                    <input type="checkbox" formControlName="is_box_sold" id="is_box_sold">
+                    <label for="is_box_sold">Sold in Boxes/Cartons?</label>
+                </div>
+
+                <!-- Only show if Box Sold is Checked -->
+                <div *ngIf="productForm.get('is_box_sold')?.value" class="box-logic-group full-width">
+                    <div class="form-group checkbox-group">
+                        <input type="checkbox" formControlName="is_variable_weight" id="is_variable_weight">
+                        <label for="is_variable_weight">Variable Weight? (e.g. Fish cartons vary in size)</label>
+                    </div>
+
+                    <!-- If Standard Weight -->
+                    <div *ngIf="!productForm.get('is_variable_weight')?.value" class="form-group">
+                        <label>Standard Box Weight (kg)</label>
+                        <input type="number" formControlName="standard_box_weight" class="form-input"
+                            placeholder="e.g. 20" min="0">
+                    </div>
+
+                    <!-- If Variable Weight -->
+                    <div *ngIf="productForm.get('is_variable_weight')?.value" class="warning-box">
+                        <span class="material-symbols-outlined">info</span>
+                        <p>Staff will be required to weigh every box during sale/entry.</p>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+
+        <div class="modal-footer">
+            <button type="button" (click)="saveProduct()" class="btn btn-primary">Save</button>
+            <button type="button" (click)="closeModal()" class="btn btn-outline">Cancel</button>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,97 @@
+<div class="mobile-page-container">
+
+    <!-- Header -->
+    <div class="page-header bg-blue">
+        <h1 class="text-xl font-bold text-white flex items-center gap-2">
+            <span class="material-symbols-outlined">local_shipping</span>
+            Receive Stock
+        </h1>
+        <p class="text-xs text-blue-100 opacity-90">Enter exactly what you count off the truck.</p>
+    </div>
+
+    <div class="content-body">
+
+        <!-- STEP 1: Product Selection -->
+        <div class="form-section">
+            <label class="section-label">What arrived?</label>
+            <select [(ngModel)]="receiveForm.product" (change)="onProductSelect()" class="input-lg dropdown">
+                <option [ngValue]="null">Select Product...</option>
+                <option *ngFor="let p of products" [ngValue]="p">{{ p.name }}</option>
+            </select>
+        </div>
+
+        <!-- STEP 2: The Counter (Only shows if product selected) -->
+        <div *ngIf="receiveForm.product" class="animate-fade-in space-y-6">
+
+            <!-- Unit Selection / Lock -->
+            <div class="unit-selector-box">
+                <span class="label-tiny">Counting Unit</span>
+
+                <!-- Normal Item: Toggle allowed -->
+                <div *ngIf="!receiveForm.product.is_variable_weight" class="toggle-row">
+                    <button (click)="receiveForm.unit='box'" [class.active]="receiveForm.unit=='box'" class="unit-btn">
+                        📦 Boxes
+                    </button>
+                    <button (click)="receiveForm.unit='kg'" [class.active]="receiveForm.unit=='kg'" class="unit-btn">
+                        ⚖️ KG
+                    </button>
+                </div>
+
+                <!-- Variable Weight Item: LOCKED -->
+                <div *ngIf="receiveForm.product.is_variable_weight" class="locked-msg">
+                    <span class="material-symbols-outlined icon">lock</span>
+                    <span>Box Count Only</span>
+                </div>
+            </div>
+
+            <!-- Main Quantity Input -->
+            <div class="form-section">
+                <label class="section-label">Quantity Counted</label>
+                <input type="number" [(ngModel)]="receiveForm.qty" class="input-giant" placeholder="0" min="0">
+            </div>
+
+            <!-- Damaged Goods Logic -->
+            <div class="damages-section">
+                <div class="checkbox-row">
+                    <input type="checkbox" [(ngModel)]="receiveForm.hasDamages" id="damages" class="checkbox-lg">
+                    <label for="damages" class="label-danger">Some items are damaged?</label>
+                </div>
+
+                <div *ngIf="receiveForm.hasDamages" class="damage-input-box animate-fade-in">
+                    <label class="label-tiny text-red">Damaged Quantity</label>
+                    <input type="number" [(ngModel)]="receiveForm.damagedQty" class="input-md border-red"
+                        placeholder="How many?" min="0">
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button (click)="submitReceive()" [disabled]="isLoading" class="btn-submit">
+                <span *ngIf="!isLoading">Confirm Receipt</span>
+                <span *ngIf="isLoading">Saving...</span>
+            </button>
+
+        </div>
+
+        <!-- Recent Entries (Read Only) -->
+        <div class="recent-list-section">
+            <div class="list-header">
+                <h3>Recent Entries</h3>
+                <span class="badge">Mine</span>
+            </div>
+
+            <div class="entry-list">
+                <div *ngFor="let entry of recentEntries" class="entry-item">
+                    <div class="entry-info">
+                        <span class="entry-name">{{ entry.products?.name }}</span>
+                        <span class="entry-time">{{ entry.created_at | date: 'short' }}</span>
+                    </div>
+                    <div class="entry-qty">
+                        +{{ entry.quantity }} {{ entry.unit_type }}
+                    </div>
+                </div>
+                <div *ngIf="recentEntries.length === 0" class="empty-text">No entries today yet.</div>
+            </div>
+        </div>
+
+    </div>
+</div>

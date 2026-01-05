@@ -1,0 +1,533 @@
+<div class="dashboard-page">
+
+    <!-- Top Header -->
+    <header class="page-header">
+        <div class="header-left">
+            <div class="breadcrumb">Admin / Analytics</div>
+            <h1 class="page-title">Reports & Analytics</h1>
+        </div>
+        <div class="header-actions">
+            <div class="date-picker-mock">
+                <span class="material-symbols-outlined">calendar_today</span>
+                <span>{{ formattedDate }}</span>
+            </div>
+            <button class="btn btn-primary" (click)="loadMetrics()">
+                <span class="material-symbols-outlined">refresh</span>
+                Refresh
+            </button>
+        </div>
+    </header>
+
+    <!-- Content Area -->
+    <div class="content-wrapper">
+
+        <!-- Tabs -->
+        <div class="tabs-header">
+            <button class="tab-btn" [class.active]="activeTab === 'overview'" (click)="setActiveTab('overview')">
+                <span class="material-symbols-outlined">bar_chart</span>
+                Overview
+            </button>
+            <button class="tab-btn" [class.active]="activeTab === 'ai'" (click)="setActiveTab('ai')">
+                <span class="material-symbols-outlined">psychology</span>
+                AI Insights
+            </button>
+            <button class="tab-btn" [class.active]="activeTab === 'history'" (click)="setActiveTab('history')">
+                <span class="material-symbols-outlined">receipt_long</span>
+                Sales History
+            </button>
+            <button class="tab-btn" [class.active]="activeTab === 'expenses'" (click)="setActiveTab('expenses')">
+                <span class="material-symbols-outlined">payments</span>
+                Expenses
+            </button>
+        </div>
+
+        <!-- TAB: OVERVIEW -->
+        <div class="tab-content" *ngIf="activeTab === 'overview'">
+
+            <!-- KPI Grid -->
+            <div class="kpi-grid">
+                <!-- Card 1: Revenue -->
+                <div class="kpi-card">
+                    <div class="kpi-top">
+                        <span class="kpi-label">Total Revenue</span>
+                        <span class="badge badge-green">
+                            <span class="material-symbols-outlined text-xs">trending_up</span>
+                            Live
+                        </span>
+                    </div>
+                    <h3 class="kpi-value">{{ salesMetrics.totalSalesValue | currency:'NGN':'symbol-narrow' }}</h3>
+                    <p class="kpi-sub">Total recorded sales</p>
+                </div>
+
+                <!-- Card 2: Units Sold -->
+                <div class="kpi-card">
+                    <div class="kpi-top">
+                        <span class="kpi-label">Units Sold</span>
+                        <span class="badge badge-blue">
+                            <span class="material-symbols-outlined text-xs">inventory_2</span>
+                        </span>
+                    </div>
+                    <h3 class="kpi-value">{{ salesMetrics.totalUnitsSold }}</h3>
+                    <p class="kpi-sub">Items moved</p>
+                </div>
+
+                <!-- Card 3: Stock Value -->
+                <div class="kpi-card">
+                    <div class="kpi-top">
+                        <span class="kpi-label">Inventory Value</span>
+                    </div>
+                    <h3 class="kpi-value">{{ metrics.totalValue | currency:'NGN':'symbol-narrow' }}</h3>
+                    <p class="kpi-sub">Current assets on hand</p>
+                </div>
+
+                <!-- Card 4: Low Stock -->
+                <div class="kpi-card">
+                    <div class="kpi-top">
+                        <span class="kpi-label">Stock Health</span>
+                        <span class="badge badge-red" *ngIf="metrics.lowStock > 0">Alert</span>
+                    </div>
+                    <h3 class="kpi-value">{{ metrics.lowStock }}</h3>
+                    <p class="kpi-sub">Items with low stock</p>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="chart-section">
+                <!-- Revenue Chart Mock -->
+                <div class="chart-card main-chart">
+                    <div class="chart-header">
+                        <h3>Sales Transactions</h3>
+                        <p>Revenue flow over time</p>
+                    </div>
+                    <div class="chart-body placeholder-chart">
+                        <!-- Visual representation of the SVG from design -->
+                        <svg class="w-full h-full" preserveAspectRatio="none" viewBox="0 0 800 200">
+                            <defs>
+                                <linearGradient id="gradientPrimary" x1="0" x2="0" y1="0" y2="1">
+                                    <stop offset="0%" stop-color="#137fec" stop-opacity="0.2"></stop>
+                                    <stop offset="100%" stop-color="#137fec" stop-opacity="0"></stop>
+                                </linearGradient>
+                            </defs>
+                            <!-- Grid -->
+                            <line x1="0" y1="50" x2="800" y2="50" stroke="#e2e8f0" stroke-dasharray="4" />
+                            <line x1="0" y1="100" x2="800" y2="100" stroke="#e2e8f0" stroke-dasharray="4" />
+                            <line x1="0" y1="150" x2="800" y2="150" stroke="#e2e8f0" stroke-dasharray="4" />
+                            <!-- Path -->
+                            <path
+                                d="M0,150 C100,100 200,160 300,80 C400,20 500,60 600,40 C700,20 750,90 800,60 L800,200 L0,200 Z"
+                                fill="url(#gradientPrimary)"></path>
+                            <path d="M0,150 C100,100 200,160 300,80 C400,20 500,60 600,40 C700,20 750,90 800,60"
+                                fill="none" stroke="#137fec" stroke-width="3"></path>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Recommendations (Replacing Categories) -->
+                <div class="chart-card category-chart">
+                    <div class="chart-header">
+                        <h3>AI Recommendations</h3>
+                        <p>Smart actions for your store</p>
+                    </div>
+                    <div class="recommendation-list" *ngIf="recommendations.length > 0; else noRecs">
+                        <div class="rec-item" *ngFor="let rec of recommendations | slice:0:4">
+                            <span class="material-symbols-outlined icon-bulb">lightbulb</span>
+                            <p>{{ rec }}</p>
+                        </div>
+                    </div>
+                    <ng-template #noRecs>
+                        <div class="empty-state-small">
+                            <p>No recommendations available.</p>
+                        </div>
+                    </ng-template>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: AI INSIGHTS -->
+        <div class="tab-content" *ngIf="activeTab === 'ai'">
+            <div class="ai-report-container" *ngIf="aiReport; else noReport">
+                <!-- Header -->
+                <div class="report-header">
+                    <div class="icon-box">
+                        <span class="material-symbols-outlined">auto_awesome</span>
+                    </div>
+                    <div>
+                        <h2>AI Stock Health Report</h2>
+                        <p class="text-sm text-muted"> Period: {{ aiReport.report_period_start | date:'MMM d' }} - {{
+                            aiReport.report_period_end | date:'MMM d' }}</p>
+                    </div>
+                </div>
+
+                <!-- Summary Section -->
+                <div class="report-section summary-box">
+                    <h3>Executive Summary</h3>
+                    <p>{{ aiReport.summary }}</p>
+                </div>
+
+                <!-- Metrics Grid -->
+                <div class="report-metrics-grid" *ngIf="aiReport.stock_movement">
+                    <div class="metric-box bg-green-50">
+                        <span class="label">Total Items Added</span>
+                        <span class="value text-green">+{{ aiReport.stock_movement.total_items_added }}</span>
+                    </div>
+                    <div class="metric-box bg-blue-50">
+                        <span class="label">Total Items Sold</span>
+                        <span class="value text-blue">-{{ aiReport.stock_movement.total_items_sold }}</span>
+                    </div>
+                    <div class="metric-box bg-yellow-50" *ngIf="aiReport.mismatch_records">
+                        <span class="label">Discrepancies</span>
+                        <span class="value text-yellow">{{ aiReport.mismatch_records.length }}</span>
+                    </div>
+                </div>
+
+                <!-- Actions & Mismatches -->
+                <div class="report-columns">
+                    <!-- Recommendations -->
+                    <div class="col" *ngIf="aiReport.recommendations?.length">
+                        <h4>💡 Strategic Recommendations</h4>
+                        <ul class="styled-list check-list">
+                            <li *ngFor="let tip of aiReport.recommendations">{{ tip }}</li>
+                        </ul>
+                    </div>
+
+                    <!-- Mismatches -->
+                    <div class="col" *ngIf="aiReport.mismatch_records?.length">
+                        <h4>⚠️ Discrepancy Alerts</h4>
+                        <ul class="styled-list alert-list">
+                            <li *ngFor="let m of aiReport.mismatch_records">
+                                <div class="alert-item">
+                                    <strong>{{ m.product }}</strong>
+                                    <span class="diff-tag">{{ m.difference }} diff</span>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+            </div>
+            <ng-template #noReport>
+                <div class="empty-state">
+                    <span class="material-symbols-outlined icon-lg">smart_toy</span>
+                    <p>No AI analysis generated yet.</p>
+                </div>
+            </ng-template>
+        </div>
+
+        <!-- TAB: HISTORY LOGS (SALES LEDGER) -->
+        <div class="tab-content" *ngIf="activeTab === 'history'">
+
+            <!-- 1. Financial Snapshot Cards -->
+            <div class="financial-cards-row">
+                <div class="fin-card bg-blue-50 border-blue-200">
+                    <span class="label text-blue-800">Total Revenue</span>
+                    <span class="value text-blue-900">{{ financials.totalRevenue | currency:'NGN':'symbol-narrow'
+                        }}</span>
+                    <span class="sub text-blue-600">{{ groupedSales.length }} Transactions</span>
+                </div>
+
+                <div class="fin-card bg-green-50 border-green-200">
+                    <span class="label text-green-800">💵 Cash at Hand</span>
+                    <span class="value text-green-900">{{ financials.cashAtHand | currency:'NGN':'symbol-narrow'
+                        }}</span>
+                    <span class="sub text-green-600">Must match drawer</span>
+                </div>
+
+                <div class="fin-card bg-indigo-50 border-indigo-200">
+                    <span class="label text-indigo-800">🏦 Bank/Transfer</span>
+                    <span class="value text-indigo-900">{{ financials.bankTransfer | currency:'NGN':'symbol-narrow'
+                        }}</span>
+                    <span class="sub text-indigo-600">Check app/POS</span>
+                </div>
+
+                <!-- Optional Credit Card if needed -->
+            </div>
+
+            <div class="table-card mt-6">
+                <!-- 2. Filters & Toolbar -->
+                <div class="card-header-row toolbar-wrap">
+                    <div class="filters-group">
+                        <!-- Date -->
+                        <div class="filter-item">
+                            <label>Date:</label>
+                            <input type="month" [(ngModel)]="filters.date" (change)="loadHistory()"
+                                class="form-input-sm">
+                        </div>
+
+                        <!-- Staff -->
+                        <div class="filter-item">
+                            <select [(ngModel)]="filters.staff" (change)="loadHistory()" class="form-select-sm">
+                                <option value="all">All Staff</option>
+                                <option *ngFor="let s of staffList" [value]="s.id">{{ s.name }}</option>
+                            </select>
+                        </div>
+
+                        <!-- Method -->
+                        <div class="filter-item">
+                            <select [(ngModel)]="filters.payment" (change)="loadHistory()" class="form-select-sm">
+                                <option value="all">All Methods</option>
+                                <option value="cash">Cash</option>
+                                <option value="transfer">Transfer</option>
+                                <option value="card">POS/Card</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- <button class="btn-sm btn-outline">
+                        <span class="material-symbols-outlined">download</span> Export
+                    </button> -->
+                </div>
+
+                <!-- 3. Invoice Table -->
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Receipt #</th>
+                            <th>Staff</th>
+                            <th>Items Summary</th>
+                            <th class="text-right">Total Amount</th>
+                            <th class="text-center">Method</th>
+                            <th class="text-center">Status</th>
+                            <th class="text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let sale of groupedSales" (click)="viewReceipt(sale)"
+                            class="cursor-pointer hover-bg">
+                            <td class="text-muted">{{ sale.time }}</td>
+                            <td class="font-mono text-primary font-bold">{{ sale.invoice_id }}</td>
+                            <td>
+                                <div class="flex items-center gap-2">
+
+                                    <span class="text-sm">{{ sale.staff_name }}</span>
+                                </div>
+                            </td>
+                            <td class="text-truncate max-w-200" title="{{sale.item_summary}}">
+                                {{ sale.item_summary }}
+                            </td>
+                            <td class="text-right font-bold text-lg">
+                                {{ sale.total | currency:'NGN':'symbol-narrow' }}
+                            </td>
+                            <td class="text-center">
+                                <span class="badge" [class.badge-green]="sale.payment_method === 'cash'"
+                                    [class.badge-blue]="sale.payment_method === 'transfer' || sale.payment_method === 'card'">
+                                    {{ sale.payment_method | uppercase }}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <span
+                                    *ngIf="sale.status === 'void' || sale.status === 'voided' || sale.status === 'rejected'"
+                                    class="badge badge-red">VOIDED</span>
+                                <span
+                                    *ngIf="sale.status !== 'void' && sale.status !== 'voided' && sale.status !== 'rejected'"
+                                    class="badge badge-gray text-xs">OK</span>
+                            </td>
+                            <td class="text-center">
+                                <button class="btn-icon">
+                                    <span class="material-symbols-outlined">visibility</span>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr *ngIf="groupedSales.length === 0">
+                            <td colspan="8" class="text-center py-8 text-muted">
+                                No sales found for this date/filter.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- TAB: EXPENSES ANALYTICS -->
+        <div class="tab-content" *ngIf="activeTab === 'expenses'">
+
+            <!-- 1. Expense KPI Cards -->
+            <div class="financial-cards-row">
+                <div class="fin-card bg-orange-50 border-orange-200">
+                    <span class="label text-orange-800">Total Expenses</span>
+                    <span class="value text-orange-900">{{ expenseMetrics.totalSpent | currency:'NGN':'symbol-narrow'
+                        }}</span>
+                    <span class="sub text-orange-600">Goods + Logistics</span>
+                </div>
+
+                <div class="fin-card bg-purple-50 border-purple-200">
+                    <span class="label text-purple-800">Cost of Goods</span>
+                    <span class="value text-purple-900">{{ expenseMetrics.goodsCost | currency:'NGN':'symbol-narrow'
+                        }}</span>
+                    <span class="sub text-purple-600">Stock Purchase</span>
+                </div>
+
+                <div class="fin-card bg-teal-50 border-teal-200">
+                    <span class="label text-teal-800">Logistics Spent</span>
+                    <span class="value text-teal-900">{{ expenseMetrics.logisticsCost | currency:'NGN':'symbol-narrow'
+                        }}</span>
+                    <span class="sub text-teal-600">Transport & Handling</span>
+                </div>
+
+                <div class="fin-card bg-gray-50 border-gray-200">
+                    <span class="label text-gray-800">Net Profit Estimate</span>
+                    <span class="value" [class.text-green-600]="expenseMetrics.netProfit >= 0"
+                        [class.text-red-600]="expenseMetrics.netProfit < 0">
+                        {{ expenseMetrics.netProfit | currency:'NGN':'symbol-narrow' }}
+                    </span>
+                    <span class="sub text-gray-500">Revenue - Expenses</span>
+                </div>
+            </div>
+
+            <div class="table-card mt-6">
+                <!-- Toolbar -->
+                <div class="card-header-row toolbar-wrap">
+                    <div class="filters-group">
+                        <h3 class="mr-4">Expense Log</h3>
+                        <!-- Date -->
+                        <div class="filter-item">
+                            <label>Date:</label>
+                            <input type="month" [(ngModel)]="filters.date" (change)="loadExpenses()"
+                                class="form-input-sm">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Expenses Table -->
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Reference</th>
+                            <th>Product</th>
+                            <th class="text-right">Qty Added</th>
+                            <th class="text-right">Unit Cost</th>
+                            <th class="text-right">Goods Cost</th>
+                            <th class="text-right">Logistics</th>
+                            <th class="text-right">Total Entry Cost</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let exp of expenses" class="hover-bg">
+                            <td class="text-muted">{{ exp.date_added | date:'short' }}</td>
+                            <td class="font-mono text-xs">{{ exp.reference_note || '-' }}</td>
+                            <td>
+                                <div class="font-medium">{{ exp.products?.name }}</div>
+                                <div class="text-xs text-muted">{{ exp.products?.category }}</div>
+                            </td>
+                            <td>
+                                {{ exp.quantity }} {{ exp.unit_type }}
+                            </td>
+                            <td class="text-xs text-muted">
+                                {{ exp.unit_cost | currency:'NGN':'symbol-narrow' }}
+                            </td>
+                            <td class="">
+                                {{ exp.total_cost | currency:'NGN':'symbol-narrow' }}
+                            </td>
+                            <td class="font-medium text-teal-700">
+                                {{ (exp.logistics_fee || 0) | currency:'NGN':'symbol-narrow' }}
+                            </td>
+                            <td class="font-bold text-orange-900">
+                                {{ ((exp.total_cost || 0) + (exp.logistics_fee || 0)) | currency:'NGN':'symbol-narrow'
+                                }}
+                            </td>
+                        </tr>
+                        <tr *ngIf="expenses.length === 0">
+                            <td colspan="8" class="text-center py-8 text-muted">
+                                No expense records found for this period.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+
+        </div>
+    </div>
+
+    <!-- Receipt Modal -->
+    <div class="modal-overlay" *ngIf="isReceiptModalOpen && selectedInvoice" (click)="closeReceiptModal()">
+        <div class="modal-container receipt-modal" (click)="$event.stopPropagation()">
+            <div class="modal-header">
+                <h3 class="modal-title font-mono">Receipt #{{ selectedInvoice.invoice_id }}</h3>
+                <button class="btn-icon" (click)="closeReceiptModal()">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <div class="receipt-meta">
+                    <div class="meta-row">
+                        <span class="label">Date:</span>
+                        <span>{{ selectedInvoice.raw_date | date:'medium' }}</span>
+                    </div>
+                    <div class="meta-row">
+                        <span class="label">Staff:</span>
+                        <span>{{ selectedInvoice.staff_name }}</span>
+                    </div>
+                    <div class="meta-row">
+                        <span class="label">Payment:</span>
+                        <span class="uppercase font-bold">{{ selectedInvoice.payment_method }}</span>
+                    </div>
+                </div>
+
+                <div class="receipt-items-table">
+                    <div class="r-head">
+                        <span>Item</span>
+                        <span class="text-right">Qty</span>
+                        <span class="text-right">Total</span>
+                    </div>
+                    <div class="r-row" *ngFor="let item of selectedInvoice.items">
+                        <span class="prod-name">{{ item.products?.name }}</span>
+                        <span class="text-right">{{ item.quantity }} {{ item.unit_type }}</span>
+                        <span class="text-right">{{ item.total_price | number }}</span>
+                    </div>
+
+                    <div class="r-divider"></div>
+
+                    <div class="r-total">
+                        <span>TOTAL</span>
+                        <span>{{ selectedInvoice.total | currency:'NGN':'symbol-narrow' }}</span>
+                    </div>
+                </div>
+
+                <!-- Danger Zone: VOID -->
+                <div class="danger-zone"
+                    *ngIf="selectedInvoice.status !== 'void' && selectedInvoice.status !== 'voided' && selectedInvoice.status !== 'rejected'">
+
+                    <div *ngIf="!isVoidingMode" class="void-initial-view">
+                        <h4 class="text-red-600 font-bold mb-2">Admin Actions</h4>
+                        <button class="btn btn-danger w-full" (click)="voidTransaction(selectedInvoice)">
+                            <span class="material-symbols-outlined">block</span>
+                            VOID TRANSACTION
+                        </button>
+                        <p class="text-xs text-gray-500 mt-2 text-center">Reverses stock and marks record as voided.</p>
+                    </div>
+
+                    <div *ngIf="isVoidingMode" class="void-active-form">
+                        <div class="void-form-header">
+                            <span class="material-symbols-outlined text-red-500">priority_high</span>
+                            <h4 class="text-red-700 font-bold">Voiding Transaction</h4>
+                        </div>
+
+                        <div class="void-input-group">
+                            <label class="void-label">Reason for Voiding*</label>
+                            <textarea [(ngModel)]="voidReason" class="void-textarea" rows="3"
+                                placeholder="Please explain why this transaction is being reversed (e.g. Error in calculation, Customer changed mind...)"></textarea>
+                            <p class="void-hint">This will be recorded in the audit trail.</p>
+                        </div>
+
+                        <div class="void-actions-stack">
+                            <button class="btn btn-danger-filled" (click)="voidTransaction(selectedInvoice)">
+                                <span class="material-symbols-outlined">check_circle</span>
+                                Confirm & Return Stock
+                            </button>
+                            <button class="btn btn-ghost-gray" (click)="isVoidingMode = false">
+                                Keep Transaction
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="void-watermark"
+                    *ngIf="selectedInvoice.status === 'void' || selectedInvoice.status === 'voided' || selectedInvoice.status === 'rejected'">
+                    {{ selectedInvoice.status | uppercase }}
+                </div>
+            </div>
+        </div>
+    </div>

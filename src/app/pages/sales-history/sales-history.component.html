@@ -1,0 +1,95 @@
+<div class="page-container">
+    <!-- Header -->
+    <header class="page-header">
+        <div>
+            <h1 class="page-title">My Sales History</h1>
+            <p class="text-muted">Track your daily transactions and drawer balance.</p>
+        </div>
+        <div class="date-control">
+            <!-- <label>Date:</label> -->
+            <input type="date" [(ngModel)]="selectedDate" (change)="loadMyHistory()" class="form-input">
+        </div>
+    </header>
+
+    <!-- Metrics Cards -->
+    <div class="metrics-row">
+        <!-- My Total -->
+        <div class="metric-card bg-blue">
+            <span class="label">My Total Sales</span>
+            <span class="value">{{ financials.myTotal | currency:'NGN':'symbol-narrow' }}</span>
+        </div>
+
+        <!-- Cash (Important for balancing) -->
+        <div class="metric-card bg-green">
+            <span class="label">Cash in Drawer</span>
+            <span class="value">{{ financials.myCash | currency:'NGN':'symbol-narrow' }}</span>
+            <span class="sub">Hand over this amount</span>
+        </div>
+
+        <!-- Transfers -->
+        <div class="metric-card bg-indigo">
+            <span class="label">Transfers / POS</span>
+            <span class="value">{{ financials.myTransfers | currency:'NGN':'symbol-narrow' }}</span>
+        </div>
+    </div>
+
+    <!-- Transactions List -->
+    <div class="transactions-list">
+        <div *ngFor="let sale of groupedSales" (click)="viewReceipt(sale)" class="transaction-item">
+            <div class="t-left">
+                <span class="t-time">{{ sale.time }}</span>
+                <span class="t-id">{{ sale.invoice_id }}</span>
+            </div>
+
+            <div class="t-mid">
+                <span class="t-items">{{ sale.items[0].quantity }} {{ sale.items[0].unit_type }}</span>
+                <span *ngIf="sale.status === 'void'" class="badge-void">VOID</span>
+            </div>
+
+            <div class="t-right">
+                <span class="t-amount">{{ sale.total | currency:'NGN':'symbol-narrow' }}</span>
+                <span class="badge" [class.cash]="sale.payment_method === 'cash'"
+                    [class.transfer]="sale.payment_method !== 'cash'">
+                    {{ sale.payment_method | uppercase }}
+                </span>
+            </div>
+        </div>
+
+        <div *ngIf="groupedSales.length === 0" class="empty-state">
+            <p>No sales found for this date.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Receipt Modal -->
+<div class="modal-overlay" *ngIf="isModalOpen && selectedInvoice" (click)="closeModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+            <h3>Receipt #{{ selectedInvoice.invoice_id }}</h3>
+            <button class="close-btn" (click)="closeModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="r-meta">
+                <span>{{ selectedInvoice.raw_date | date:'medium' }}</span>
+                <span class="badge-status">{{ selectedInvoice.status | uppercase }}</span>
+            </div>
+
+            <div class="r-table">
+                <div *ngFor="let item of selectedInvoice.items" class="r-row">
+                    <span class="r-name">{{ item.products?.name }}</span>
+                    <span class="r-qty">x{{ item.quantity }} {{ item.unit_type }}</span>
+                    <span class="r-price">{{ item.total_price | number }}</span>
+                </div>
+            </div>
+
+            <div class="r-total">
+                <span>Total</span>
+                <span>{{ selectedInvoice.total | currency:'NGN':'symbol-narrow' }}</span>
+            </div>
+
+            <div class="modal-footer">
+                <p class="text-sm text-gray-400 text-center">Reference Only (Ask Admin to Void)</p>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,251 +1,142 @@
-<div class="dashboard-container">
+<div class="dashboard-page">
     <!-- Header -->
-    <header class="header">
-        <div class="header-left">
-            <h1>Sales Dashboard</h1>
-            <p>Welcome back, {{ name }}</p>
+    <div class="page-header">
+        <div>
+            <div class="breadcrumb">Overview / Sales</div>
+            <h1 class="page-title">Sales Dashboard</h1>
+            <p class="page-subtitle">Welcome back, {{ name }}! Ready to record some sales?</p>
         </div>
-        <div class="header-right">
-            <button class="logout-btn" (click)="handleLogout()">Logout</button>
-        </div>
-    </header>
 
-    <!-- KPI Cards -->
-    <div class="kpi-cards">
-        <div class="card kpi-card">
-            <div class="card-header">Total Revenue</div>
-            <div class="card-body">
-                <p class="kpi-value">
-                    {{ salesMetrics.totalSalesValue | currency: 'NGN' }}
-                </p>
+        <div class="header-actions">
+            <!-- Basic Logout for Sales Person -->
+            <button class="btn btn-outline" (click)="handleLogout()">
+                <span class="material-symbols-outlined">logout</span>
+                Logout
+            </button>
+        </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-content">
+                <p class="stat-label">Today's Sales</p>
+                <h3 class="stat-value">{{ todaySalesMetrics.todaySalesValue | currency: '₦' }}</h3>
+                <span class="stat-badge badge-green">Today's Sales</span>
+            </div>
+            <div class="stat-icon icon-green">
+                <span class="material-symbols-outlined">payments</span>
             </div>
         </div>
-        <div class="card kpi-card">
-            <div class="card-header">Items Sold</div>
-            <div class="card-body">
-                <p class="kpi-value">{{ salesMetrics.totalUnitsSold }}</p>
+
+        <div class="stat-card">
+            <div class="stat-content">
+                <p class="stat-label">Total Items Sold</p>
+                <h3 class="stat-value">{{ salesMetrics.totalUnitsSold }}</h3>
+                <span class="stat-badge badge-blue">Volume</span>
+            </div>
+            <div class="stat-icon icon-blue">
+                <span class="material-symbols-outlined">shopping_cart</span>
             </div>
         </div>
-        <div class="card kpi-card">
-            <div class="card-header">Products in Stock</div>
-            <div class="card-body">
-                <p class="kpi-value">{{ products.length }}</p>
+
+        <div class="stat-card">
+            <div class="stat-content">
+                <p class="stat-label">Stock Count</p>
+                <h3 class="stat-value">{{ products.length }}</h3>
+                <span class="stat-badge badge-purple">Products</span>
+            </div>
+            <div class="stat-icon icon-purple">
+                <span class="material-symbols-outlined">inventory_2</span>
             </div>
         </div>
     </div>
 
-    <!-- Main Content Area -->
-    <div class="main-content">
-        <div>
-            <!-- Daily Sales Input Section -->
-            <div class="card stock-form-card">
+    <div class="content-grid">
+        <!-- Left Column: Daily Sales Recording -->
+        <div class="grid-column">
+            <div class="card">
                 <div class="card-header">
-                    <h3>Record Daily Sales</h3>
+                    <h3 class="card-title">Record Daily Sale</h3>
                 </div>
                 <div class="card-body">
-                    <p class="form-instruction">
-                        Select a product from the dropdown.
-                    </p>
+                    <p class="form-instruction">Select a product and enter the quantity sold.</p>
 
-                    <form
-                        [formGroup]="dailySalesForm"
-                        (ngSubmit)="onSalesRecordSubmit()"
-                    >
+                    <form [formGroup]="dailySalesForm" (ngSubmit)="onSalesRecordSubmit()" class="vertical-form">
                         <div class="form-group">
-                            <label for="product"
-                                >Select a Product:
-                                <span class="required">*</span>
-                            </label>
-                            <select id="product" formControlName="product_id">
-                                <option value="">-- Choose a product --</option>
-                                <option
-                                    *ngFor="let p of products"
-                                    [value]="p.id"
-                                >
-                                    {{ p.name }}
-                                </option>
+                            <label>Product</label>
+                            <select formControlName="product_id" class="form-select">
+                                <option value="">-- Select Product --</option>
+                                <option *ngFor="let p of products" [value]="p.id">{{ p.name }}</option>
                             </select>
                         </div>
 
                         <div class="form-group">
-                            <label
-                                >Sold By <span class="required">*</span></label
-                            >
-                            <select formControlName="unit_type">
-                                <option value="kg">By Weight (kg)</option>
-                                <option value="box">By Box</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="quantity"
-                                >Quantity:
-                                <span class="required">*</span>
-                            </label>
-                            <input
-                                id="quantity"
-                                type="number"
-                                formControlName="quantity"
-                                placeholder="e.g., 50"
-                            />
-                        </div>
-
-                        <div
-                            class="form-group"
-                            *ngIf="dailySalesForm.value.unit_type === 'kg'"
-                        >
-                            <label for="unitPrice"
-                                >Selling Price Per kg:
-                                <span class="required">*</span>
-                            </label>
-                            <input
-                                id="unitPrice"
-                                type="number"
-                                formControlName="unit_price"
-                                placeholder="e.g., 3.99"
-                            />
-                        </div>
-
-                        <div
-                            class="form-group"
-                            *ngIf="dailySalesForm.value.unit_type === 'box'"
-                        >
-                            <label for="unitPrice"
-                                >Selling Price Per box:
-                                <span class="required">*</span>
-                            </label>
-                            <input
-                                id="unitPrice"
-                                type="number"
-                                formControlName="unit_price"
-                                placeholder="e.g., 3.99"
-                            />
-                        </div>
-
-                        <div class="form-group">
-                            <label for="paymentMethod"
-                                >Payment Method:
-                                <span class="required">*</span>
-                            </label>
-                            <select
-                                id="paymentMethod"
-                                formControlName="payment_method"
-                            >
-                                <option value="">-- Choose a method --</option>
-                                <option
-                                    *ngFor="let m of paymentMethods"
-                                    [value]="m"
-                                >
-                                    {{ m }}
-                                </option>
+                            <label>Sold By</label>
+                            <select formControlName="unit_type" class="form-select">
+                                <option value="kg">Weight (kg)</option>
+                                <option value="box">Box / Carton</option>
                             </select>
                         </div>
 
-                        <input
-                            id="recordedBy"
-                            type="text"
-                            formControlName="recorded_by"
-                            value="{{ email }}"
-                            hidden
-                        />
+                        <div class="form-group">
+                            <label>Quantity</label>
+                            <input type="number" formControlName="quantity" class="form-input" placeholder="e.g. 5"
+                                min="0">
+                        </div>
 
-                        <button
-                            type="submit"
-                            class="submit-btn"
-                            [disabled]="!dailySalesForm.valid"
-                        >
+                        <div class="form-group">
+                            <label>Selling Price ({{ dailySalesForm.value.unit_type === 'box' ? 'per Box' : 'per KG'
+                                }})</label>
+                            <div class="input-prefix">
+                                <span>₦</span>
+                                <input type="number" formControlName="unit_price" class="form-input" placeholder="0.00"
+                                    min="0">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Payment Method</label>
+                            <select formControlName="payment_method" class="form-select">
+                                <option value="">-- Select Method --</option>
+                                <option *ngFor="let m of paymentMethods" [value]="m">{{ m }}</option>
+                            </select>
+                        </div>
+
+                        <!-- Hidden Recorded By -->
+                        <input type="hidden" formControlName="recorded_by">
+
+                        <button type="submit" class="btn btn-primary full-width" [disabled]="!dailySalesForm.valid">
                             Record Sale
                         </button>
                     </form>
                 </div>
             </div>
         </div>
-        <!-- Stock Management Section -->
-        <div class="card stock-form-card">
-            <div class="card-header">
-                <h3>Add/Update Stock</h3>
-            </div>
-            <div class="card-body">
-                <p class="form-instruction">
-                    To add a new product, type its name. To update, select from
-                    the dropdown.
-                </p>
 
-                <form [formGroup]="salesForm" (ngSubmit)="onSubmit()">
-                    <div class="form-group">
-                        <label for="existingProduct"
-                            >Select Existing Product:
-                        </label>
-                        <select
-                            id="existingProduct"
-                            formControlName="product_id"
-                            [disabled]="salesForm.get('name')?.value"
-                        >
-                            <option value="">-- Choose to update --</option>
-                            <option *ngFor="let p of products" [value]="p.id">
-                                {{ p.name }}
-                            </option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="productName">New Product Name:</label>
-                        <input
-                            id="productName"
-                            type="text"
-                            formControlName="name"
-                            placeholder="e.g., Vanilla Ice Cream"
-                        />
-                    </div>
-
-                    <div class="form-group">
-                        <label>Unit Type <span class="required">*</span></label>
-                        <select id="unitType" formControlName="unit_type">
-                            <option value="kg">Kilograms (kg)</option>
-                            <option value="box">Box / Carton</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="quantity"
-                            >Quantity:
-                            <span class="required">*</span>
-                        </label>
-                        <input
-                            id="quantity"
-                            type="number"
-                            formControlName="quantity"
-                            placeholder="e.g., 50"
-                        />
-                    </div>
-
-                    <button
-                        type="submit"
-                        class="submit-btn"
-                        [disabled]="!salesForm.valid"
-                    >
-                        Record Stock
-                    </button>
-                </form>
-            </div>
-        </div>
-
-        <!-- Stock Overview Section -->
-        <div class="card stock-overview-card">
-            <div class="card-header">
-                <h3>Stock Levels</h3>
-            </div>
-            <div class="card-body">
-                <div class="stock-list">
-                    @for (product of products; track product.id) {
-                        <div class="stock-item">
-                            <span class="product-name">{{ product.name }}</span>
-                            <span class="product-unit"
-                                >{{ product.unit }} units</span
-                            >
+        <!-- Right Column: Stock Updates & Overview -->
+        <div class="grid-column">
+            <!-- Stock Overview -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Current Stock Levels</h3>
+                </div>
+                <div class="card-body p-0">
+                    <div class="stock-list">
+                        <div *ngFor="let product of products" class="stock-item">
+                            <div class="item-info">
+                                <span class="item-name">{{ product.name }}</span>
+                            </div>
+                            <div class="item-status">
+                                <span class="item-meta">{{ product.unit }} units</span>
+                                <span class="status-indicator" [class.ok]="(product.unit || 0) > 10"
+                                    [class.low]="(product.unit || 0) <= 10"></span>
+                            </div>
                         </div>
-                    } @empty {
-                        <p>No products in stock.</p>
-                    }
+                        <div *ngIf="products.length === 0" class="empty-state">
+                            No stock data available.
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

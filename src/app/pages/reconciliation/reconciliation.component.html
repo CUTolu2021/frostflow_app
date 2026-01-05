@@ -1,144 +1,186 @@
-<div class="recon-container">
-    <h2>⚡ Reconciliation Center</h2>
-
-    <div class="metrics-row">
-        <div class="card warning">
-            <h3>{{ totalMismatches }}</h3>
-            <p>Pending Issues</p>
+<div class="dashboard-page">
+    <!-- Header -->
+    <div class="page-header">
+        <div>
+            <div class="breadcrumb">Overview / Reconciliation</div>
+            <h1 class="page-title">Stock Reconciliation</h1>
+            <p class="page-subtitle">Review and resolve discrepancies between Owner inputs and Sales receipts.</p>
         </div>
-        <div class="card danger">
-            <h3>{{ criticalItems }}</h3>
-            <p>High Discrepancies (>5)</p>
+        <div class="header-actions">
+            <!-- Potential future actions: Export Report, etc. -->
         </div>
     </div>
 
-    <div class="table-wrapper" *ngIf="!isLoading">
-        <table border="1" cellpadding="10" class="desktop-table">
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+        <div class="stat-card warning">
+            <div class="stat-value">{{ totalMismatches }}</div>
+            <div class="stat-label">Pending Issues</div>
+            <div class="stat-icon">
+                <span class="material-symbols-outlined">warning</span>
+            </div>
+        </div>
+        <div class="stat-card danger">
+            <div class="stat-value">{{ criticalItems }}</div>
+            <div class="stat-label">Critical (>5 Diff)</div>
+            <div class="stat-icon">
+                <span class="material-symbols-outlined">error</span>
+            </div>
+        </div>
+        <div class="stat-card success">
+            <div class="stat-value">0</div>
+            <div class="stat-label">Resolved Today</div> <!-- Placeholder logic -->
+            <div class="stat-icon">
+                <span class="material-symbols-outlined">check_circle</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mismatch Table -->
+    <div class="table-container">
+        <table class="data-table">
             <thead>
                 <tr>
                     <th>Product</th>
-                    <th>Owner Said (In)</th>
-                    <th>Sales Said (Recv)</th>
-                    <th>Difference</th>
-                    <th>Status</th>
-                    <th>Date</th>
-                    <th>Action</th>
+                    <th class="text-right">Owner Input (In)</th>
+                    <th class="text-right">Sales Count (Recv)</th>
+                    <th class="text-right">Difference</th>
+                    <th class="text-center">Severity</th>
+                    <th class="text-center">Date</th>
+                    <th class="text-right">Action</th>
                 </tr>
             </thead>
             <tbody>
-                <tr
-                    *ngFor="let m of mismatches"
-                    [id]="'mismatch-' + m.id"
-                    [class.row-missing]="m.status === 'missing_in_sales'"
-                    [class.row-highlight]="highlightId == m.id"
-                >
+                <tr *ngFor="let m of mismatches" [id]="'mismatch-' + m.id" [class.highlight]="highlightId == m.id">
                     <td>
-                        <strong>{{ m.products?.name }}</strong
-                        ><br />
-                    </td>
-                    <td>{{ m.owner_quantity }}</td>
-                    <td [class.text-red]="!m.staff_quantity">
-                        {{
-                            m.staff_quantity !== null
-                                ? m.staff_quantity
-                                : 'NO ENTRY'
-                        }}
-                    </td>
-                    <td [class.text-danger]="m.difference > 0">
-                        {{ m.difference !== null ? m.difference : '?' }}
+                        <span class="font-medium">{{ m.products?.name }}</span>
                     </td>
                     <td>
-                        <span class="badge" [ngClass]="m.status">{{
-                            m.status
-                        }}</span>
+                        <span class="stock-val owner">{{ m.owner_quantity }}</span>
                     </td>
                     <td>
-                        <span *ngIf="m.created_at">{{
-                            m.created_at | date: 'short'
-                        }}</span>
-                        <span *ngIf="!m.created_at">—</span>
+                        <span class="stock-val sales" [class.missing]="!m.staff_quantity">
+                            {{ m.staff_quantity !== null ? m.staff_quantity : 'MISSING' }}
+                        </span>
                     </td>
-                    <td class="actions">
-                        <button
-                            class="btn-sales"
-                            (click)="trustSales(m)"
-                            *ngIf="m.staff_quantity !== null"
-                        >
-                            Accept Sales ({{ m.staff_quantity }})
+                    <td>
+                        <span class="diff-badge" [class.high]="m.difference > 5">{{ m.difference }}</span>
+                    </td>
+                    <td>
+                        <span class="status-badge" [ngClass]="m.status">{{ m.status | titlecase }}</span>
+                    </td>
+                    <td>
+                        {{ m.created_at | date:'shortDate' }}
+                    </td>
+                    <td>
+                        <button class="btn-sm btn-primary" (click)="openResolveModal(m)">
+                            Resolve
                         </button>
-                        <button class="btn-owner" (click)="trustOwner(m)">
-                            Force Owner ({{ m.owner_quantity }})
-                        </button>
-                        <button class="btn-manual" (click)="manualFix(m)">
-                            Manual
-                        </button>
+                    </td>
+                </tr>
+                <tr *ngIf="mismatches.length === 0">
+                    <td colspan="7" class="empty-state">
+                        <div class="empty-content">
+                            <span class="material-symbols-outlined icon-lg">check_circle</span>
+                            <p>No discrepancies found. Inventory is synced!</p>
+                        </div>
                     </td>
                 </tr>
             </tbody>
         </table>
+    </div>
 
-        <!-- Mobile card layout -->
-        <div class="mobile-mismatch-list">
-            <div
-                *ngFor="let m of mismatches"
-                class="mismatch-card"
-                [id]="'mismatch-' + m.id"
-                [class.row-highlight]="highlightId == m.id"
-            >
-                <div class="mismatch-row">
-                    <span class="label">Product:</span>
-                    <strong>{{ m.products?.name }}</strong>
+    <!-- Mobile View (Vertical Cards) -->
+    <div class="mobile-view">
+        <div class="recon-card" *ngFor="let m of mismatches" (click)="openResolveModal(m)">
+            <div class="card-header">
+                <strong>{{ m.products?.name }}</strong>
+                <span class="status-badge" [ngClass]="m.status">{{ m.status }}</span>
+            </div>
+            <div class="card-body">
+                <div class="comparison-row">
+                    <div class="comp-item">
+                        <span class="label">Owner</span>
+                        <span class="val owner">{{ m.owner_quantity }}</span>
+                    </div>
+                    <div class="vs-divider">VS</div>
+                    <div class="comp-item">
+                        <span class="label">Sales</span>
+                        <span class="val sales">{{ m.staff_quantity || '?' }}</span>
+                    </div>
                 </div>
-                <div class="mismatch-row">
-                    <span class="label">Owner:</span> {{ m.owner_quantity }}
-                </div>
-                <div class="mismatch-row">
-                    <span class="label">Sales:</span>
-                    <span [class.text-red]="!m.staff_quantity">{{
-                        m.staff_quantity !== null
-                            ? m.staff_quantity
-                            : 'NO ENTRY'
-                    }}</span>
-                </div>
-                <div class="mismatch-row">
-                    <span class="label">Diff:</span>
-                    <span [class.text-danger]="m.difference > 0">{{
-                        m.difference !== null ? m.difference : '?'
-                    }}</span>
-                </div>
-                <div class="mismatch-row">
-                    <span class="label">Status:</span>
-                    <span class="badge" [ngClass]="m.status">{{
-                        m.status
-                    }}</span>
-                </div>
-                <div class="mismatch-row">
-                    <span class="label">Date:</span>
-                    <span *ngIf="m.created_at">{{
-                        m.created_at | date: 'short'
-                    }}</span
-                    ><span *ngIf="!m.created_at">—</span>
-                </div>
-                <div class="mismatch-actions">
-                    <button
-                        class="btn-sales"
-                        (click)="trustSales(m)"
-                        *ngIf="m.staff_quantity !== null"
-                    >
-                        Accept Sales ({{ m.staff_quantity }})
-                    </button>
-                    <button class="btn-owner" (click)="trustOwner(m)">
-                        Force Owner ({{ m.owner_quantity }})
-                    </button>
-                    <button class="btn-manual" (click)="manualFix(m)">
-                        Manual
-                    </button>
+                <div class="diff-row" [class.critical]="m.difference > 5">
+                    Difference: {{ m.difference }} units
                 </div>
             </div>
+            <div class="card-footer">
+                <button class="btn btn-primary w-full">Resolve Issue</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Resolution Modal -->
+<div class="modal-overlay" *ngIf="isModalOpen">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title">Resolve Discrepancy</h2>
+            <button class="btn-icon" (click)="closeModal()">
+                <span class="material-symbols-outlined">close</span>
+            </button>
         </div>
 
-        <p *ngIf="mismatches.length === 0" class="good-news">
-            ✅ No discrepancies found. Good job!
-        </p>
+        <div class="modal-body" *ngIf="selectedMismatch">
+            <div class="product-summary">
+                <h3>{{ selectedMismatch.products?.name }}</h3>
+                <p>Select which value to trust as the final stock count.</p>
+            </div>
+
+            <div class="resolution-options">
+                <!-- Option 1: Trust Owner -->
+                <div class="res-card" [class.selected]="resolutionType === 'owner'" (click)="setResolution('owner')">
+                    <div class="res-header">Owner's Input</div>
+                    <div class="res-value">{{ selectedMismatch.owner_quantity }}</div>
+                    <div class="res-sub">Usually correct if Sales missed scanning.</div>
+                    <div class="radio-check"></div>
+                </div>
+
+                <!-- Option 2: Trust Sales -->
+                <div class="res-card" [class.selected]="resolutionType === 'sales'" (click)="setResolution('sales')">
+                    <div class="res-header">Sales Receipt</div>
+                    <div class="res-value">{{ selectedMismatch.staff_quantity || 0 }}</div>
+                    <div class="res-sub">User confirmed receipt of only this amount.</div>
+                    <div class="radio-check"></div>
+                </div>
+            </div>
+
+            <!-- Manual Override Option -->
+            <div class="manual-override">
+                <label class="radio-label">
+                    <input type="radio" name="resType" [checked]="resolutionType === 'manual'"
+                        (change)="setResolution('manual')">
+                    <span>Or enter Manual Count</span>
+                </label>
+                <div class="manual-input-box" *ngIf="resolutionType === 'manual'">
+                    <input type="number" [(ngModel)]="manualQty" class="form-input" min="0">
+                    <span class="unit">units</span>
+                </div>
+            </div>
+
+            <div class="form-group mt-4">
+                <label>Resolution Note (Optional)</label>
+                <input type="text" [(ngModel)]="resolutionNote" class="form-input"
+                    placeholder="e.g. Verified with CCTV...">
+            </div>
+
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn btn-outline" (click)="closeModal()">Cancel</button>
+            <button class="btn btn-primary" (click)="confirmResolution()">
+                Confirm Resolution
+            </button>
+        </div>
     </div>
 </div>

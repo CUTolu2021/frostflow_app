@@ -1,0 +1,23 @@
+.layout-container {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+    background-color: #f6f7f8;
+    /* background-light */
+}
+
+.sidebar {
+    flex-shrink: 0;
+    width: 250px;
+    height: 100vh;
+    overflow-y: auto;
+    background-color: #ffffff;
+    border-right: 1px solid #e2e8f0;
+}
+
+.main-content {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 24px;
+    background-color: #f6f7f8;
+}

@@ -1,15 +1,11 @@
 import { Routes } from '@angular/router'
-import { ProductlistComponent } from './productlist/productlist.component'
 import { LoginComponent } from './login/login.component'
-import { StockentryComponent } from './stockentry/stockentry.component'
-import { AppComponent } from './app.component'
 import { OwnerDashboardComponent } from './pages/owner-dashboard/owner-dashboard.component'
 import { SalesDashboardComponent } from './pages/sales-dashboard/sales-dashboard.component'
 import { authGuard } from './auth.guard'
 import { roles } from './enums/role'
 import { ReconciliationComponent } from './pages/reconciliation/reconciliation.component'
-import { SalesChartComponent } from './components/sales-chart/sales-chart.component'
-import { AiInsightCardComponent } from './components/ai-insight-card/ai-insight-card.component'
+import { MainLayoutComponent } from './components/main-layout/main-layout.component'
 
 export const routes: Routes = [
     { path: '', redirectTo: 'login', pathMatch: 'full' },
@@ -20,33 +16,104 @@ export const routes: Routes = [
 
     {
         path: 'admin',
-        component: OwnerDashboardComponent,
-        title: 'Owner Dashboard',
+        component: MainLayoutComponent,
         canActivate: [authGuard],
         data: { roles: [roles.admin] },
+        children: [
+            { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+            {
+                path: 'dashboard',
+                component: OwnerDashboardComponent,
+                title: 'Owner Dashboard',
+            },
+            {
+                path: 'products',
+                loadComponent: () =>
+                    import('./pages/products/products.component').then(
+                        (m) => m.ProductsComponent
+                    ),
+                title: 'Products Catalog',
+            },
+            {
+                path: 'inventory',
+                loadComponent: () =>
+                    import('./pages/inventory/inventory.component').then(
+                        (m) => m.InventoryComponent
+                    ),
+                title: 'Inventory',
+            },
+            {
+                path: 'staff',
+                loadComponent: () =>
+                    import('./pages/staff/staff.component').then(
+                        (m) => m.StaffComponent
+                    ),
+                title: 'Staff Management',
+            },
+            {
+                path: 'mismatch',
+                loadComponent: () =>
+                    import('./pages/reconciliation/reconciliation.component').then(
+                        (m) => m.ReconciliationComponent
+                    ),
+                title: 'Reconciliation',
+            },
+            {
+                path: 'analysis',
+                loadComponent: () =>
+                    import('./pages/analysis/analysis.component').then(
+                        (m) => m.AnalysisComponent
+                    ),
+                title: 'Analytics',
+            },
+            // {
+            //     path: 'customers',
+            //     loadComponent: () =>
+            //         import('./pages/products/products.component').then(
+            //             (m) => m.ProductsComponent // Placeholder, re-using for now or just empty? User didn't ask for customers yet. Let's just do products.
+            //         ),
+            //     title: 'Customers',
+            // },
+        ],
     },
 
     {
         path: 'sales',
-        component: SalesDashboardComponent,
-        title: 'Sales Dashboard',
+        component: MainLayoutComponent,
         canActivate: [authGuard],
         data: { roles: [roles.sales] },
+        children: [
+            { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+            {
+                path: 'dashboard',
+                component: SalesDashboardComponent,
+                title: 'Sales Dashboard',
+            },
+            {
+                path: 'receive',
+                loadComponent: () =>
+                    import('./pages/sales-receive/sales-receive.component').then(
+                        (m) => m.SalesReceiveComponent
+                    ),
+                title: 'Receive Stock',
+            },
+            {
+                path: 'lookup',
+                loadComponent: () =>
+                    import('./pages/products/products.component').then(
+                        (m) => m.ProductsComponent
+                    ),
+                title: 'Product Lookup',
+            },
+            {
+                path: 'history',
+                loadComponent: () =>
+                    import('./pages/sales-history/sales-history.component').then(
+                        (m) => m.SalesHistoryComponent
+                    ),
+                title: 'Transaction History',
+            },
+        ],
     },
 
-    {
-        path: 'mismatch',
-        component: ReconciliationComponent,
-        title: 'Fix Mismatch',
-        canActivate: [authGuard],
-        data: { roles: [roles.admin] },
-    },
-
-    {
-        path: 'ai-insights',
-        component: AiInsightCardComponent,
-        title: 'Insights',
-        canActivate: [authGuard],
-        data: { roles: [roles.admin] },
-    },
 ]

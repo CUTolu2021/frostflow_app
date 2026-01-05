@@ -17,7 +17,7 @@ export class LoginComponent {
         private supabase: SupabaseService,
         private router: Router,
         private toast: ToastService
-    ) {}
+    ) { }
 
     email = new FormControl('')
     password = new FormControl('')
@@ -31,7 +31,7 @@ export class LoginComponent {
 
         if (error) {
             console.error('Login failed:', error.message)
-            alert('Login failed: ' + error.message)
+            this.toast.show('Login failed: ' + error.message, 'error')
             return
         }
 
@@ -39,6 +39,12 @@ export class LoginComponent {
             const profile = await this.supabase.getUserProfile(
                 data.session.user.id
             )
+
+            if (profile && !profile.is_active) {
+                await this.supabase.signOut()
+                this.toast.show('Your account has been disabled. Contact admin.', 'error')
+                return
+            }
 
             if (profile && profile.role === roles.admin) {
                 this.toast.show('Login successful!', 'login')

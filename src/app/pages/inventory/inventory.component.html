@@ -1,0 +1,233 @@
+<div class="dashboard-page">
+    <!-- Header -->
+    <div class="page-header">
+        <div>
+            <div class="breadcrumb">Overview / Inventory</div>
+            <h1 class="page-title">Inventory</h1>
+            <p class="page-subtitle">Manage products and view history.</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-primary" (click)="openAddModal()">
+                <span class="material-symbols-outlined">add</span>
+                Add Stock
+            </button>
+        </div>
+    </div>
+
+    <!-- Main View: Product Stock Table -->
+    <div class="table-container desktop-view">
+        <table class="data-table row-clickable">
+            <thead>
+                <tr>
+                    <th>Product Name</th>
+                    <th>Category</th>
+                    <th class="text-right">Unit Price</th>
+                    <th class="text-right">Current Stock</th>
+                    <th class="text-center">Status</th>
+                    <th class="w-icon"></th> <!-- Arrow Icon -->
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor="let product of products" (click)="openHistory(product)">
+                    <td>
+                        <span class="font-medium">{{ product.name }}</span>
+                    </td>
+                    <td>
+                        <span class="badge-category">{{ product.category || 'General' }}</span>
+                    </td>
+                    <td>
+                        {{ product.unit_price | currency:'₦' }}
+                    </td>
+                    <td>
+                        <span class="stock-value">{{ product.unit || 0 }}</span>
+                        <span class="unit-label">{{ product.base_unit || 'kg' }}</span>
+                    </td>
+                    <td>
+                        <span class="status-badge" [class.low]="(product.unit || 0) <= 10"
+                            [class.ok]="(product.unit || 0) > 10">
+                            {{ (product.unit || 0) <= 10 ? 'Low Stock' : 'In Stock' }} </span>
+                    </td>
+                    <td class="text-center text-muted">
+                        <span class="material-symbols-outlined icon-sm">chevron_right</span>
+                    </td>
+                </tr>
+                <tr *ngIf="products.length === 0">
+                    <td colspan="6" class="text-center py-8 text-muted">No products found.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Mobile View: Product Cards -->
+    <div class="mobile-view">
+        <div class="inventory-card" *ngFor="let product of products" (click)="openHistory(product)">
+            <div class="card-row">
+                <div>
+                    <h3 class="card-title">{{ product.name }}</h3>
+                    <div class="card-meta">{{ product.category }}</div>
+                </div>
+                <div class="text-right">
+                    <div class="weight-highlight">{{ product.unit || 0 }} {{ product.base_unit || 'kg' }}</div>
+                    <div class="qty-subtext">{{ product.unit_price | currency:'₦' }}</div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <span class="status-dot" [class.red]="(product.unit || 0) <= 10"
+                    [class.green]="(product.unit || 0) > 10"></span>
+                <span class="ref-text">Tap to view history</span>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- History Side Panel -->
+<div class="side-panel-overlay" *ngIf="isSidePanelOpen" (click)="closeHistory()"></div>
+<div class="side-panel" [class.open]="isSidePanelOpen">
+    <div class="panel-header" *ngIf="selectedHistoryProduct">
+        <div>
+            <h2 class="panel-title">{{ selectedHistoryProduct.name }}</h2>
+            <div class="panel-subtitle">History Log</div>
+        </div>
+        <button class="btn-icon" (click)="closeHistory()">
+            <span class="material-symbols-outlined">close</span>
+        </button>
+    </div>
+
+    <div class="panel-body">
+        <div *ngIf="isLoadingHistory" class="loading-state">
+            <span class="material-symbols-outlined spin">sync</span> Loading...
+        </div>
+
+        <div class="timeline" *ngIf="!isLoadingHistory">
+            <div class="timeline-item" *ngFor="let log of productHistory">
+                <div class="timeline-icon" [class.in]="log.type === 'IN'" [class.out]="log.type === 'OUT'">
+                    <span class="material-symbols-outlined">
+                        {{ log.type === 'IN' ? 'arrow_downward' : 'arrow_upward' }}
+                    </span>
+                </div>
+                <div class="timeline-content">
+                    <div class="timeline-header">
+                        <span class="timeline-qty">
+                            {{ log.quantity }} {{ log.unit }}
+                        </span>
+                        <span class="timeline-date">{{ log.date | date:'MMM d, h:mm a' }}</span>
+                    </div>
+                    <div class="timeline-detail">
+                        {{ log.note }}
+                    </div>
+                    <div class="timeline-extra" *ngIf="log.type === 'IN' && log.original_qty">
+                        Input: {{ log.original_qty }} {{ log.original_unit | uppercase }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="empty-state" *ngIf="productHistory.length === 0">
+                No history available for this product.
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Stock Modal (Unchanged Layout) -->
+<div class="modal-overlay" *ngIf="isAddModalOpen">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="mobile-swipe-handle"></div>
+            <h2 class="modal-title">Add Stock Entry</h2>
+            <button class="btn-icon" (click)="closeModal()">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Select Product</label>
+                <select [(ngModel)]="selectedProduct" (change)="onProductSelect()" class="form-select">
+                    <option [ngValue]="null">-- Choose Product --</option>
+                    <option *ngFor="let p of products" [ngValue]="p">{{ p.name }}</option>
+                </select>
+            </div>
+
+            <div *ngIf="selectedProduct" class="entry-section">
+
+                <div class="radio-group">
+                    <label class="radio-option" [class.selected]="entry.unitType === 'kg'">
+                        <input type="radio" name="uType" value="kg" [(ngModel)]="entry.unitType">
+                        <span>By Weight (KG)</span>
+                    </label>
+
+                    <label class="radio-option" [class.selected]="entry.unitType === 'box'">
+                        <input type="radio" name="uType" value="box" [(ngModel)]="entry.unitType">
+                        <span>By Box/Carton</span>
+                    </label>
+                </div>
+
+                <div class="form-group mt-4">
+                    <label>Quantity ({{ entry.unitType === 'box' ? 'Boxes' : 'KG' }})</label>
+                    <input type="number" [(ngModel)]="entry.inputQty" class="form-input large-input" placeholder="0">
+                </div>
+
+                <!-- Manual Weight Input for Variable Boxes (e.g. Chicken) -->
+                <div *ngIf="entry.unitType === 'box' && product.is_variable_weight" class="alert-box warning-box">
+                    <label class="alert-label">
+                        <span class="material-symbols-outlined icon-sm">scale</span>
+                        Total Weight from Invoice (KG) <span class="required">*</span>
+                    </label>
+                    <input type="number" [(ngModel)]="entry.manualTotalWeight" class="form-input mt-2"
+                        placeholder="e.g. 25.5">
+                    <small class="hint">This product has variable weight per box. Please enter the exact total
+                        weight.</small>
+                </div>
+
+                <!-- Auto Calculation Feedback -->
+                <div class="calculation-preview">
+                    <span class="preview-label">System will record:</span>
+                    <div class="preview-value">{{ calculateFinalWeight() | number:'1.2-2' }} KG</div>
+                    <small class="preview-sub" *ngIf="entry.unitType === 'box' && !product.is_variable_weight">
+                        (Based on {{ product.standard_box_weight }}kg per box)
+                    </small>
+                </div>
+
+                <div class="form-row mt-4">
+                    <div class="form-group">
+                        <label>Unit Cost (₦)</label>
+                        <div class="input-prefix">
+                            <input type="number" [(ngModel)]="entry.unitCost" class="form-input" placeholder="0.00">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row mt-2">
+                    <div class="form-group">
+                        <label>Logistics Fee (₦)</label>
+                        <div class="input-prefix">
+                            <input type="number" [(ngModel)]="entry.logisticsFee" class="form-input" placeholder="0.00">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Selling Price (₦)</label>
+                        <div class="input-prefix">
+                            <input type="number" [(ngModel)]="entry.unitPrice" class="form-input" placeholder="0.00">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group mt-4">
+                    <label>Reference / Note (Optional)</label>
+                    <input type="text" [(ngModel)]="entry.referenceNote" class="form-input"
+                        placeholder="e.g. Invoice #1234">
+                </div>
+
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn btn-outline" (click)="closeModal()">Cancel</button>
+            <button class="btn btn-primary" (click)="submitStock()"
+                [disabled]="!selectedProduct || calculateFinalWeight() <= 0">
+                Save Stock
+            </button>
+        </div>
+    </div>
+</div>

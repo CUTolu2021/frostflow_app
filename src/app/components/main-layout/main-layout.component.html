@@ -1,0 +1,19 @@
+<div class="layout-container">
+    <!-- Mobile Header -->
+    <header class="mobile-header">
+        <button class="hamburger-btn" (click)="toggleMobileMenu()">
+            <span class="material-symbols-outlined">menu</span>
+        </button>
+        <span class="mobile-brand">Frostflow</span>
+    </header>
+
+    <!-- Sidebar with dynamic class for mobile -->
+    <app-sidebar class="sidebar" [class.mobile-open]="isMobileMenuOpen"></app-sidebar>
+
+    <!-- Backdrop for mobile -->
+    <div *ngIf="isMobileMenuOpen" class="mobile-backdrop" (click)="closeMobileMenu()"></div>
+
+    <main class="main-content">
+        <router-outlet></router-outlet>
+    </main>
+</div>

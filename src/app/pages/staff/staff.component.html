@@ -1,0 +1,118 @@
+<div class="dashboard-page">
+    <!-- Header -->
+    <div class="page-header">
+        <div>
+            <div class="breadcrumb">Overview / Staff</div>
+            <h1 class="page-title">Team Management</h1>
+            <p class="page-subtitle">Manage access and roles for your store.</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-primary" (click)="openModal()">
+                <span class="material-symbols-outlined">person_add</span>
+                Add Staff Member
+            </button>
+        </div>
+    </div>
+
+    <!-- Staff List Table -->
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Role</th>
+                    <th>System Login ID</th>
+                    <th class="text-center">Status</th>
+                    <th class="text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor="let staff of staffList">
+                    <td>
+                        <div class="user-info">
+                            <div class="avatar-circle">{{ staff.name.charAt(0).toUpperCase() }}</div>
+                            <span class="font-medium">{{ staff.name }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="role-badge" [class.sales]="staff.role === 'sales'"
+                            [class.manager]="staff.role === 'manager'">
+                            {{ staff.role | titlecase }}
+                        </span>
+                    </td>
+                    <td class="font-mono text-sm text-muted">
+                        {{ staff.email }}
+                    </td>
+                    <td class="text-center">
+                        <span class="status-badge" [class.active]="staff.is_active" [class.inactive]="!staff.is_active">
+                            {{ staff.is_active ? 'Active' : 'Disabled' }}
+                        </span>
+                    </td>
+                    <td class="text-right">
+                        <button class="btn-sm btn-outline-danger" (click)="toggleStatus(staff)">
+                            {{ staff.is_active ? 'Disable' : 'Enable' }}
+                        </button>
+                    </td>
+                </tr>
+                <tr *ngIf="staffList.length === 0">
+                    <td colspan="5" class="text-center py-8 text-muted">No staff members found. Add one to get started.
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Staff Modal -->
+<div class="modal-overlay" *ngIf="isModalOpen">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title">Add New Staff</h2>
+            <button class="btn-icon" (click)="closeModal()">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+
+        <div class="modal-body">
+            <form (ngSubmit)="createStaff()">
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" [(ngModel)]="newStaff.name" (input)="updateGeneratedEmail()" name="name"
+                        class="form-input" placeholder="e.g. Sarah James" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Role</label>
+                    <div class="radio-group">
+                        <label class="radio-option" [class.selected]="newStaff.role === 'sales'">
+                            <input type="radio" [(ngModel)]="newStaff.role" name="role" value="sales">
+                            <span>Sales Rep (POS)</span>
+                        </label>
+                        <label class="radio-option" [class.selected]="newStaff.role === 'manager'">
+                            <input type="radio" [(ngModel)]="newStaff.role" name="role" value="manager">
+                            <span>Manager (Dashboard)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="system-id-box">
+                    <label class="text-xs text-muted mb-1 block">System Login ID (Auto-Generated)</label>
+                    <div class="id-display">{{ generateSystemEmail() }}</div>
+                </div>
+
+                <div class="form-group mt-4">
+                    <label>Set Password</label>
+                    <input type="text" [(ngModel)]="newStaff.password" name="password" class="form-input"
+                        placeholder="e.g. store123" required>
+                    <small class="hint">Share this password with the staff member securely.</small>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" (click)="closeModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary"
+                        [disabled]="!newStaff.name || !newStaff.password">Create Account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

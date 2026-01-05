@@ -19,9 +19,15 @@ export const authGuard: CanActivateFn = async (route, state) => {
         return false
     }
 
-    const userRole: roles = await supabase
-        .getUserProfile(user.id)
-        .then((profile) => profile!.role)
+    const profile = await supabase.getUserProfile(user.id)
+
+    if (!profile || !profile.is_active) {
+        await supabase.signOut()
+        router.navigate(['/login'])
+        return false
+    }
+
+    const userRole: roles = profile.role as roles
     if (requiredRoles.includes(userRole)) {
         return true
     }

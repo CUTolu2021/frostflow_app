@@ -20,7 +20,8 @@ import { ToastService } from '../../services/toast.service'
 })
 export class OwnerDashboardComponent implements OnInit, OnDestroy {
     products: any[] = []
-    reportData: any = []
+    lowStockItems: any[] = []
+    recentActivity: any[] = []
     notifications: any[] = []
     showDropdown = false
     metrics = {
@@ -34,15 +35,13 @@ export class OwnerDashboardComponent implements OnInit, OnDestroy {
     }
     showUnitCostField: boolean = false
 
-    private refreshInterval: any
     private productSubscription: any
+    private salesSubscription: any
     stockForm: FormGroup
-    salesPersonForm: FormGroup
     passwordVisible: boolean = false
     public name: string = localStorage.getItem('user_name') || ''
     email: string = localStorage.getItem('user_email') || ''
     id: string = localStorage.getItem('user_id') || ''
-    reconcileReady = false
     stockEntryStatus = { ownerReady: false, salesReady: false }
 
     constructor(
@@ -62,166 +61,87 @@ export class OwnerDashboardComponent implements OnInit, OnDestroy {
             recorded_by: [this.id || '', [Validators.required]],
             unit_cost: [null, [Validators.min(0)]],
             total_weight: [null, [Validators.min(0)]],
-        })
-
-        this.salesPersonForm = this.fb.group({
-            name: ['', [Validators.minLength(1)]],
-            role: ['sales'],
-            email: ['', [Validators.required, Validators.email]],
+            logistics_fee: [null, [Validators.min(0)]],
         })
     }
 
     async ngOnInit() {
-        this.loadProducts()
         this.setupFormListeners()
-
         this.loadData()
 
-        // Load sales metrics
-        this.salesMetrics = await this.supabase.getSalesDashboardMetrics()
-
-        // Load report data early to prevent template undefined errors
-        const reports = await this.supabase.getAIReports()
-        this.reportData = reports && reports.length > 0 ? reports[0] : null
-
-        // Load initial
-        this.notifications = await this.supabase.getUnreadNotifications()
-
-        // Listen for new notifications from supabase realtime
+        // Realtime Subscriptions
         this.supabase.subscribeToNotifications((payload) => {
-            // Add new alert to the top of the list
             this.notifications.unshift(payload.new)
-            // Optional: Play a sound here?
         })
 
-        // Subscribe to product changes for real-time stock updates
-        this.productSubscription = this.supabase.subscribeToProductChanges(
-            (payload) => {
-                // Reload products to reflect changes
-                this.loadProducts()
-            }
-        )
+        this.productSubscription = this.supabase.subscribeToProductChanges(() => {
+            this.loadProducts()
+        });
 
-        // this.refreshInterval = setInterval(() => {
-        //   this.loadData();
-        // }, 30000);
-        await this.checkStatus()
+        // Listen to new sales for the feed
+        // (Assuming subscribeToSales exists or I create a generic one. 
+        //  The existing one is subscribeToStaffStockChanges which is stock_in_staff? 
+        //  Wait, sales table updates? I'll re-use productSubscription for now as sales trigger product updates)
     }
 
-    async checkStatus() {
-        this.stockEntryStatus = await this.supabase.getDailyEntryStatus()
-
-        // LOGIC: Only ready if BOTH have entered data
-        this.reconcileReady =
-            this.stockEntryStatus.ownerReady && this.stockEntryStatus.salesReady
+    ngOnDestroy() {
+        if (this.productSubscription) this.productSubscription.unsubscribe()
     }
 
-    // async triggerReconciliation() {
-    //   if (!this.reconcileReady) return;
+    async loadData() {
+        // 1. Products & Low Stock
+        this.products = await this.supabase.getProducts()
+        this.lowStockItems = this.products.filter(p => (p.unit || 0) < 10);
 
-    //   // Call n8n to run the math
-    //   //await this.n8n.triggerManualReconcile();
-    //   this.toast.show('Reconciliation started...', 'info');
-    // }
+        // 2. Metrics
+        this.metrics = await this.supabase.getDashboardMetrics()
+        this.salesMetrics = await this.supabase.getSalesDashboardMetrics()
+
+        // 3. Notifications
+        this.notifications = await this.supabase.getUnreadNotifications()
+
+        // 4. Live Activity Feed (Recent Sales)
+        const sales = await this.supabase.getRecentSales(); // Returns last 50
+        this.recentActivity = sales.slice(0, 10).map((s: any) => ({
+            type: 'sale',
+            user: s.users?.name || 'Staff',
+            description: `${s.quantity} ${s.unit_type} of ${s.products?.name}`,
+            time: new Date(s.created_at),
+            amount: s.total_price
+        }));
+    }
 
     toggleNotifications() {
         this.showDropdown = !this.showDropdown
     }
 
     async onNotificationClick(notif: any) {
-        // Mark as read in DB
         await this.supabase.markNotificationAsRead(notif.id)
-        // Remove from UI list
         this.notifications = this.notifications.filter((n) => n.id !== notif.id)
-
-        // Navigate to mismatch if link_type is 'mismatch'
-        if (notif.link_type === 'mismatch' && notif.id) {
-            this.router.navigate(['/mismatch'], {
-                queryParams: { id: notif.id },
-            })
-        } else if (notif.link) {
-            this.router.navigate([notif.link])
-        }
+        if (notif.link) this.router.navigate([notif.link])
     }
 
-    ngOnDestroy() {
-        // Clean up subscriptions
-        if (this.productSubscription) {
-            this.productSubscription.unsubscribe()
-        }
-    }
-
-    async loadData() {
-        this.products = await this.supabase.getProducts()
-
-        this.metrics = await this.supabase.getDashboardMetrics()
-    }
-
-    setupFormListeners() {
-        this.stockForm
-            .get('product_id')
-            ?.valueChanges.subscribe((selectedId) => {
-                const nameControl = this.stockForm.get('name')
-
-                if (selectedId) {
-                    nameControl?.disable({ emitEvent: false })
-                    nameControl?.setValue('')
-                } else {
-                    nameControl?.enable({ emitEvent: false })
-                }
-            })
-
-        this.stockForm.get('name')?.valueChanges.subscribe((text) => {
-            const dropdownControl = this.stockForm.get('product_id')
-
-            if (text && text.length > 0) {
-                this.showUnitCostField = true
-
-                dropdownControl?.disable({ emitEvent: false })
-                dropdownControl?.setValue('')
-                this.stockForm.get('unit_cost')?.setValue(0)
-            } else {
-                this.showUnitCostField = false
-                dropdownControl?.enable({ emitEvent: false })
-            }
-        })
-    }
-
-    async loadProducts() {
-        this.products = await this.supabase.getProducts()
+    loadProducts() {
+        this.supabase.getProducts().then(data => {
+            this.products = data;
+            this.lowStockItems = this.products.filter(p => (p.unit || 0) < 10);
+        });
     }
 
     onSubmit() {
         if (this.stockForm.valid) {
             this.n8n.sendOwnerStock(this.stockForm.value)
             this.toast.show('Stock recorded successfully!', 'success')
-        } else {
-            this.toast.show('Please fill the form correctly.', 'error')
-        }
-        // Reset form with initial values to keep it valid for next submission
-        this.stockForm.reset({
-            recorded_by: this.id || '',
-            unit_type: 'box',
-        })
-    }
-
-    createSalesPerson() {
-        if (this.salesPersonForm.valid) {
-            const { name, email, role } = this.salesPersonForm.value
-            this.supabase.signUpWithPassword(email!, '@password', {
-                data: {
-                    name: name,
-                    role: role,
-                },
+            this.stockForm.reset({
+                recorded_by: this.id || '',
+                unit_type: 'box',
+                logistics_fee: 0,
             })
-            this.toast.show(
-                'Sales person account created successfully!',
-                'success'
-            )
+            // Refresh feed maybe?
+            setTimeout(() => this.loadData(), 1000);
         } else {
             this.toast.show('Please fill the form correctly.', 'error')
         }
-        this.salesPersonForm.reset()
     }
 
     handleLogout() {
@@ -231,11 +151,29 @@ export class OwnerDashboardComponent implements OnInit, OnDestroy {
         this.router.navigate(['/login'])
     }
 
-    togglePasswordVisibility() {
-        this.passwordVisible = !this.passwordVisible
-    }
+    // Form logic
+    setupFormListeners() {
+        this.stockForm.get('product_id')?.valueChanges.subscribe((selectedId) => {
+            const nameControl = this.stockForm.get('name')
+            if (selectedId) {
+                nameControl?.disable({ emitEvent: false })
+                nameControl?.setValue('')
+            } else {
+                nameControl?.enable({ emitEvent: false })
+            }
+        })
 
-    trackByProductId(index: number, product: any) {
-        return product.id
+        this.stockForm.get('name')?.valueChanges.subscribe((text) => {
+            const dropdownControl = this.stockForm.get('product_id')
+            if (text && text.length > 0) {
+                this.showUnitCostField = true
+                dropdownControl?.disable({ emitEvent: false })
+                dropdownControl?.setValue('')
+                this.stockForm.get('unit_cost')?.setValue(0)
+            } else {
+                this.showUnitCostField = false
+                dropdownControl?.enable({ emitEvent: false })
+            }
+        })
     }
 }
