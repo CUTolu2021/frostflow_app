@@ -118,7 +118,7 @@ export class OwnerDashboardComponent implements OnInit, OnDestroy {
     async onNotificationClick(notif: any) {
         await this.supabase.markNotificationAsRead(notif.id)
         this.notifications = this.notifications.filter((n) => n.id !== notif.id)
-        if (notif.link) this.router.navigate([notif.link])
+        // if (notif.link) this.router.navigate([notif.link])
     }
 
     loadProducts() {

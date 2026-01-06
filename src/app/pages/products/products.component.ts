@@ -48,7 +48,7 @@ export class ProductsComponent implements OnInit {
       id: [''],
       name: ['', Validators.required],
       category: [''],
-      cost_price: [0, [Validators.required, Validators.min(0)]],
+      // cost_price: [0, [Validators.required, Validators.min(0)]],
       unit_price: [0, [Validators.required, Validators.min(0)]],
       image_url: [''],
       base_unit: ['kg', Validators.required],
@@ -122,7 +122,7 @@ export class ProductsComponent implements OnInit {
     this.productForm.enable();
     this.productForm.reset({
       base_unit: 'kg',
-      cost_price: 0,
+      // cost_price: 0,
       unit_price: 0,
       is_box_sold: false,
       is_variable_weight: false
@@ -141,7 +141,7 @@ export class ProductsComponent implements OnInit {
       name: product.name,
       category: product.category,
       unit_price: product.unit_price,
-      cost_price: product.cost_price, // Ensure this is mapped (was missing in previous patchValue but existed in form)
+      // cost_price: product.cost_price, // Ensure this is mapped (was missing in previous patchValue but existed in form)
       image_url: product.image_url,
       base_unit: product.base_unit,
       is_box_sold: isBoxSold,
@@ -178,7 +178,7 @@ export class ProductsComponent implements OnInit {
       name: formValue.name,
       category: formValue.category || undefined,
       unit_price: formValue.unit_price,
-      cost_price: formValue.cost_price,
+      // cost_price: formValue.cost_price,
       base_unit: formValue.base_unit,
       image_url: formValue.image_url || undefined,
       created_by: localStorage.getItem('user_id') || "",
