@@ -108,7 +108,6 @@ export class ProductService {
         this.supabase.subscribeToProductChanges((payload) => {
             // Run in zone to update UI
             this.ngZone.run(() => {
-                console.log('Realtime product change:', payload);
                 this.handleRealtimeEvent(payload);
             });
         });

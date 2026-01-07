@@ -68,7 +68,6 @@ export class SalesHistoryComponent implements OnInit {
           items: []
         };
       }
-      console.log(grouped[id].items);
       grouped[id].items.push(row);
       if (row.status !== 'void') {
         grouped[id].total += row.total_price;
