@@ -1,9 +1,10 @@
-import { Component, OnInit, OnDestroy } from '@angular/core'
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core'
 import { Router, RouterOutlet, NavigationStart, NavigationEnd, NavigationCancel, NavigationError } from '@angular/router'
 import { ToastComponent } from './components/toast/toast.component'
 import { SupabaseService } from './services/supabase.service'
 import { LoadingComponent } from './components/loading/loading.component'
 import { LoadingService } from './services/loading.service'
+import { AutoLogoutService } from './services/auto-logout.service'
 
 @Component({
     selector: 'app-root',
@@ -19,7 +20,8 @@ export class AppComponent implements OnInit, OnDestroy {
     constructor(
         private supabase: SupabaseService,
         private router: Router,
-        private loadingService: LoadingService
+        private loadingService: LoadingService,
+        private autoLogout: AutoLogoutService
     ) {
         // Router Events for Loading
         this.router.events.subscribe(event => {
@@ -41,6 +43,7 @@ export class AppComponent implements OnInit, OnDestroy {
         if (user) {
             await this.checkUserStatus(user.id);
             this.setupProfileSubscription(user.id);
+            this.autoLogout.initListener();
         }
 
         // 2. Listen for Auth Changes (Login/Logout)
@@ -48,8 +51,10 @@ export class AppComponent implements OnInit, OnDestroy {
             if (event === 'SIGNED_IN' && session?.user) {
                 await this.checkUserStatus(session.user.id);
                 this.setupProfileSubscription(session.user.id);
+                this.autoLogout.initListener();
             } else if (event === 'SIGNED_OUT') {
                 this.cleanupSubscription();
+                this.autoLogout.cleanup();
             }
         });
     }
@@ -88,5 +93,12 @@ export class AppComponent implements OnInit, OnDestroy {
 
     ngOnDestroy() {
         this.cleanupSubscription();
+    }
+
+    @HostListener('document:visibilitychange', [])
+    async onVisibilityChange() {
+        if (document.visibilityState === 'visible') {
+            this.supabase.client.realtime.disconnect();
+        }
     }
 }

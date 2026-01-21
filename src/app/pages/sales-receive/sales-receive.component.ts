@@ -60,12 +60,12 @@ export class SalesReceiveComponent implements OnInit {
     if (!this.receiveForm.product) return;
 
     // RULE: Variable Weight (e.g. Chicken) must be counted in Boxes
-    if (this.receiveForm.product.is_variable_weight) {
-      this.receiveForm.unit = 'box';
-    } else {
-      // Default reset
-      this.receiveForm.unit = 'box';
-    }
+    // if (this.receiveForm.product.is_variable_weight) {
+    //   this.receiveForm.unit = 'box';
+    // } else {
+    //   // Default reset
+    //   this.receiveForm.unit = 'box';
+    // }
 
     // Reset quantities to force fresh count
     this.receiveForm.qty = null;

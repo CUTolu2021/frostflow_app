@@ -148,9 +148,10 @@
                             {{product.unit_price | currency: '₦'}}
                         </td>
                         <td class="actions-cell">
-                            <button (click)="openEditModal(product)" class="action-btn edit-btn">Edit</button>
+                            <button (click)="openEditModal(product)" class="action-btn edit-btn"
+                                [disabled]="isSubmitting">Edit</button>
                             <button *ngIf="viewMode === 'admin'" (click)="deleteProduct(product.id)"
-                                class="action-btn delete-btn">Delete</button>
+                                class="action-btn delete-btn" [disabled]="isSubmitting">Delete</button>
                         </td>
                     </tr>
                 </tbody>
@@ -198,9 +199,10 @@
                 </div>
 
                 <div class="card-footer">
-                    <button (click)="openEditModal(product)" class="btn btn-outline btn-sm">Edit</button>
+                    <button (click)="openEditModal(product)" class="btn btn-outline btn-sm"
+                        [disabled]="isSubmitting">Edit</button>
                     <button *ngIf="viewMode === 'admin'" (click)="deleteProduct(product.id)"
-                        class="btn btn-outline btn-sm text-red-600">Delete</button>
+                        class="btn btn-outline btn-sm text-red-600" [disabled]="isSubmitting">Delete</button>
                 </div>
             </div>
         </div>
@@ -254,6 +256,11 @@
                     <label for="is_box_sold">Sold in Boxes/Cartons?</label>
                 </div>
 
+                <div class="form-group full-width" *ngIf="productForm.get('is_box_sold')?.value">
+                    <label>Selling Price (Box) ₦</label>
+                    <input type="number" formControlName="box_price" class="form-input" min="0">
+                </div>
+
                 <!-- Only show if Box Sold is Checked -->
                 <div *ngIf="productForm.get('is_box_sold')?.value" class="box-logic-group full-width">
                     <div class="form-group checkbox-group">
@@ -279,8 +286,12 @@
         </div>
 
         <div class="modal-footer">
-            <button type="button" (click)="saveProduct()" class="btn btn-primary">Save</button>
-            <button type="button" (click)="closeModal()" class="btn btn-outline">Cancel</button>
+            <button type="button" (click)="saveProduct()" class="btn btn-primary" [disabled]="isSubmitting">
+                <span *ngIf="isSubmitting" class="material-symbols-outlined spin-icon">progress_activity</span>
+                {{ isSubmitting ? 'Saving...' : 'Save' }}
+            </button>
+            <button type="button" (click)="closeModal()" class="btn btn-outline"
+                [disabled]="isSubmitting">Cancel</button>
         </div>
     </div>
 </div>

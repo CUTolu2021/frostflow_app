@@ -1,0 +1,56 @@
+
+> frostflow-app@0.0.0 build
+> ng build
+
+Node.js version v23.10.0 detected.
+Odd numbered Node.js versions will not enter LTS status and should not be used for production. For more information, please see https://nodejs.org/en/about/previous-releases/.
+[33m❯[39m Building...
+[32m✔[39m Building...
+[1mInitial chunk files[22m  [2m | [22m[1mNames[22m                   [2m | [22m [1mRaw size[22m[2m | [22m[1mEstimated transfer size[22m
+[32mchunk-NCTLQPG3.js[39m    [2m | [22m[2m-[22m                       [2m | [22m[36m414.31 kB[39m[2m | [22m              [36m100.80 kB[39m
+[32mchunk-H26TO6L4.js[39m    [2m | [22m[2m-[22m                       [2m | [22m [36m82.78 kB[39m[2m | [22m               [36m20.96 kB[39m
+[32mmain-FHOVS64V.js[39m     [2m | [22m[2mmain[22m                    [2m | [22m [36m53.83 kB[39m[2m | [22m               [36m10.90 kB[39m
+[32mpolyfills-B6TNHZQ6.js[39m[2m | [22m[2mpolyfills[22m               [2m | [22m [36m34.58 kB[39m[2m | [22m               [36m11.32 kB[39m
+[32mchunk-PMSUF4TK.js[39m    [2m | [22m[2m-[22m                       [2m | [22m [36m15.66 kB[39m[2m | [22m                [36m4.64 kB[39m
+[32mchunk-H67SZ5IY.js[39m    [2m | [22m[2m-[22m                       [2m | [22m[36m659 bytes[39m[2m | [22m              [36m659 bytes[39m
+[32mchunk-NAPD42TZ.js[39m    [2m | [22m[2m-[22m                       [2m | [22m[36m453 bytes[39m[2m | [22m              [36m453 bytes[39m
+[32mstyles-5INURTSO.css[39m  [2m | [22m[2mstyles[22m                  [2m | [22m  [36m0 bytes[39m[2m | [22m                [36m0 bytes[39m
+
+[1m [22m                    [2m | [22m[1mInitial total[22m           [2m | [22m[1m[93m602.27 kB[39m[22m[2m | [22m              [1m149.74 kB[22m
+
+[1mLazy chunk files[22m     [2m | [22m[1mNames[22m                   [2m | [22m [1mRaw size[22m[2m | [22m[1mEstimated transfer size[22m
+[32mchunk-S3S5JL35.js[39m    [2m | [22m[2manalysis-component[22m      [2m | [22m [36m38.63 kB[39m[2m | [22m                [36m8.86 kB[39m
+[32mchunk-L25ZGFEY.js[39m    [2m | [22m[2mproducts-component[22m      [2m | [22m [36m25.19 kB[39m[2m | [22m                [36m5.98 kB[39m
+[32mchunk-AN3ZDJPA.js[39m    [2m | [22m[2minventory-component[22m     [2m | [22m [36m25.19 kB[39m[2m | [22m                [36m5.89 kB[39m
+[32mchunk-GEC4ISBT.js[39m    [2m | [22m[2mreconciliation-component[22m[2m | [22m [36m17.48 kB[39m[2m | [22m                [36m4.55 kB[39m
+[32mchunk-3URNID7W.js[39m    [2m | [22m[2mstaff-component[22m         [2m | [22m [36m14.40 kB[39m[2m | [22m                [36m3.78 kB[39m
+[32mchunk-NJO6BVCU.js[39m    [2m | [22m[2msales-receive-component[22m [2m | [22m [36m11.71 kB[39m[2m | [22m                [36m3.45 kB[39m
+[32mchunk-3FBTLSD2.js[39m    [2m | [22m[2msales-history-component[22m [2m | [22m [36m10.55 kB[39m[2m | [22m                [36m3.16 kB[39m
+[32mchunk-K2QLUASB.js[39m    [2m | [22m[2m-[22m                       [2m | [22m  [36m2.08 kB[39m[2m | [22m              [36m750 bytes[39m
+
+Application bundle generation failed. [4.429 seconds]
+
+[1m[33m[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mbundle initial exceeded maximum budget. Budget 500.00 kB was not met by 102.27 kB with a total of 602.27 kB.[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1msrc/app/pages/inventory/inventory.component.css exceeded maximum budget. Budget 4.00 kB was not met by 4.39 kB with a total of 8.39 kB.[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1msrc/app/pages/owner-dashboard/owner-dashboard.component.css exceeded maximum budget. Budget 4.00 kB was not met by 4.09 kB with a total of 8.09 kB.[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1msrc/app/pages/analysis/analysis.component.css exceeded maximum budget. Budget 4.00 kB was not met by 8.50 kB with a total of 12.50 kB.[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1msrc/app/pages/products/products.component.css exceeded maximum budget. Budget 4.00 kB was not met by 3.06 kB with a total of 7.06 kB.[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1msrc/app/pages/staff/staff.component.css exceeded maximum budget. Budget 4.00 kB was not met by 841 bytes with a total of 4.84 kB.[0m
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1msrc/app/pages/reconciliation/reconciliation.component.css exceeded maximum budget. Budget 4.00 kB was not met by 2.05 kB with a total of 6.05 kB.[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1msrc/app/pages/analysis/analysis.component.css exceeded maximum budget. Budget 12.00 kB was not met by 497 bytes with a total of 12.50 kB.[0m
+
+[39m[22m

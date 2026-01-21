@@ -13,6 +13,7 @@ import { ToastService } from '../../services/toast.service';
 })
 export class AnalysisComponent implements OnInit {
     activeTab: 'overview' | 'ai' | 'history' | 'expenses' = 'overview';
+    currentMonth = new Date();
 
     // Data State
     metrics: any = { totalValue: 0, lowStock: 0, totalItems: 0 };
@@ -60,6 +61,11 @@ export class AnalysisComponent implements OnInit {
         private supabase: SupabaseService,
         private toast: ToastService // Assuming you want toast feedback
     ) { }
+
+
+    async refreshData() {
+        await this.ngOnInit();
+    }
 
     async ngOnInit() {
         this.isLoading = true;

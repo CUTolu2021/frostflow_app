@@ -65,6 +65,10 @@
         /* Space for mobile header */
     }
 
+    .main-content {
+        padding: 0px;
+    }
+
     .mobile-header {
         display: flex;
     }

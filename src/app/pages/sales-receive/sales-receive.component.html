@@ -28,7 +28,7 @@
                 <span class="label-tiny">Counting Unit</span>
 
                 <!-- Normal Item: Toggle allowed -->
-                <div *ngIf="!receiveForm.product.is_variable_weight" class="toggle-row">
+                <div class="toggle-row">
                     <button (click)="receiveForm.unit='box'" [class.active]="receiveForm.unit=='box'" class="unit-btn">
                         📦 Boxes
                     </button>
@@ -37,11 +37,11 @@
                     </button>
                 </div>
 
-                <!-- Variable Weight Item: LOCKED -->
+                <!-- Variable Weight Item: LOCKED
                 <div *ngIf="receiveForm.product.is_variable_weight" class="locked-msg">
                     <span class="material-symbols-outlined icon">lock</span>
                     <span>Box Count Only</span>
-                </div>
+                </div> -->
             </div>
 
             <!-- Main Quantity Input -->

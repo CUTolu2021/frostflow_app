@@ -14,8 +14,8 @@
         </div>
     </div>
 
-    <!-- Staff List Table -->
-    <div class="table-container">
+    <!-- Staff List Table (Desktop) -->
+    <div class="table-container desktop-view">
         <table class="data-table">
             <thead>
                 <tr>
@@ -60,6 +60,42 @@
                 </tr>
             </tbody>
         </table>
+    </div>
+
+    <!-- Mobile Card View -->
+    <div class="mobile-view">
+        <div class="staff-card" *ngFor="let staff of staffList">
+            <div class="card-header">
+                <div class="user-info">
+                    <div class="avatar-circle">{{ staff.name.charAt(0).toUpperCase() }}</div>
+                    <div class="flex-col">
+                        <span class="font-medium">{{ staff.name }}</span>
+                        <span class="font-mono text-xs text-muted">{{ staff.email }}</span>
+                    </div>
+                </div>
+                <span class="status-badge" [class.active]="staff.is_active" [class.inactive]="!staff.is_active">
+                    {{ staff.is_active ? 'Active' : 'Disabled' }}
+                </span>
+            </div>
+            <div class="card-body">
+                <div class="info-row">
+                    <span class="label">Role:</span>
+                    <span class="role-badge" [class.sales]="staff.role === 'sales'"
+                        [class.manager]="staff.role === 'manager'">
+                        {{ staff.role | titlecase }}
+                    </span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <button class="btn-sm btn-outline-danger full-width" (click)="toggleStatus(staff)">
+                    {{ staff.is_active ? 'Disable Staff' : 'Enable Staff' }}
+                </button>
+            </div>
+        </div>
+
+        <div class="empty-state" *ngIf="staffList.length === 0">
+            <p>No staff members found.</p>
+        </div>
     </div>
 </div>
 

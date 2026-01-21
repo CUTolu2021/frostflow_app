@@ -59,9 +59,10 @@ export class OwnerDashboardComponent implements OnInit, OnDestroy {
             unit_price: [null, [Validators.required, Validators.min(0)]],
             total_cost: [0, [Validators.min(0)]],
             recorded_by: [this.id || '', [Validators.required]],
-            unit_cost: [null, [Validators.min(0)]],
+            unit_cost: [null, [Validators.required, Validators.min(0)]],
             total_weight: [null, [Validators.min(0)]],
             logistics_fee: [null, [Validators.min(0)]],
+            box_price: [null, [Validators.min(0)]],
         })
     }
 
@@ -135,7 +136,9 @@ export class OwnerDashboardComponent implements OnInit, OnDestroy {
             this.stockForm.reset({
                 recorded_by: this.id || '',
                 unit_type: 'box',
+                unit_price: null,
                 logistics_fee: 0,
+                box_price: null,
             })
             // Refresh feed maybe?
             setTimeout(() => this.loadData(), 1000);

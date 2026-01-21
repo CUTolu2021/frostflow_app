@@ -7,6 +7,7 @@ export interface Product {
 
     // Price Logic
     unit_price: number;
+    box_price?: number; // Price per box
     cost_price?: number; // Cost price per unit
 
     // Catch Weight Logic

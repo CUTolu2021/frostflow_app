@@ -946,3 +946,183 @@
 .text-gray-500 {
     color: #6b7280;
 }
+
+/* --- MOBILE OPTIMIZATION --- */
+.mobile-view {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .desktop-view {
+        display: none;
+    }
+
+    .mobile-view {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .header-actions {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .date-picker-mock {
+        flex: 1;
+        justify-content: center;
+    }
+
+    .header-actions .btn {
+        flex: 1;
+    }
+
+    /* Tabs scrollable */
+    .tabs-header {
+        padding-bottom: 4px;
+        margin-bottom: 24px;
+    }
+
+    /* KPI Grid Mobile */
+    .kpi-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    /* Sales Data Card */
+    .sale-card-mobile {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 16px;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .s-card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+    }
+
+    .s-meta {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .s-time {
+        font-size: 12px;
+        color: #64748b;
+    }
+
+    .s-id {
+        font-family: monospace;
+        font-weight: 700;
+        color: #2563eb;
+    }
+
+    .s-items {
+        font-size: 14px;
+        color: #334155;
+        line-height: 1.4;
+        margin: 0;
+    }
+
+    .s-card-bot {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-top: 1px solid #f1f5f9;
+        padding-top: 12px;
+    }
+
+    .s-staff {
+        font-size: 12px;
+        color: #64748b;
+        background: #f8fafc;
+        padding: 2px 8px;
+        border-radius: 4px;
+    }
+
+    .s-total {
+        font-size: 16px;
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+    .s-void-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(255, 255, 255, 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #ef4444;
+        font-weight: 900;
+        font-size: 24px;
+        transform: rotate(-10deg);
+        pointer-events: none;
+        border: 4px solid #ef4444;
+        border-radius: 12px;
+        opacity: 0.3;
+    }
+
+    /* Expenses Data Card */
+    .exp-card-mobile {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .e-card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #f1f5f9;
+        padding-bottom: 8px;
+    }
+
+    .e-date {
+        font-size: 12px;
+        color: #64748b;
+    }
+
+    .e-total {
+        font-size: 16px;
+        font-weight: 800;
+        color: #ea580c;
+    }
+
+    .e-prod {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .e-qty {
+        font-size: 12px;
+    }
+
+    .e-card-bot {
+        display: flex;
+        flex-direction: column;
+        /* Stacking costs */
+        gap: 4px;
+        align-items: flex-end;
+        font-size: 12px;
+        color: #64748b;
+    }
+}

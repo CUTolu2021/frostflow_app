@@ -35,7 +35,7 @@ export class ProductService {
      * But with realtime, we might not need to fetch often.
      */
     async loadProducts(force = false) {
-        if (this.initialized && !force) return;
+        if ((this.initialized && !force) || this.loading()) return;
 
         this.loading.set(true);
         try {

@@ -1,0 +1,36 @@
+
+> frostflow-app@0.0.0 build
+> ng build
+
+Node.js version v23.10.0 detected.
+Odd numbered Node.js versions will not enter LTS status and should not be used for production. For more information, please see https://nodejs.org/en/about/previous-releases/.
+[33m❯[39m Building...
+[32m✔[39m Building...
+Application bundle generation failed. [3.752 seconds]
+
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG9: Property 'currentMonth' does not exist on type 'AnalysisComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/analysis/analysis.component.html:13:25:
+[37m      13 │                 <span>{{ [32mcurrentMonth[37m | date:'MMMM y' }}</span>
+         ╵                          [32m~~~~~~~~~~~~[0m
+
+  Error occurs in the template of component AnalysisComponent.
+
+    src/app/pages/analysis/analysis.component.ts:11:17:
+[37m      11 │     templateUrl: [32m'./analysis.component.html'[37m,
+         ╵                  [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG9: Property 'refreshData' does not exist on type 'AnalysisComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/pages/analysis/analysis.component.html:17:53:
+[37m      17 │             <button class="btn btn-primary" (click)="[32mrefreshData[37m()">
+         ╵                                                      [32m~~~~~~~~~~~[0m
+
+  Error occurs in the template of component AnalysisComponent.
+
+    src/app/pages/analysis/analysis.component.ts:11:17:
+[37m      11 │     templateUrl: [32m'./analysis.component.html'[37m,
+         ╵                  [32m~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m

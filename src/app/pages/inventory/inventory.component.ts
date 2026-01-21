@@ -35,6 +35,7 @@ export class InventoryComponent implements OnInit {
     referenceNote: '',
     unitCost: 0,
     unitPrice: 0,
+    boxPrice: 0,
     logisticsFee: 0,
   };
 
@@ -99,6 +100,7 @@ export class InventoryComponent implements OnInit {
       referenceNote: '',
       unitCost: 0,
       unitPrice: 0,
+      boxPrice: 0,
       logisticsFee: 0,
     };
   }
@@ -153,6 +155,7 @@ export class InventoryComponent implements OnInit {
       recorded_by: localStorage.getItem('user_id'),
       unit_cost: this.entry.unitCost,
       unit_price: this.entry.unitPrice,
+      box_price: this.entry.boxPrice || undefined,
       total_cost: this.entry.unitCost * this.entry.inputQty,
       logistics_fee: this.entry.logisticsFee,
     };

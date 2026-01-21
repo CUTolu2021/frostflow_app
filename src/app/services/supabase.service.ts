@@ -14,8 +14,38 @@ export class SupabaseService {
     constructor(private loadingService: LoadingService) {
         this.supabase = createClient(
             environment.supabase_URL,
-            environment.supabase_anon_key
+            environment.supabase_anon_key,
+            {
+                auth: {
+                    autoRefreshToken: true,
+                    persistSession: true,
+                    detectSessionInUrl: true
+                },
+                realtime: {
+                    params: {
+                        eventsPerSecond: 10,
+                    },
+                },
+            }
         )
+    }
+
+    private async withTimeout<T>(promise: PromiseLike<T>, ms: number = 10000): Promise<any> {
+        const timeout = new Promise<T>((_, reject) => {
+            const id = setTimeout(() => {
+                clearTimeout(id);
+                reject(new Error(`Request timed out after ${ms}ms`));
+            }, ms);
+        });
+
+        return Promise.race([
+            Promise.resolve(promise),
+            timeout
+        ]);
+    }
+
+    get client() {
+        return this.supabase;
     }
     async getCurrentUser(): Promise<User | null> {
         const { data } = await this.supabase.auth.getUser()
@@ -63,28 +93,46 @@ export class SupabaseService {
     }
 
     async getUserProfile(userId: string): Promise<UserProfile | null> {
-        const { data, error } = await this.supabase
-            .schema('frostflow_data')
-            .from('users')
-            .select('*')
-            .eq('id', userId)
-            .single()
+        let attempts = 0;
+        const maxAttempts = 3;
 
-        if (error) {
-            console.error('Error fetching user profile:', error)
-            return null
+        while (attempts < maxAttempts) {
+            try {
+                const { data, error } = await this.supabase
+                    .schema('frostflow_data')
+                    .from('users')
+                    .select('*')
+                    .eq('id', userId)
+                    .single()
+
+                if (error) throw error;
+                return data as UserProfile | null;
+
+            } catch (err: any) {
+                attempts++;
+                console.warn(`getUserProfile attempt ${attempts} failed:`, err.message || err);
+
+                // If it's a lock error or network error, retry. Else rethrow locally if critical.
+                // For now, retry all errors to be safe during wake-up.
+                if (attempts === maxAttempts) {
+                    console.error('Final failure fetching user profile:', err);
+                    return null;
+                }
+                // Wait 1s, 2s...
+                await new Promise(resolve => setTimeout(resolve, attempts * 1000));
+            }
         }
-        return data as UserProfile | null
+        return null;
     }
 
     async getProducts(): Promise<any[]> {
         this.loadingService.show();
-        const { data, error } = await this.supabase
+        const { data, error } = await this.withTimeout(this.supabase
             .schema('frostflow_data')
             .from('products')
             .select('*')
             .eq('is_active', true) // Only active products
-            .order('name', { ascending: true })
+            .order('name', { ascending: true }))
 
         this.loadingService.hide();
         if (error) {
@@ -107,6 +155,7 @@ export class SupabaseService {
     }
 
     async addProduct(product: Partial<Product>) {
+        this.loadingService.show();
         // Remove ID if present/empty to let DB generate it, or specific logic
         const { data, error } = await this.supabase
             .schema('frostflow_data')
@@ -115,11 +164,13 @@ export class SupabaseService {
             .select()
             .single()
 
+        this.loadingService.hide();
         if (error) throw error
         return data
     }
 
     async updateProduct(id: string, updates: Partial<Product>) {
+        this.loadingService.show();
         const beforeData = await this.getProduct(id)
         const { data, error } = await this.supabase
             .schema('frostflow_data')
@@ -129,7 +180,10 @@ export class SupabaseService {
             .select()
             .single()
 
-        if (error) throw error
+        if (error) {
+            this.loadingService.hide();
+            throw error;
+        }
         await this.createAuditLog(
             'products',
             id,
@@ -141,11 +195,13 @@ export class SupabaseService {
                 data,
             }
         )
+        this.loadingService.hide();
         return data
 
     }
 
     async deleteProduct(id: string) {
+        this.loadingService.show();
         const beforeData = await this.getProduct(id)
 
         const { data, error } = await this.supabase
@@ -156,7 +212,11 @@ export class SupabaseService {
             .select()
             .single()
 
-        if (error) throw error
+        if (error) {
+            this.loadingService.hide();
+            throw error;
+        }
+
         await this.createAuditLog(
             'products',
             id,
@@ -168,6 +228,7 @@ export class SupabaseService {
                 data,
             }
         )
+        this.loadingService.hide();
         return true
     }
 
@@ -638,13 +699,13 @@ export class SupabaseService {
 
     async getSalesHistory(startDate: string, endDate: string) {
         this.loadingService.show();
-        const { data, error } = await this.supabase
+        const { data, error } = await this.withTimeout(this.supabase
             .schema('frostflow_data')
             .from('sales')
             .select('*, products!product_id(name), users!recorded_by(name)') // Join product and staff
             .gte('created_at', startDate)
             .lte('created_at', endDate)
-            .order('created_at', { ascending: false })
+            .order('created_at', { ascending: false }))
 
         this.loadingService.hide();
         if (error) {
@@ -712,7 +773,7 @@ export class SupabaseService {
     async getExpenses(startDate: string, endDate: string) {
         this.loadingService.show();
         // Fetch stock_in entries which contain cost info
-        const { data, error } = await this.supabase
+        const { data, error } = await this.withTimeout(this.supabase
             .schema('frostflow_data')
             .from('stock_in')
             .select(`
@@ -721,7 +782,7 @@ export class SupabaseService {
             `)
             .gte('created_at', startDate)
             .lte('created_at', endDate)
-            .order('created_at', { ascending: false });
+            .order('created_at', { ascending: false }));
 
         this.loadingService.hide();
 
