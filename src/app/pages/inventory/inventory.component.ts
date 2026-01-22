@@ -164,7 +164,6 @@ export class InventoryComponent implements OnInit {
       await this.supabase.addStockEntry(payload);
       this.toast.show('Stock Added Successfully!', 'success');
       this.closeModal();
-      // No need to reload data manually, DB trigger + Realtime will update ProductService -> Effect -> this.products
     } catch (error: any) {
       console.error(error);
       this.toast.show(error.message || 'Failed to add stock', 'error');

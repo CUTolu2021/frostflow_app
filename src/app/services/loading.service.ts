@@ -8,7 +8,6 @@ export class LoadingService {
     private _loading = new BehaviorSubject<boolean>(false);
     public readonly loading$ = this._loading.asObservable();
 
-    // Counter to handle multiple overlapping requests
     private requestCount = 0;
 
     show() {
@@ -21,7 +20,7 @@ export class LoadingService {
     hide() {
         this.requestCount--;
         if (this.requestCount <= 0) {
-            this.requestCount = 0; // Prevent negative
+            this.requestCount = 0;
             this._loading.next(false);
         }
     }

@@ -78,11 +78,6 @@ export class OwnerDashboardComponent implements OnInit, OnDestroy {
         this.productSubscription = this.supabase.subscribeToProductChanges(() => {
             this.loadProducts()
         });
-
-        // Listen to new sales for the feed
-        // (Assuming subscribeToSales exists or I create a generic one. 
-        //  The existing one is subscribeToStaffStockChanges which is stock_in_staff? 
-        //  Wait, sales table updates? I'll re-use productSubscription for now as sales trigger product updates)
     }
 
     ngOnDestroy() {

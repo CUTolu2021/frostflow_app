@@ -1,6 +1,7 @@
 import { Component } from '@angular/core'
 import { CommonModule } from '@angular/common'
-import { ToastService, Toast } from '../../services/toast.service'
+import { ToastService } from '../../services/toast.service'
+
 
 @Component({
     selector: 'app-toast',
@@ -69,5 +70,5 @@ import { ToastService, Toast } from '../../services/toast.service'
     ],
 })
 export class ToastComponent {
-    constructor(public toastService: ToastService) {}
+    constructor(public toastService: ToastService) { }
 }

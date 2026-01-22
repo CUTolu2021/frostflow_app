@@ -1,12 +1,12 @@
 import { Injectable } from '@angular/core'
 import { BehaviorSubject } from 'rxjs'
+// import { Toast } from '../interfaces/toast'
 
 export interface Toast {
     message: string
     type: 'success' | 'error' | 'info' | 'login' | 'logout'
     id: number
 }
-
 @Injectable({
     providedIn: 'root',
 })
