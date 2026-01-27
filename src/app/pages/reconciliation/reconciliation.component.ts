@@ -1,9 +1,12 @@
-import { Component, OnInit } from '@angular/core'
+import { Component, OnInit, effect } from '@angular/core'
+import { toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRoute } from '@angular/router'
 import { CommonModule } from '@angular/common'
 import { SupabaseService } from '../../services/supabase.service'
 import { FormsModule } from '@angular/forms'
 import { ToastService } from '../../services/toast.service'
+
+import { ReconciliationMismatch, statusEnum } from '../../interfaces/reconciliation'
 
 @Component({
     selector: 'app-reconciliation',
@@ -13,31 +16,41 @@ import { ToastService } from '../../services/toast.service'
     styleUrls: ['./reconciliation.component.css'],
 })
 export class ReconciliationComponent implements OnInit {
-    // Data State
-    mismatches: any[] = []
+
+    mismatches: ReconciliationMismatch[] = []
     isLoading = true
     totalMismatches = 0
     criticalItems = 0
     highlightId: string | null = null
+    statusEnum = statusEnum
 
-    // Modal State
+
     isModalOpen = false;
-    selectedMismatch: any = null;
+    selectedMismatch: ReconciliationMismatch | null = null;
     resolutionType: 'owner' | 'sales' | 'manual' = 'owner';
     manualQty: number = 0;
     resolutionNote: string = '';
+
+    queryParams: any;
 
     constructor(
         private supabase: SupabaseService,
         private route: ActivatedRoute,
         private toast: ToastService
-    ) { }
+    ) {
+        this.queryParams = toSignal(this.route.queryParams);
+
+        effect(() => {
+            const params = this.queryParams();
+            if (params) {
+                this.highlightId = params['id'] || null
+                this.loadData()
+            }
+        });
+    }
 
     ngOnInit() {
-        this.route.queryParams.subscribe((params) => {
-            this.highlightId = params['id'] || null
-            this.loadData()
-        })
+
     }
 
     async loadData() {
@@ -65,13 +78,13 @@ export class ReconciliationComponent implements OnInit {
         }
     }
 
-    // --- Modal Logic ---
 
-    openResolveModal(item: any) {
+
+    openResolveModal(item: ReconciliationMismatch) {
         this.selectedMismatch = item;
         this.isModalOpen = true;
 
-        // Default to Owner's count as it's usually the 'Gold Standard' or at least the baseline
+
         this.resolutionType = 'owner';
         this.manualQty = item.owner_quantity;
         this.resolutionNote = '';
@@ -84,6 +97,8 @@ export class ReconciliationComponent implements OnInit {
 
     setResolution(type: 'owner' | 'sales' | 'manual') {
         this.resolutionType = type;
+        if (!this.selectedMismatch) return;
+
         if (type === 'owner') {
             this.manualQty = this.selectedMismatch.owner_quantity;
         } else if (type === 'sales') {
@@ -110,11 +125,11 @@ export class ReconciliationComponent implements OnInit {
         this.closeModal();
     }
 
-    async processResolution(item: any, finalQty: number, note: string) {
+    async processResolution(item: ReconciliationMismatch, finalQty: number, note: string) {
         try {
             await this.supabase.resolveMismatch(item, finalQty, note)
             this.toast.show('Mismatch resolved successfully', 'success');
-            // No alert() needed, UI updates automatically or via toast if we added it
+
             this.loadData()
         } catch (error) {
             console.error(error)

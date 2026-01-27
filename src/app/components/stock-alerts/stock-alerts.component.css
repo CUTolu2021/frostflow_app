@@ -1,0 +1,73 @@
+.card {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+}
+
+.card-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.card-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #0f172a;
+}
+
+.card-body {
+    padding: 5px 20px 20px;
+}
+
+.mt-4 {
+    margin-top: 16px;
+}
+
+.p-0 {
+    padding: 0 !important;
+}
+
+.text-red {
+    color: #dc2626;
+}
+
+/* Stock List In-Card */
+.stock-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.stock-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    border-bottom: 1px solid #f8fafc;
+}
+
+.stock-item:last-child {
+    border-bottom: none;
+}
+
+.item-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.item-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: #0f172a;
+}
+
+.item-meta {
+    font-size: 12px;
+    color: #64748b;
+}
+
+.font-bold {
+    font-weight: 700;
+}

@@ -2,6 +2,7 @@ import { Injectable, signal, computed, effect, NgZone, inject } from '@angular/c
 import { SupabaseService } from './supabase.service';
 import { Product } from '../interfaces/product';
 import { ToastService } from './toast.service';
+import { PostgresChangePayload } from '../interfaces/profile';
 
 @Injectable({
     providedIn: 'root'
@@ -24,6 +25,15 @@ export class ProductService {
         private toast: ToastService
     ) {
         this.setupRealtimeSubscription();
+
+
+        effect(() => {
+            const currentProducts = this.products();
+            console.log(`[ProductService] Products signal updated. Count: ${currentProducts.length}`);
+            if (currentProducts.length === 0 && this.initialized) {
+                console.warn('[ProductService] Warning: Products signal was cleared (set to empty array) while initialized.');
+            }
+        });
     }
 
     async loadProducts(force = false) {
@@ -84,20 +94,20 @@ export class ProductService {
 
     private setupRealtimeSubscription() {
         this.supabase.subscribeToProductChanges((payload) => {
-            // Run in zone to update UI
+
             this.ngZone.run(() => {
                 this.handleRealtimeEvent(payload);
             });
         });
     }
 
-    private handleRealtimeEvent(payload: any) {
+    private handleRealtimeEvent(payload: PostgresChangePayload<Product>) {
         const { eventType, new: newRecord, old: oldRecord } = payload;
 
         switch (eventType) {
             case 'INSERT':
                 this.products.update(current => {
-                    // Avoid duplicates if we already added it manually
+
                     if (current.some(p => p.id === newRecord.id)) return current;
                     return [...current, newRecord];
                 });

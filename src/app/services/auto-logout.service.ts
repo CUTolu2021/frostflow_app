@@ -7,8 +7,8 @@ import { ToastService } from './toast.service';
     providedIn: 'root'
 })
 export class AutoLogoutService {
-    private logoutTimer: any;
-    private readonly INACTIVITY_LIMIT = 5 * 60 * 1000; // 5 Minutes
+    private logoutTimer?: ReturnType<typeof setTimeout>;
+    private readonly INACTIVITY_LIMIT = 5 * 60 * 1000;
     private events = ['mousemove', 'click', 'keypress', 'scroll', 'touchstart'];
 
     private supabase = inject(SupabaseService);
@@ -16,13 +16,13 @@ export class AutoLogoutService {
     private toast = inject(ToastService);
     private ngZone = inject(NgZone);
 
-    // Bind the handler to 'this' to allow removal
+
     private eventHandler = () => this.resetTimer();
 
     constructor() { }
 
     initListener() {
-        // Run outside Angular to avoid triggering change detection on every mouse move
+
         this.ngZone.runOutsideAngular(() => {
             this.events.forEach(event => {
                 document.addEventListener(event, this.eventHandler);
@@ -48,7 +48,7 @@ export class AutoLogoutService {
 
         this.ngZone.runOutsideAngular(() => {
             this.logoutTimer = setTimeout(() => {
-                // Re-enter Angular zone to update UI/Router
+
                 this.ngZone.run(() => {
                     this.handleLogout();
                 });
@@ -57,16 +57,17 @@ export class AutoLogoutService {
     }
 
     private async handleLogout() {
-        this.cleanup(); // Stop listening
+        this.cleanup();
 
         try {
-            localStorage.clear
+            console.warn('[AutoLogoutService] Inactivity limit reached. Clearing local storage and signing out.');
+            localStorage.clear();
             await this.supabase.signOut();
             this.toast.show('Logged out due to inactivity', 'info');
             this.router.navigate(['/login']);
         } catch (error) {
             console.error('Auto-logout error:', error);
-            // Force navigation anyway
+
             this.router.navigate(['/login']);
         }
     }

@@ -1,10 +1,12 @@
-import { Component, OnInit, OnDestroy, HostListener } from '@angular/core'
+import { Component, HostListener, OnInit, OnDestroy, ChangeDetectorRef, ApplicationRef, effect, Injector, NgZone } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { Router, RouterOutlet, NavigationStart, NavigationEnd, NavigationCancel, NavigationError } from '@angular/router'
 import { ToastComponent } from './components/toast/toast.component'
 import { SupabaseService } from './services/supabase.service'
 import { LoadingComponent } from './components/loading/loading.component'
 import { LoadingService } from './services/loading.service'
 import { AutoLogoutService } from './services/auto-logout.service'
+import { RealtimeChannel } from '@supabase/supabase-js';
 
 @Component({
     selector: 'app-root',
@@ -15,16 +17,27 @@ import { AutoLogoutService } from './services/auto-logout.service'
 })
 export class AppComponent implements OnInit, OnDestroy {
     title = 'frostflow_app'
-    private profileSubscription: any;
+    private profileSubscription: RealtimeChannel | null = null;
 
     constructor(
         private supabase: SupabaseService,
         private router: Router,
-        private loadingService: LoadingService,
-        private autoLogout: AutoLogoutService
+        public loadingService: LoadingService,
+        private autoLogout: AutoLogoutService,
+        private cdRef: ChangeDetectorRef,
+        private appRef: ApplicationRef,
+        private injector: Injector,
+        private ngZone: NgZone
     ) {
-        // Router Events for Loading
-        this.router.events.subscribe(event => {
+
+    }
+
+    async ngOnInit() {
+
+        const routerEvent = toSignal(this.router.events, { injector: this.injector });
+
+        effect(() => {
+            const event = routerEvent();
             if (event instanceof NavigationStart) {
                 this.loadingService.show();
             } else if (
@@ -34,11 +47,10 @@ export class AppComponent implements OnInit, OnDestroy {
             ) {
                 this.loadingService.hide();
             }
-        });
-    }
+        }, { injector: this.injector });
 
-    async ngOnInit() {
-        // 1. Initial Check
+
+
         const user = await this.supabase.getCurrentUser();
         if (user) {
             await this.checkUserStatus(user.id);
@@ -46,7 +58,7 @@ export class AppComponent implements OnInit, OnDestroy {
             this.autoLogout.initListener();
         }
 
-        // 2. Listen for Auth Changes (Login/Logout)
+
         this.supabase.onAuthStateChange(async (event, session) => {
             if (event === 'SIGNED_IN' && session?.user) {
                 await this.checkUserStatus(session.user.id);
@@ -67,7 +79,7 @@ export class AppComponent implements OnInit, OnDestroy {
     }
 
     private setupProfileSubscription(userId: string) {
-        this.cleanupSubscription(); // Avoid duplicates
+        this.cleanupSubscription();
         this.profileSubscription = this.supabase.subscribeToProfileChanges(userId, (payload) => {
             if (payload.new && payload.new.is_active === false) {
                 this.forceLogout();
@@ -79,7 +91,7 @@ export class AppComponent implements OnInit, OnDestroy {
         this.supabase.signOut().then(() => {
             this.cleanupSubscription();
             this.router.navigate(['/login']);
-            // Using alert to ensure they see it if they are in the middle of something
+
             alert('Your account has been deactivated. You will be logged out.');
         });
     }
@@ -95,10 +107,20 @@ export class AppComponent implements OnInit, OnDestroy {
         this.cleanupSubscription();
     }
 
+    private isResuming = false;
     @HostListener('document:visibilitychange', [])
     async onVisibilityChange() {
-        if (document.visibilityState === 'visible') {
-            this.supabase.client.realtime.disconnect();
+        if (document.visibilityState === 'visible' && !this.isResuming) {
+            this.isResuming = true;
+
+
+            await new Promise(resolve => setTimeout(resolve, 200));
+
+            this.ngZone.run(() => {
+                this.supabase.resumeSession()
+                    .catch((err: any) => console.warn('Background session resume skip/fail:', err.message))
+                    .finally(() => this.isResuming = false);
+            });
         }
     }
 }

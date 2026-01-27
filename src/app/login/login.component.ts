@@ -2,7 +2,7 @@ import { Component } from '@angular/core'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
 import { Router, RouterOutlet } from '@angular/router'
 import { SupabaseService } from '../services/supabase.service'
-import { roles } from '../enums/role'
+import { UserRole } from '../enums/role'
 import { ToastService } from '../services/toast.service'
 
 @Component({
@@ -46,10 +46,10 @@ export class LoginComponent {
                 return
             }
 
-            if (profile && profile.role === roles.admin) {
+            if (profile && profile.role === UserRole.admin) {
                 this.toast.show('Login successful!', 'login')
                 this.router.navigate(['/admin'])
-            } else if (profile && profile.role === roles.sales) {
+            } else if (profile && profile.role === UserRole.sales) {
                 this.toast.show('Login successful!', 'login')
                 this.router.navigate(['/sales'])
             } else {

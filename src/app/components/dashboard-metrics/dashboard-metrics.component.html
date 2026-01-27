@@ -1,0 +1,46 @@
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-content">
+            <p class="stat-label">Inventory Value</p>
+            <h3 class="stat-value">{{ metrics.totalValue | currency: '₦' }}</h3>
+            <span class="stat-badge badge-blue">Total Assets</span>
+        </div>
+        <div class="stat-icon icon-blue">
+            <span class="material-symbols-outlined">payments</span>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <p class="stat-label">Total Revenue</p>
+            <h3 class="stat-value">{{ salesMetrics.totalSalesValue | currency: '₦' }}</h3>
+            <span class="stat-badge badge-green">Sales</span>
+        </div>
+        <div class="stat-icon icon-green">
+            <span class="material-symbols-outlined">attach_money</span>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <p class="stat-label">Low Stock</p>
+            <h3 class="stat-value">{{ metrics.lowStock }}</h3>
+            <span class="stat-badge badge-amber" *ngIf="metrics.lowStock > 0">Attention Needed</span>
+            <span class="stat-badge badge-green" *ngIf="metrics.lowStock === 0">Healthy</span>
+        </div>
+        <div class="stat-icon icon-amber">
+            <span class="material-symbols-outlined">warning</span>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-content">
+            <p class="stat-label">Total Items</p>
+            <h3 class="stat-value">{{ metrics.totalItems }}</h3>
+            <span class="stat-badge badge-purple">SKUs</span>
+        </div>
+        <div class="stat-icon icon-purple">
+            <span class="material-symbols-outlined">inventory_2</span>
+        </div>
+    </div>
+</div>

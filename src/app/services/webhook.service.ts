@@ -2,6 +2,8 @@ import { HttpClient } from '@angular/common/http'
 import { Injectable } from '@angular/core'
 import { firstValueFrom } from 'rxjs'
 import { environment } from '../../environments/environment'
+import { DailySales } from '../interfaces/sales'
+import { StockEntry, StaffStockEntry } from '../interfaces/stock'
 
 @Injectable({
     providedIn: 'root',
@@ -9,22 +11,22 @@ import { environment } from '../../environments/environment'
 export class WebhookService {
     private n8nUrl = environment.n8n_webhook
 
-    constructor(private http: HttpClient) {}
+    constructor(private http: HttpClient) { }
 
     // Send Owner Stock Entry
-    async sendOwnerStock(data: any) {
-        return await firstValueFrom(
-            this.http.post(`${this.n8nUrl}/stock-owner-entry`, data)
-        )
-    }
+    // async sendOwnerStock(data: Partial<StockEntry>) {
+    //     return await firstValueFrom(
+    //         this.http.post(`${this.n8nUrl}/stock-owner-entry`, data)
+    //     )
+    // }
 
-    async sendSalesStock(data: any) {
+    async sendSalesStock(data: Partial<StaffStockEntry> | any) {
         return await firstValueFrom(
             this.http.post(`${this.n8nUrl}/stock-sales-entry`, data)
         )
     }
 
-    async sendDailySales(data: any) {
+    async sendDailySales(data: Partial<DailySales>) {
         return await firstValueFrom(
             this.http.post(`${this.n8nUrl}/sales-entry`, data)
         )

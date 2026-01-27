@@ -1,29 +1,24 @@
-import { Injectable } from '@angular/core'
+import { Injectable, signal } from '@angular/core'
 import { BehaviorSubject } from 'rxjs'
-// import { Toast } from '../interfaces/toast'
+import { Toast } from '../interfaces/toast'
 
-export interface Toast {
-    message: string
-    type: 'success' | 'error' | 'info' | 'login' | 'logout'
-    id: number
-}
 @Injectable({
     providedIn: 'root',
 })
 export class ToastService {
-    toasts$ = new BehaviorSubject<Toast[]>([])
+    toasts = signal<Toast[]>([])
     private toastCounter = 0
 
     show(
         message: string,
         type: 'success' | 'error' | 'login' | 'logout' | 'info' = 'info'
     ) {
-        const currentToasts = this.toasts$.value
+        const currentToasts = this.toasts()
         const id = this.toastCounter++
 
         const newToast: Toast = { message, type, id }
 
-        this.toasts$.next([...currentToasts, newToast])
+        this.toasts.set([...currentToasts, newToast])
 
         setTimeout(() => {
             this.remove(id)
@@ -31,7 +26,7 @@ export class ToastService {
     }
 
     remove(id: number) {
-        const currentToasts = this.toasts$.value
-        this.toasts$.next(currentToasts.filter((t) => t.id !== id))
+        const currentToasts = this.toasts()
+        this.toasts.set(currentToasts.filter((t: Toast) => t.id !== id))
     }
 }

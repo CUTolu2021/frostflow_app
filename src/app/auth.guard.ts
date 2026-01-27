@@ -1,7 +1,7 @@
 import { inject } from '@angular/core'
 import { CanActivateFn, Router } from '@angular/router'
 import { SupabaseService } from './services/supabase.service'
-import { roles } from './enums/role'
+import { UserRole } from './enums/role'
 
 export const authGuard: CanActivateFn = async (route, state) => {
     const supabase = inject(SupabaseService)
@@ -14,7 +14,7 @@ export const authGuard: CanActivateFn = async (route, state) => {
         return false
     }
 
-    const requiredRoles = route.data['roles'] as roles[]
+    const requiredRoles = route.data['roles'] as UserRole[]
     if (!requiredRoles || requiredRoles.length === 0) {
         return false
     }
@@ -27,7 +27,7 @@ export const authGuard: CanActivateFn = async (route, state) => {
         return false
     }
 
-    const userRole: roles = profile.role as roles
+    const userRole: UserRole = profile.role as UserRole
     if (requiredRoles.includes(userRole)) {
         return true
     }

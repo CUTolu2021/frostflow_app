@@ -10,7 +10,7 @@ import { ToastService } from '../../services/toast.service'
     template: `
         <div class="toast-container">
             <div
-                *ngFor="let toast of toastService.toasts$ | async"
+                *ngFor="let toast of toastService.toasts()"
                 class="toast"
                 [ngClass]="toast.type"
                 (click)="toastService.remove(toast.id)"

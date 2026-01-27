@@ -169,7 +169,8 @@
                 </div>
 
                 <!-- Manual Weight Input for Variable Boxes (e.g. Chicken) -->
-                <div *ngIf="entry.unitType === 'box' && product.is_variable_weight" class="alert-box warning-box">
+                <div *ngIf="entry.unitType === 'box' && selectedProduct.is_variable_weight"
+                    class="alert-box warning-box">
                     <label class="alert-label">
                         <span class="material-symbols-outlined icon-sm">scale</span>
                         Total Weight from Invoice (KG) <span class="required">*</span>
@@ -184,8 +185,8 @@
                 <div class="calculation-preview">
                     <span class="preview-label">System will record:</span>
                     <div class="preview-value">{{ calculateFinalWeight() | number:'1.2-2' }} KG</div>
-                    <small class="preview-sub" *ngIf="entry.unitType === 'box' && !product.is_variable_weight">
-                        (Based on {{ product.standard_box_weight }}kg per box)
+                    <small class="preview-sub" *ngIf="entry.unitType === 'box' && !selectedProduct.is_variable_weight">
+                        (Based on {{ selectedProduct.standard_box_weight }}kg per box)
                     </small>
                 </div>
 

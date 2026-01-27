@@ -1,4 +1,4 @@
-import { roles } from '../enums/role'
+import { UserRole } from '../enums/role'
 
 export interface UserProfile {
     id: string
@@ -7,7 +7,7 @@ export interface UserProfile {
 
     name: string
 
-    role: roles
+    role: UserRole
 
     telegram_id: string | null
 
@@ -16,4 +16,13 @@ export interface UserProfile {
     created_at: string
 
     updated_at: string
+}
+
+export interface PostgresChangePayload<T> {
+    schema: string
+    table: string
+    commit_timestamp: string
+    eventType: 'INSERT' | 'UPDATE' | 'DELETE' | '*'
+    new: T
+    old: Partial<T>
 }

@@ -67,7 +67,9 @@
                         <span class="diff-badge" [class.high]="m.difference > 5">{{ m.difference }}</span>
                     </td>
                     <td>
-                        <span class="status-badge" [ngClass]="m.status">{{ m.status | titlecase }}</span>
+                        <span class="status-badge" [ngClass]="m.status">
+                            {{ $any(statusEnum)[m.status.toUpperCase()] }}
+                        </span>
                     </td>
                     <td>
                         {{ m.created_at | date:'shortDate' }}

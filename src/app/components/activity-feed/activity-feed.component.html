@@ -1,0 +1,36 @@
+<div class="card">
+    <div class="card-header highlight-header">
+        <div class="header-with-icon">
+            <span class="material-symbols-outlined icon-pulse">ecg_heart</span>
+            <h3 class="card-title">Live Activity</h3>
+        </div>
+        <button class="btn-icon-sm" (click)="loadData()">
+            <span class="material-symbols-outlined">refresh</span>
+        </button>
+    </div>
+    <div class="card-body p-0">
+        <div class="activity-feed">
+            <div *ngFor="let act of recentActivity" class="feed-item">
+                <div class="feed-icon" [class.bg-green]="act.type === 'sale'" [class.bg-blue]="act.type === 'stock'">
+                    <span class="material-symbols-outlined text-xs">
+                        {{ act.type === 'sale' ? 'payments' : 'inventory_2' }}
+                    </span>
+                </div>
+                <div class="feed-content">
+                    <p class="feed-text">
+                        <strong>{{ act.user }}</strong>
+                        {{ act.type === 'sale' ? 'sold' : 'added' }}
+                        <span class="text-highlight">{{ act.description }}</span>
+                    </p>
+                    <span class="feed-time">{{ act.time | date:'shortTime' }}</span>
+                </div>
+                <div class="feed-amount" *ngIf="act.amount">
+                    +{{ act.amount | currency:'NGN':'symbol-narrow' }}
+                </div>
+            </div>
+            <div *ngIf="recentActivity.length === 0" class="empty-state">
+                No recent activity.
+            </div>
+        </div>
+    </div>
+</div>

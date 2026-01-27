@@ -3,6 +3,11 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SupabaseService } from '../../services/supabase.service';
 import { ToastService } from '../../services/toast.service';
+import { UserProfile } from '../../interfaces/profile';
+import { GroupedSale, Sale } from '../../interfaces/sales';
+import { AIStockReport } from '../../interfaces/ai-report';
+import { User } from '@supabase/supabase-js';
+import { StockEntry } from '../../interfaces/stock';
 
 @Component({
     selector: 'app-analysis',
@@ -15,14 +20,14 @@ export class AnalysisComponent implements OnInit {
     activeTab: 'overview' | 'ai' | 'history' | 'expenses' = 'overview';
     currentMonth = new Date();
 
-    // Data State
-    metrics: any = { totalValue: 0, lowStock: 0, totalItems: 0 };
-    salesMetrics: any = { totalSalesValue: 0, totalUnitsSold: 0 };
-    aiReport: any = null;
+
+    metrics = { totalValue: 0, lowStock: 0, totalItems: 0 };
+    salesMetrics = { totalSalesValue: 0, totalUnitsSold: 0 };
+    aiReport: AIStockReport | null = null;
     isLoading = true;
 
-    // History Logic
-    groupedSales: any[] = []; // The list of Invoices
+
+    groupedSales: GroupedSale[] = [];
     financials = {
         totalRevenue: 0,
         cashAtHand: 0,
@@ -30,36 +35,35 @@ export class AnalysisComponent implements OnInit {
         credit: 0
     };
 
-    // Filters
+
     filters = {
-        date: new Date().toISOString().slice(0, 7), // YYYY-MM
+        date: new Date().toISOString().slice(0, 7),
         staff: 'all',
         payment: 'all'
     };
-    staffList: any[] = [];
+    staffList: UserProfile[] = [];
 
-    // Modal State
-    selectedInvoice: any = null;
+
+    selectedInvoice: GroupedSale | null = null;
     isReceiptModalOpen = false;
     isVoidingMode = false;
 
     voidReason = '';
 
-    // Expenses Logic
-    expenses: any[] = [];
+
+    expenses: StockEntry[] = [];
     expenseMetrics = {
         totalSpent: 0,
         goodsCost: 0,
         logisticsCost: 0,
-        netProfit: 0 // Sales Revenue - Total Expenses
-    };
-    expenseChartData: any[] = []; // For trend chart
+        netProfit: 0
+    }
 
-    currentUser: any = null;
+    currentUser: User | null = null;
 
     constructor(
         private supabase: SupabaseService,
-        private toast: ToastService // Assuming you want toast feedback
+        private toast: ToastService
     ) { }
 
 
@@ -70,12 +74,12 @@ export class AnalysisComponent implements OnInit {
     async ngOnInit() {
         this.isLoading = true;
         this.currentUser = await this.supabase.getCurrentUser();
-        // Parallel load
+
         await Promise.all([
             this.loadMetrics(),
             this.loadAiReport(),
             this.loadHistory(),
-            this.loadExpenses(), // New load
+            this.loadExpenses(),
             this.loadStaff()
         ]);
         this.isLoading = false;
@@ -100,7 +104,7 @@ export class AnalysisComponent implements OnInit {
         this.staffList = await this.supabase.getStaffList();
     }
 
-    // --- CORE HISTORY LOGIC ---
+
 
     getDateRange() {
         const [year, month] = this.filters.date.split('-').map(Number);
@@ -111,27 +115,24 @@ export class AnalysisComponent implements OnInit {
     }
 
     async loadHistory() {
-        // 1. Build Date Range (Month)
+
         const { start, end } = this.getDateRange();
 
-        // 2. Fetch Raw Lines
+
         const rawSales = await this.supabase.getSalesHistory(start, end);
 
-        // 3. Client-side Filtering (Staff/Payment)
-        const filtered = rawSales.filter((s: any) => {
+
+        const filtered = rawSales.filter((s: Sale) => {
             if (this.filters.staff !== 'all' && s.recorded_by !== this.filters.staff) return false;
-            // if (this.filters.payment !== 'all' && s.payment_method !== this.filters.payment) return false; 
-            // NOTE: Grouping usually happens by Invoice, and an invoice usually has ONE payment method. 
-            // If filtering by payment, we filter the whole invoice later or here. Let's do it here.
             if (this.filters.payment !== 'all' && s.payment_method !== this.filters.payment) return false;
             return true;
         });
 
-        // 4. Group by Invoice ID
-        const grouped: any = {};
 
-        filtered.forEach((row: any) => {
-            // Fallback invoice ID if older data didn't have one (generate pseudo from timestamp if needed, or skip)
+        const grouped: { [key: string]: GroupedSale } = {};
+
+        filtered.forEach((row: Sale) => {
+
             const id = row.invoice_id || `UNK-${new Date(row.created_at).getTime()}`;
 
             if (!grouped[id]) {
@@ -142,41 +143,40 @@ export class AnalysisComponent implements OnInit {
                     staff_name: row.users?.name || 'Unknown',
                     total: 0,
                     payment_method: row.payment_method,
-                    status: row.status || 'completed', // 'completed' | 'void'
+                    status: row.status || 'completed',
                     items: [],
                     item_summary: ''
                 };
             }
 
-            // Add lines
+
             grouped[id].items.push(row);
-            // Sum totals (ensure we handle void logic visually, but data usually keeps the record)
-            if (row.status !== 'void') {
+
+            if (row.status !== 'voided' && row.status !== 'rejected') {
                 grouped[id].total += (row.total_price || 0);
             }
         });
 
-        // 5. Finalize Groups (Summary text)
-        this.groupedSales = Object.values(grouped).sort((a: any, b: any) =>
+
+        this.groupedSales = Object.values(grouped).sort((a: GroupedSale, b: GroupedSale) =>
             new Date(b.raw_date).getTime() - new Date(a.raw_date).getTime()
         );
 
         this.groupedSales.forEach(g => {
-            const names = g.items.map((i: any) => i.products?.name).join(', ');
+            const names = g.items.map((i: Sale) => i.products?.name).join(', ');
             g.item_summary = `${g.items.length} Item(s): ${names}`;
-            // If text too long, truncate? CSS handles truncation usually.
         });
 
-        // 6. Calculate Financials (Snapshot)
+
         this.calculateFinancials();
     }
 
     calculateFinancials() {
-        // Reset
+
         this.financials = { totalRevenue: 0, cashAtHand: 0, bankTransfer: 0, credit: 0 };
 
         this.groupedSales.forEach(inv => {
-            if (inv.status === 'void') return; // Skip voided money
+            if (inv.status === 'voided' || inv.status === 'rejected') return;
 
             this.financials.totalRevenue += inv.total;
 
@@ -186,9 +186,9 @@ export class AnalysisComponent implements OnInit {
         });
     }
 
-    // --- VIEW / VOID ACTIONS ---
 
-    viewReceipt(invoice: any) {
+
+    viewReceipt(invoice: GroupedSale) {
         this.selectedInvoice = invoice;
         this.isReceiptModalOpen = true;
     }
@@ -200,7 +200,7 @@ export class AnalysisComponent implements OnInit {
         this.voidReason = '';
     }
 
-    async voidTransaction(invoice: any) {
+    async voidTransaction(invoice: GroupedSale) {
         if (!this.isVoidingMode) {
             this.isVoidingMode = true;
             return;
@@ -215,9 +215,9 @@ export class AnalysisComponent implements OnInit {
 
         this.isLoading = true;
         try {
-            // Loop items and void specific lines
+
             for (const item of invoice.items) {
-                // Return stock and record reason
+
                 await this.supabase.voidSale(
                     item.id,
                     item.product_id,
@@ -228,7 +228,7 @@ export class AnalysisComponent implements OnInit {
 
             alert('Invoice Voided Successfully');
             this.closeReceiptModal();
-            await this.loadHistory(); // Reload to reflect changes
+            await this.loadHistory();
 
         } catch (error: any) {
             console.error(error);
@@ -239,7 +239,7 @@ export class AnalysisComponent implements OnInit {
     }
 
 
-    // --- EXPENSES LOGIC ---
+
 
     async loadExpenses() {
         if (!this.currentUser) return;

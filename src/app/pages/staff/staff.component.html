@@ -35,8 +35,8 @@
                         </div>
                     </td>
                     <td>
-                        <span class="role-badge" [class.sales]="staff.role === 'sales'"
-                            [class.manager]="staff.role === 'manager'">
+                        <span class="role-badge" [class.sales]="staff.role === UserRole.sales"
+                            [class.manager]="staff.role === UserRole.manager">
                             {{ staff.role | titlecase }}
                         </span>
                     </td>
@@ -80,8 +80,8 @@
             <div class="card-body">
                 <div class="info-row">
                     <span class="label">Role:</span>
-                    <span class="role-badge" [class.sales]="staff.role === 'sales'"
-                        [class.manager]="staff.role === 'manager'">
+                    <span class="role-badge" [class.sales]="staff.role === UserRole.sales"
+                        [class.manager]="staff.role === UserRole.manager">
                         {{ staff.role | titlecase }}
                     </span>
                 </div>

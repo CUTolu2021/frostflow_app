@@ -1,0 +1,15 @@
+<div class="card mt-4" *ngIf="lowStockItems.length > 0">
+    <div class="card-header">
+        <h3 class="card-title text-red">⚠️ Restock Needed</h3>
+    </div>
+    <div class="card-body p-0">
+        <div class="stock-list">
+            <div *ngFor="let p of lowStockItems" class="stock-item">
+                <div class="item-info">
+                    <span class="item-name">{{ p.name }}</span>
+                    <span class="item-meta text-red font-bold">{{ p.unit }} left</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

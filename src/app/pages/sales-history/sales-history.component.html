@@ -43,7 +43,7 @@
 
             <div class="t-mid">
                 <span class="t-items">{{ sale.items[0].quantity }} {{ sale.items[0].unit_type }}</span>
-                <span *ngIf="sale.status === 'void'" class="badge-void">VOID</span>
+                <span *ngIf="sale.status === 'voided' || sale.status === 'rejected'" class="badge-void">VOID</span>
             </div>
 
             <div class="t-right">

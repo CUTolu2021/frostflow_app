@@ -3,7 +3,7 @@ import { LoginComponent } from './login/login.component'
 import { OwnerDashboardComponent } from './pages/owner-dashboard/owner-dashboard.component'
 import { SalesDashboardComponent } from './pages/sales-dashboard/sales-dashboard.component'
 import { authGuard } from './auth.guard'
-import { roles } from './enums/role'
+import { UserRole } from './enums/role'
 import { ReconciliationComponent } from './pages/reconciliation/reconciliation.component'
 import { MainLayoutComponent } from './components/main-layout/main-layout.component'
 
@@ -18,7 +18,7 @@ export const routes: Routes = [
         path: 'admin',
         component: MainLayoutComponent,
         canActivate: [authGuard],
-        data: { roles: [roles.admin] },
+        data: { roles: [UserRole.admin] },
         children: [
             { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
             {
@@ -66,14 +66,14 @@ export const routes: Routes = [
                     ),
                 title: 'Analytics',
             },
-            // {
-            //     path: 'customers',
-            //     loadComponent: () =>
-            //         import('./pages/products/products.component').then(
-            //             (m) => m.ProductsComponent // Placeholder, re-using for now or just empty? User didn't ask for customers yet. Let's just do products.
-            //         ),
-            //     title: 'Customers',
-            // },
+
+
+
+
+
+
+
+
         ],
     },
 
@@ -81,7 +81,7 @@ export const routes: Routes = [
         path: 'sales',
         component: MainLayoutComponent,
         canActivate: [authGuard],
-        data: { roles: [roles.sales] },
+        data: { roles: [UserRole.sales] },
         children: [
             { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
             {

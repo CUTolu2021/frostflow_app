@@ -1,4 +1,5 @@
 import { Component, Input, OnInit, effect, inject } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import {
   FormBuilder,
@@ -6,7 +7,7 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { ProductService } from '../../services/product.service'; // Changed Service
+import { ProductService } from '../../services/product.service';
 import { Product } from '../../interfaces/product';
 import { ToastService } from '../../services/toast.service';
 
@@ -15,28 +16,28 @@ import { ToastService } from '../../services/toast.service';
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './products.component.html',
-  styleUrl: './products.component.css' // Note: Original had this property
+  styleUrl: './products.component.css'
 })
 export class ProductsComponent implements OnInit {
   @Input() viewMode: 'admin' | 'lookup' = 'admin';
 
-  // State syncs from Service
+
   products: Product[] = [];
   filteredProducts: Product[] = [];
   searchTerm: string = '';
 
-  // Stats
+
   totalProducts = 0;
   lowStock = 0;
   outOfStock = 0;
   categoriesCount = 0;
 
-  // Form
+
   showModal = false;
   isEditing = false;
   productForm: FormGroup;
 
-  // UI
+
   loading = true;
   isSubmitting = false;
 
@@ -58,31 +59,35 @@ export class ProductsComponent implements OnInit {
       standard_box_weight: [null, Validators.min(0)],
     });
 
-    this.productForm.get('is_box_sold')?.valueChanges.subscribe(isBox => {
-      if (!isBox) {
+    const isBoxSoldSignal = toSignal(this.productForm.get('is_box_sold')!.valueChanges, {
+      initialValue: this.productForm.get('is_box_sold')?.value
+    });
+
+    effect(() => {
+      if (!isBoxSoldSignal()) {
         this.productForm.patchValue({
           is_variable_weight: false,
           standard_box_weight: null
-        });
+        }, { emitEvent: false });
       }
     });
 
-    // Valid Effect usage: Sync signals to local state for template compatibility
+
     effect(() => {
-      // 1. Sync Products
+
       this.products = this.productService.products();
 
-      // 2. Sync Loading
+
       this.loading = this.productService.loading();
 
-      // 3. Re-run filters/stats when products change
+
       this.filterProducts();
       this.calculateStats();
     });
   }
 
   async ngOnInit() {
-    // Initial fetch if needed (Service handles dedup)
+
     await this.productService.loadProducts();
 
     const role = localStorage.getItem('user_role');
@@ -91,10 +96,7 @@ export class ProductsComponent implements OnInit {
     }
   }
 
-  // Removed manual loadProducts() since effect handles it
-
   calculateStats() {
-    // Can also pull these directly from service computed signals, but local calc is fine for now to match template
     this.totalProducts = this.products.length;
     this.lowStock = this.products.filter(p => (p.unit ?? 0) < 10 && (p.unit ?? 0) > 0).length;
     this.outOfStock = this.products.filter(p => (p.unit ?? 0) === 0).length;
@@ -198,7 +200,7 @@ export class ProductsComponent implements OnInit {
         this.toast.show('Product added successfully', 'success');
       }
       this.closeModal();
-      // No need to loadProducts(), effect handles update
+
     } catch (error: any) {
       console.error('Save failed', error);
       this.toast.show('Error saving product: ' + error.message, 'error');

@@ -1,4 +1,5 @@
-import { Component } from '@angular/core'
+import { Component, effect } from '@angular/core'
+import { toSignal } from '@angular/core/rxjs-interop'
 import {
     FormGroup,
     FormBuilder,
@@ -10,6 +11,9 @@ import { SupabaseService } from '../../services/supabase.service'
 import { WebhookService } from '../../services/webhook.service'
 import { CommonModule } from '@angular/common'
 import { ToastService } from '../../services/toast.service'
+import { ProductService } from '../../services/product.service'
+import { Product } from '../../interfaces/product'
+import { RealtimeChannel } from '@supabase/supabase-js'
 
 @Component({
     selector: 'app-sales-dashboard',
@@ -19,7 +23,7 @@ import { ToastService } from '../../services/toast.service'
     styleUrl: './sales-dashboard.component.css',
 })
 export class SalesDashboardComponent {
-    products: any[] = []
+    products: Product[] = []
     salesForm: FormGroup
     dailySalesForm: FormGroup
     salesMetrics = {
@@ -30,7 +34,7 @@ export class SalesDashboardComponent {
         todaySalesValue: 0,
         todayUnitsSold: 0,
     }
-    private productSubscription: any
+    private productSubscription?: RealtimeChannel
     paymentMethods: string[] = ['Cash', 'Card', 'Transfer']
     public name: string = localStorage.getItem('user_name') || ''
     email: string = localStorage.getItem('user_email') || ''
@@ -41,7 +45,8 @@ export class SalesDashboardComponent {
         private fb: FormBuilder,
         private toast: ToastService,
         private n8n: WebhookService,
-        private router: Router
+        private router: Router,
+        public productService: ProductService
     ) {
         this.salesForm = this.fb.group({
             name: ['', Validators.minLength(1)],
@@ -60,36 +65,45 @@ export class SalesDashboardComponent {
             payment_method: ['', Validators.required],
             recorded_by: [this.id, Validators.required],
         })
+        this.setupFormListeners()
+
+        effect(() => {
+            this.products = this.productService.products();
+        });
     }
 
     async ngOnInit(): Promise<void> {
         this.salesMetrics = await this.supabase.getSalesDashboardMetrics()
         this.todaySalesMetrics = await this.supabase.getTodaySalesMetrics()
-        this.loadProducts()
-        this.setupFormListeners()
-        this.productSubscription = this.supabase.subscribeToProductChanges(
-            (payload) => {
-                // Reload products to reflect changes
-                this.loadProducts()
-            }
-        )
+
+
+        this.productService.loadProducts();
     }
 
     setupFormListeners() {
-        this.salesForm
-            .get('product_id')
-            ?.valueChanges.subscribe((selectedId) => {
-                const nameControl = this.salesForm.get('name')
+        const productIdSignal = toSignal(
+            this.salesForm.get('product_id')!.valueChanges,
+            { initialValue: this.salesForm.get('product_id')?.value }
+        )
 
-                if (selectedId) {
-                    nameControl?.disable({ emitEvent: false })
-                    nameControl?.setValue('')
-                } else {
-                    nameControl?.enable({ emitEvent: false })
-                }
-            })
+        const nameSignal = toSignal(this.salesForm.get('name')!.valueChanges, {
+            initialValue: this.salesForm.get('name')?.value,
+        })
 
-        this.salesForm.get('name')?.valueChanges.subscribe((text) => {
+        effect(() => {
+            const selectedId = productIdSignal()
+            const nameControl = this.salesForm.get('name')
+
+            if (selectedId) {
+                nameControl?.disable({ emitEvent: false })
+                nameControl?.setValue('')
+            } else {
+                nameControl?.enable({ emitEvent: false })
+            }
+        })
+
+        effect(() => {
+            const text = nameSignal()
             const dropdownControl = this.salesForm.get('product_id')
 
             if (text && text.length > 0) {
@@ -99,12 +113,6 @@ export class SalesDashboardComponent {
                 dropdownControl?.enable({ emitEvent: false })
             }
         })
-    }
-
-    async loadProducts() {
-        this.products = await this.supabase.getProducts()
-        this.salesMetrics = await this.supabase.getSalesDashboardMetrics()
-        this.todaySalesMetrics = await this.supabase.getTodaySalesMetrics()
     }
 
     onSalesRecordSubmit() {
@@ -117,7 +125,7 @@ export class SalesDashboardComponent {
                 'error'
             )
         }
-        // Reset form with initial values to keep it valid for next submission
+
         this.dailySalesForm.reset({
             recorded_by: this.id,
             unit_type: 'kg',
@@ -128,10 +136,6 @@ export class SalesDashboardComponent {
         if (this.productSubscription) {
             this.productSubscription.unsubscribe()
         }
-    }
-
-    async loadData() {
-        this.products = await this.supabase.getProducts()
     }
 
     handleLogout() {

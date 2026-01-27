@@ -3,6 +3,9 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SupabaseService } from '../../services/supabase.service';
 import { ToastService } from '../../services/toast.service';
+import { User } from '@supabase/supabase-js';
+import { UserProfile } from '../../interfaces/profile';
+import { UserRole } from '../../enums/role';
 
 @Component({
   selector: 'app-staff',
@@ -12,12 +15,13 @@ import { ToastService } from '../../services/toast.service';
   styleUrl: './staff.component.css'
 })
 export class StaffComponent implements OnInit {
-  staffList: any[] = [];
+  UserRole = UserRole;
+  staffList: UserProfile[] = [];
   isModalOpen = false;
 
   newStaff = {
     name: '',
-    role: 'sales', // default
+    role: 'sales',
     password: '',
     generatedEmail: ''
   };
@@ -48,7 +52,7 @@ export class StaffComponent implements OnInit {
     this.newStaff = {
       name: '',
       role: 'sales',
-      password: '', // Should generate a random one or let user type? User said 'admin sets simple password'
+      password: '',
       generatedEmail: ''
     };
   }
@@ -57,8 +61,8 @@ export class StaffComponent implements OnInit {
     if (!this.newStaff.name) return '...';
 
     const cleanName = this.newStaff.name.toLowerCase().trim().replace(/\s+/g, '.');
-    // Using a generic prefix or derived from user logic if available. 
-    // For now, hardcoding 'store' effectively or we could grab the owner's email domain if we wanted.
+
+
     const orgPrefix = 'store';
     return `${cleanName}@${orgPrefix}.frostflow.app`;
   }
@@ -87,23 +91,23 @@ export class StaffComponent implements OnInit {
       this.closeModal();
       await this.loadStaff();
 
-      // Optional: Show a "Copy Credentials" prompt? User request #2.
-      // For now, success toast includes email.
+
+
     } catch (error: any) {
       console.error(error);
       this.toast.show(error.message || 'Failed to create staff', 'error');
     }
   }
 
-  async toggleStatus(user: any) {
+  async toggleStatus(user: UserProfile) {
     const newStatus = !user.is_active;
     try {
       await this.supabase.updateStaffStatus(user.id, newStatus);
-      user.is_active = newStatus; // Optimistic update
+      user.is_active = newStatus;
       this.toast.show(`User ${newStatus ? 'Activated' : 'Disabled'}`, 'info');
     } catch (error) {
       this.toast.show('Failed to update status', 'error');
-      user.is_active = !newStatus; // Revert
+      user.is_active = !newStatus;
     }
   }
 }
