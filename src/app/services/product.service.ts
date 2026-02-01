@@ -17,6 +17,8 @@ export class ProductService {
     outOfStockCount = computed(() => this.products().filter(p => (p.unit ?? 0) === 0).length);
     categoriesCount = computed(() => new Set(this.products().map(p => p.category)).size);
 
+    private productSubscription: any;
+    private listenerCount = 0;
     private initialized = false;
     private ngZone = inject(NgZone);
 
@@ -24,9 +26,6 @@ export class ProductService {
         private supabase: SupabaseService,
         private toast: ToastService
     ) {
-        this.setupRealtimeSubscription();
-
-
         effect(() => {
             const currentProducts = this.products();
             console.log(`[ProductService] Products signal updated. Count: ${currentProducts.length}`);
@@ -36,13 +35,35 @@ export class ProductService {
         });
     }
 
+    startListening() {
+        this.listenerCount++;
+        if (this.productSubscription) return;
+        this.productSubscription = this.setupRealtimeSubscription();
+    }
+
+    stopListening() {
+        this.listenerCount = Math.max(0, this.listenerCount - 1);
+        if (this.listenerCount === 0 && this.productSubscription) {
+            this.productSubscription.unsubscribe();
+            this.productSubscription = null;
+        }
+    }
+
     async loadProducts(force = false) {
         if ((this.initialized && !force) || this.loading()) return;
 
         this.loading.set(true);
         try {
             const data = await this.supabase.getProducts();
-            this.products.set(data);
+
+            // If fetch failed/timed-out (returned [] or error handled in supabase service)
+            // but we already have products, don't overwrite with empty
+            if (data.length === 0 && this.products().length > 0) {
+                console.warn('[ProductService] Fetch came back empty while products were already loaded. Keeping existing data.');
+            } else {
+                this.products.set(data);
+            }
+
             this.initialized = true;
         } catch (err: any) {
             this.error.set(err.message);
@@ -93,8 +114,7 @@ export class ProductService {
     }
 
     private setupRealtimeSubscription() {
-        this.supabase.subscribeToProductChanges((payload) => {
-
+        return this.supabase.subscribeToProductChanges((payload) => {
             this.ngZone.run(() => {
                 this.handleRealtimeEvent(payload);
             });

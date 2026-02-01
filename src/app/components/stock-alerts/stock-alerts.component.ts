@@ -1,8 +1,7 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, effect, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { SupabaseService } from '../../services/supabase.service';
+import { ProductService } from '../../services/product.service';
 import { Product } from '../../interfaces/product';
-import { RealtimeChannel } from '@supabase/supabase-js';
 
 @Component({
     selector: 'app-stock-alerts',
@@ -13,27 +12,21 @@ import { RealtimeChannel } from '@supabase/supabase-js';
 })
 export class StockAlertsComponent implements OnInit, OnDestroy {
     lowStockItems: Product[] = [];
-    products: Product[] = [];
-    private productSubscription?: RealtimeChannel;
+    private productService = inject(ProductService);
 
-    constructor(private supabase: SupabaseService) { }
-
-    async ngOnInit() {
-        this.loadProducts();
-
-        this.productSubscription = this.supabase.subscribeToProductChanges(() => {
-            this.loadProducts();
+    constructor() {
+        effect(() => {
+            const products = this.productService.products();
+            this.lowStockItems = products.filter(p => (p.unit || 0) < 10);
         });
     }
 
-    loadProducts() {
-        this.supabase.getProducts().then(data => {
-            this.products = data;
-            this.lowStockItems = this.products.filter(p => (p.unit || 0) < 10);
-        });
+    async ngOnInit() {
+        this.productService.startListening();
+        await this.productService.loadProducts();
     }
 
     ngOnDestroy() {
-        if (this.productSubscription) this.productSubscription.unsubscribe();
+        this.productService.stopListening();
     }
 }

@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, effect, inject } from '@angular/core';
+import { Component, Input, OnInit, OnDestroy, effect, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import {
@@ -18,7 +18,7 @@ import { ToastService } from '../../services/toast.service';
   templateUrl: './products.component.html',
   styleUrl: './products.component.css'
 })
-export class ProductsComponent implements OnInit {
+export class ProductsComponent implements OnInit, OnDestroy {
   @Input() viewMode: 'admin' | 'lookup' = 'admin';
 
 
@@ -87,13 +87,17 @@ export class ProductsComponent implements OnInit {
   }
 
   async ngOnInit() {
-
+    this.productService.startListening();
     await this.productService.loadProducts();
 
     const role = localStorage.getItem('user_role');
     if (role === 'sales') {
       this.viewMode = 'lookup';
     }
+  }
+
+  ngOnDestroy() {
+    this.productService.stopListening();
   }
 
   calculateStats() {

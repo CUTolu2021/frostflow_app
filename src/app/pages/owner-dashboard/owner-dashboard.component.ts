@@ -35,6 +35,8 @@ export class OwnerDashboardComponent implements OnInit, OnDestroy {
     email: string = localStorage.getItem('user_email') || ''
     id: string = localStorage.getItem('user_id') || ''
 
+    private notificationSubscription: any;
+
     constructor(
         private supabase: SupabaseService,
         private toast: ToastService,
@@ -44,15 +46,16 @@ export class OwnerDashboardComponent implements OnInit, OnDestroy {
     }
 
     async ngOnInit() {
-
-        this.supabase.subscribeToNotifications((payload) => {
+        this.notificationSubscription = this.supabase.subscribeToNotifications((payload) => {
             this.notifications.unshift(payload.new as Notification)
             this.loadData();
         })
     }
 
     ngOnDestroy() {
-
+        if (this.notificationSubscription) {
+            this.notificationSubscription.unsubscribe();
+        }
     }
 
     async loadData() {

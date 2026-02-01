@@ -1,4 +1,4 @@
-import { Component, OnInit, effect, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, effect, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { SupabaseService } from '../../services/supabase.service';
@@ -14,7 +14,7 @@ import { StockEntry, ProductHistoryItem } from '../../interfaces/stock';
   templateUrl: './inventory.component.html',
   styleUrl: './inventory.component.css'
 })
-export class InventoryComponent implements OnInit {
+export class InventoryComponent implements OnInit, OnDestroy {
   products: Product[] = [];
   product: Product | null = null;
 
@@ -53,7 +53,12 @@ export class InventoryComponent implements OnInit {
   }
 
   async ngOnInit() {
+    this.productService.startListening();
     await this.productService.loadProducts();
+  }
+
+  ngOnDestroy() {
+    this.productService.stopListening();
   }
 
 

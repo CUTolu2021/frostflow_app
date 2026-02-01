@@ -1,4 +1,4 @@
-import { Component, HostListener, OnInit, OnDestroy, ChangeDetectorRef, ApplicationRef, effect, Injector, NgZone } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, ApplicationRef, effect, Injector, NgZone } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { Router, RouterOutlet, NavigationStart, NavigationEnd, NavigationCancel, NavigationError } from '@angular/router'
 import { ToastComponent } from './components/toast/toast.component'
@@ -6,6 +6,7 @@ import { SupabaseService } from './services/supabase.service'
 import { LoadingComponent } from './components/loading/loading.component'
 import { LoadingService } from './services/loading.service'
 import { AutoLogoutService } from './services/auto-logout.service'
+import { PageReloadService } from './services/page-reload.service';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
 @Component({
@@ -24,6 +25,7 @@ export class AppComponent implements OnInit, OnDestroy {
         private router: Router,
         public loadingService: LoadingService,
         private autoLogout: AutoLogoutService,
+        private pageReload: PageReloadService,
         private cdRef: ChangeDetectorRef,
         private appRef: ApplicationRef,
         private injector: Injector,
@@ -105,22 +107,5 @@ export class AppComponent implements OnInit, OnDestroy {
 
     ngOnDestroy() {
         this.cleanupSubscription();
-    }
-
-    private isResuming = false;
-    @HostListener('document:visibilitychange', [])
-    async onVisibilityChange() {
-        if (document.visibilityState === 'visible' && !this.isResuming) {
-            this.isResuming = true;
-
-
-            await new Promise(resolve => setTimeout(resolve, 200));
-
-            this.ngZone.run(() => {
-                this.supabase.resumeSession()
-                    .catch((err: any) => console.warn('Background session resume skip/fail:', err.message))
-                    .finally(() => this.isResuming = false);
-            });
-        }
     }
 }

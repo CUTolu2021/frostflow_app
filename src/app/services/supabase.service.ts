@@ -57,20 +57,22 @@ export class SupabaseService {
 
     async resumeSession() {
         try {
-
             const { data, error } = await this.supabase.auth.getSession();
+            if (error) throw error;
 
-            if (error || !data.session) {
-                console.log('[SupabaseService] Session invalid/missing on resume, attempting refresh...');
-                const { error: refreshError } = await this.supabase.auth.refreshSession();
-                if (refreshError) throw refreshError;
-            } else {
-                console.log('[SupabaseService] Session valid on resume');
+            if (!data.session) {
+                // Silently return if no session exists (e.g., on login page)
+                return;
             }
-        } catch (error: any) {
 
-            if (error?.message?.includes('NavigatorLock') || error?.message?.includes('lock')) {
-                console.warn('[SupabaseService] Lock contention detected on resume, skipping manual refresh as internal Supabase logic is likely already handling it.');
+            console.log('[SupabaseService] Session valid on resume');
+        } catch (error: any) {
+            const msg = error?.message || '';
+            // Handle NavigatorLock / Auth session missing specifically
+            if (msg.includes('NavigatorLock') || msg.includes('lock')) {
+                console.warn('[SupabaseService] Lock contention detected on resume. Skipping manual refresh.');
+            } else if (msg.includes('Auth session missing')) {
+                // Ignore silent session missing
             } else {
                 console.error('[SupabaseService] Unexpected error in resumeSession:', error);
             }
