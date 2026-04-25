@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SupabaseService } from '../../services/supabase.service';
 import { ToastService } from '../../services/toast.service';
+import { getErrorMessage } from '../../utils/error-message';
 
 @Component({
   selector: 'app-staff-signup',
@@ -49,8 +50,8 @@ export class StaffSignupComponent implements OnInit {
       this.email = invite.invitedEmail;
       this.role = invite.role;
       this.expiresAt = invite.expiresAt;
-    } catch (error: any) {
-      this.toast.show(error?.error?.message || 'Invalid invite link', 'error');
+    } catch (error: unknown) {
+      this.toast.show(getErrorMessage(error, 'Invalid invite link'), 'error');
     } finally {
       this.isLoadingInvite = false;
     }
@@ -92,8 +93,8 @@ export class StaffSignupComponent implements OnInit {
       });
       this.toast.show('Account created. You can now log in.', 'success');
       this.router.navigate(['/login']);
-    } catch (error: any) {
-      this.toast.show(error?.error?.message || 'Failed to complete signup', 'error');
+    } catch (error: unknown) {
+      this.toast.show(getErrorMessage(error, 'Failed to complete signup'), 'error');
     } finally {
       this.isSubmitting = false;
     }

@@ -20,7 +20,7 @@ export class WebhookService {
     //     )
     // }
 
-    async sendSalesStock(data: Partial<StaffStockEntry> | any) {
+    async sendSalesStock(data: Partial<StaffStockEntry>) {
         return await firstValueFrom(
             this.http.post(`${this.n8nUrl}/stock-sales-entry`, data)
         )

@@ -1,32 +1,22 @@
-import { Component, OnDestroy, OnInit, effect, inject, Injector, runInInjectionContext } from '@angular/core'
-import { toSignal } from '@angular/core/rxjs-interop'
+import { Component, OnDestroy, OnInit, Injector } from '@angular/core'
 import { CommonModule } from '@angular/common'
-import {
-    FormBuilder,
-    FormGroup,
-    ReactiveFormsModule,
-    Validators,
-} from '@angular/forms'
 import { SupabaseService } from '../../services/supabase.service'
 import { Router } from '@angular/router'
 import { ToastService } from '../../services/toast.service'
 import { DashboardMetricsComponent } from '../../components/dashboard-metrics/dashboard-metrics.component'
 import { ActivityFeedComponent } from '../../components/activity-feed/activity-feed.component'
 import { StockAlertsComponent } from '../../components/stock-alerts/stock-alerts.component'
-import { ProductService } from '../../services/product.service'
-import { Notification } from '../../interfaces/notification'
-import { Product } from '../../interfaces/product'
-import { async } from 'rxjs'
+import { NotificationRecord, PollingPayload } from '../../interfaces/api'
 
 @Component({
     selector: 'app-owner-dashboard',
     standalone: true,
-    imports: [CommonModule, ReactiveFormsModule, DashboardMetricsComponent, ActivityFeedComponent, StockAlertsComponent],
+    imports: [CommonModule, DashboardMetricsComponent, ActivityFeedComponent, StockAlertsComponent],
     templateUrl: './owner-dashboard.component.html',
     styleUrls: ['./owner-dashboard.component.css'],
 })
 export class OwnerDashboardComponent implements OnInit, OnDestroy {
-    notifications: Notification[] = []
+    notifications: NotificationRecord[] = []
     showDropdown = false
     showUnitCostField: boolean = false
 
@@ -35,7 +25,7 @@ export class OwnerDashboardComponent implements OnInit, OnDestroy {
     email: string = localStorage.getItem('user_email') || ''
     id: string = localStorage.getItem('user_id') || ''
 
-    private notificationSubscription: any;
+    private notificationSubscription: { unsubscribe: () => void } | null = null;
 
     constructor(
         private supabase: SupabaseService,
@@ -46,8 +36,8 @@ export class OwnerDashboardComponent implements OnInit, OnDestroy {
     }
 
     async ngOnInit() {
-        this.notificationSubscription = this.supabase.subscribeToNotifications((payload) => {
-            this.notifications.unshift(payload.new as Notification)
+        this.notificationSubscription = this.supabase.subscribeToNotifications((payload: PollingPayload<NotificationRecord>) => {
+            this.notifications.unshift(payload.new)
             this.loadData();
         })
     }
@@ -66,7 +56,7 @@ export class OwnerDashboardComponent implements OnInit, OnDestroy {
         this.showDropdown = !this.showDropdown
     }
 
-    async onNotificationClick(notif: any) {
+    async onNotificationClick(notif: NotificationRecord) {
         await this.supabase.markNotificationAsRead(notif.id)
         this.notifications = this.notifications.filter((n) => n.id !== notif.id)
 

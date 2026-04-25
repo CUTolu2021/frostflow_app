@@ -4,6 +4,17 @@ const { HttpError } = require('../utils/httpError');
 
 const table = (name) => supabase.schema(env.supabaseSchema).from(name);
 
+const isNotificationsSchemaError = (error) => {
+  const message = String(error?.message || '').toLowerCase();
+  return (
+    message.includes("relation \"frostflow_data.notifications\" does not exist") ||
+    message.includes("could not find the table 'notifications'") ||
+    message.includes("column notifications.organization_id does not exist") ||
+    message.includes("column notifications.is_read does not exist") ||
+    message.includes("column notifications.created_at does not exist")
+  );
+};
+
 const selectSingle = async (query, message) => {
   const { data, error } = await query.single();
   if (error || !data) {
@@ -125,6 +136,9 @@ const listNotifications = async ({ organizationId, unreadOnly }) => {
   }
   const { data, error } = await query;
   if (error) {
+    if (isNotificationsSchemaError(error)) {
+      return [];
+    }
     throw new HttpError(500, 'Unable to fetch notifications');
   }
   return data || [];
@@ -136,6 +150,9 @@ const markNotificationRead = async ({ organizationId, notificationId }) => {
     .eq('organization_id', organizationId)
     .eq('id', notificationId);
   if (error) {
+    if (isNotificationsSchemaError(error)) {
+      return;
+    }
     throw new HttpError(500, 'Unable to update notification');
   }
 };

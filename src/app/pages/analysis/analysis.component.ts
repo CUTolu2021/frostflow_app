@@ -8,6 +8,7 @@ import { GroupedSale, Sale } from '../../interfaces/sales';
 import { AIStockReport } from '../../interfaces/ai-report';
 import { StockEntry } from '../../interfaces/stock';
 import { AuthUser } from '../../interfaces/auth-user';
+import { getErrorMessage } from '../../utils/error-message';
 
 @Component({
     selector: 'app-analysis',
@@ -230,9 +231,9 @@ export class AnalysisComponent implements OnInit {
             this.closeReceiptModal();
             await this.loadHistory();
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error(error);
-            alert('Failed to void: ' + error.message);
+            alert('Failed to void: ' + getErrorMessage(error));
         } finally {
             this.isLoading = false;
         }

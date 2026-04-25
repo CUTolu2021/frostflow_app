@@ -3,14 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SupabaseService } from '../../services/supabase.service';
 import { ToastService } from '../../services/toast.service';
-
-interface OrganizationSummary {
-  id: string;
-  name: string;
-  is_active: boolean;
-  deleted_at?: string | null;
-  created_at: string;
-}
+import { OrganizationSummary } from '../../interfaces/api';
+import { getErrorMessage } from '../../utils/error-message';
 
 @Component({
   selector: 'app-superadmin-dashboard',
@@ -50,8 +44,8 @@ export class SuperadminDashboardComponent implements OnInit {
     this.isLoading = true;
     try {
       this.organizations = await this.supabase.listOrganizations();
-    } catch (error: any) {
-      this.toast.show(error?.message || 'Failed to load organizations', 'error');
+    } catch (error: unknown) {
+      this.toast.show(getErrorMessage(error, 'Failed to load organizations'), 'error');
     } finally {
       this.isLoading = false;
     }
@@ -86,8 +80,8 @@ export class SuperadminDashboardComponent implements OnInit {
         ownerEmail: '',
       };
       this.toast.show('Organization created', 'success');
-    } catch (error: any) {
-      this.toast.show(error?.error?.message || error?.message || 'Failed to create organization', 'error');
+    } catch (error: unknown) {
+      this.toast.show(getErrorMessage(error, 'Failed to create organization'), 'error');
     } finally {
       this.isSubmitting = false;
     }
@@ -102,8 +96,8 @@ export class SuperadminDashboardComponent implements OnInit {
       const updated = await this.supabase.setOrganizationActive(org.id, !org.is_active);
       org.is_active = updated.is_active;
       this.toast.show(`Organization ${org.is_active ? 'enabled' : 'disabled'}`, 'info');
-    } catch (error: any) {
-      this.toast.show(error?.message || 'Failed to update organization', 'error');
+    } catch (error: unknown) {
+      this.toast.show(getErrorMessage(error, 'Failed to update organization'), 'error');
     }
   }
 
@@ -114,8 +108,8 @@ export class SuperadminDashboardComponent implements OnInit {
       org.is_active = updated.is_active;
       org.deleted_at = updated.deleted_at;
       this.toast.show('Organization soft deleted', 'info');
-    } catch (error: any) {
-      this.toast.show(error?.message || 'Failed to soft delete organization', 'error');
+    } catch (error: unknown) {
+      this.toast.show(getErrorMessage(error, 'Failed to soft delete organization'), 'error');
     }
   }
 
@@ -125,8 +119,8 @@ export class SuperadminDashboardComponent implements OnInit {
       await this.supabase.deleteOrganization(org.id);
       this.organizations = this.organizations.filter((o) => o.id !== org.id);
       this.toast.show('Organization deleted', 'success');
-    } catch (error: any) {
-      this.toast.show(error?.message || 'Failed to delete organization', 'error');
+    } catch (error: unknown) {
+      this.toast.show(getErrorMessage(error, 'Failed to delete organization'), 'error');
     }
   }
 }
