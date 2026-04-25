@@ -491,6 +491,13 @@
     color: #b45309;
 }
 
+.field-error {
+    display: block;
+    margin-top: 6px;
+    font-size: 12px;
+    color: #b91c1c;
+}
+
 
 
 .modal-footer {

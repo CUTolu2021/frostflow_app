@@ -282,6 +282,9 @@
                         <label>Standard Box Weight (kg)</label>
                         <input type="number" formControlName="standard_box_weight" class="form-input"
                             placeholder="e.g. 20" min="0">
+                        <small class="field-error" *ngIf="showStandardBoxWeightError">
+                            Enter a valid box weight above 0 KG, or mark this product as variable weight.
+                        </small>
                     </div>
 
                     <!-- If Variable Weight -->

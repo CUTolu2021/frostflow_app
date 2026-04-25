@@ -8,6 +8,7 @@ truncate table if exists
   frostflow_data.notifications,
   frostflow_data.ai_stock_reports,
   frostflow_data.reconciliation,
+  frostflow_data.delivery_sessions,
   frostflow_data.sales,
   frostflow_data.stock_in_staff,
   frostflow_data.stock_in,
