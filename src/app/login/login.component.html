@@ -1,11 +1,20 @@
 <div class="login-page">
     <div class="login-container">
-        <!-- Left Side: Branding and Scripture -->
+        <!-- Left Side: Branding + Test Accounts -->
         <div class="branding-section">
-            <div class="logo">Frostflow</div>
-            <div class="scripture-container">
-                <!-- <p class="scripture-text">"{{ currentScripture.text }}"</p>
-        <p class="scripture-verse">{{ currentScripture.verse }}</p> -->
+            <div class="brand-block">
+                <div class="logo">Frostflow</div>
+                <p class="brand-subtitle">Retail operations control center</p>
+            </div>
+
+            <div class="test-panel">
+                <h3>Test Accounts</h3>
+                <p>Temporary local credentials for quick validation.</p>
+                <div class="test-user-row" *ngFor="let account of testUsers">
+                    <span class="role">{{ account.role | uppercase }}</span>
+                    <span class="email">{{ account.email }}</span>
+                    <span class="password">{{ account.password }}</span>
+                </div>
             </div>
         </div>
 

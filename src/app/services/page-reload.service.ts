@@ -8,7 +8,7 @@ import { LoadingService } from './loading.service';
 export class PageReloadService {
     private tabHiddenAt: number | null = null;
     private lastReloadAt: number = 0;
-    private readonly MIN_TIME_AWAY = 5 * 1000; // 5 seconds (aggressive to catch auth lock)
+    private readonly MIN_TIME_AWAY = 5 * 60 * 1000; // 5 minutes (avoid wiping in-progress forms)
     private readonly MIN_TIME_BETWEEN_RELOADS = 30 * 1000; // 30 seconds (prevent reload loops)
 
     private router = inject(Router);
@@ -30,8 +30,12 @@ export class PageReloadService {
                     const timeAway = Date.now() - this.tabHiddenAt;
                     const timeSinceLastReload = Date.now() - this.lastReloadAt;
 
-                    // Skip if on login page (no session to recover)
-                    if (this.router.url === '/login') {
+                    // Skip sensitive auth forms to avoid wiping in-progress input.
+                    if (
+                        this.router.url === '/login' ||
+                        this.router.url === '/force-password' ||
+                        this.router.url.startsWith('/staff-signup')
+                    ) {
                         this.tabHiddenAt = null;
                         return;
                     }

@@ -1,44 +1,94 @@
-import { Injectable, signal, WritableSignal, effect } from '@angular/core'
-import { createClient, SupabaseClient, User } from '@supabase/supabase-js'
+import { Injectable, signal, effect } from '@angular/core'
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http'
+import { firstValueFrom } from 'rxjs'
 import { environment } from '../../environments/environment'
-import { UserProfile, PostgresChangePayload } from '../interfaces/profile'
+import { UserProfile } from '../interfaces/profile'
 import { Product } from '../interfaces/product'
 import { LoadingService } from './loading.service'
 import { StaffStockEntry, StockEntry, ProductHistoryItem } from '../interfaces/stock'
 import { AIStockReport } from '../interfaces/ai-report'
 import { Sale } from '../interfaces/sales'
 import { ReconciliationMismatch } from '../interfaces/reconciliation'
+import { AuthUser } from '../interfaces/auth-user'
+
+interface PollingSubscription {
+    unsubscribe: () => void;
+}
 
 @Injectable({
     providedIn: 'root',
 })
 export class SupabaseService {
-    private supabase: SupabaseClient
+    private readonly apiBase = environment.api_url || 'http://localhost:3001'
+    private authCallbacks = new Set<(event: string, session: any) => void>()
     staffStock = signal<StaffStockEntry[]>([])
 
-    constructor(private loadingService: LoadingService) {
-        this.supabase = createClient(
-            environment.supabase_URL,
-            environment.supabase_anon_key,
-            {
-                auth: {
-                    autoRefreshToken: true,
-                    persistSession: true,
-                    detectSessionInUrl: true
-                },
-                realtime: {
-                    params: {
-                        eventsPerSecond: 10,
-                    },
-                },
-            }
-        )
-
-
+    constructor(
+        private loadingService: LoadingService,
+        private http: HttpClient
+    ) {
         effect(() => {
             const currentStock = this.staffStock();
             console.log(`[SupabaseService] staffStock signal updated. Count: ${currentStock.length}`);
         });
+    }
+
+    private emitAuthStateChange(event: string, user: AuthUser | null) {
+        for (const callback of this.authCallbacks) {
+            callback(event, user ? { user } : null);
+        }
+    }
+
+    private getToken() {
+        return localStorage.getItem('auth_token');
+    }
+
+    private getRefreshToken() {
+        return localStorage.getItem('refresh_token');
+    }
+
+    private clearAuthStorage() {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('session_id');
+        localStorage.removeItem('auth_user');
+        localStorage.removeItem('user_id');
+        localStorage.removeItem('user_role');
+        localStorage.removeItem('user_name');
+        localStorage.removeItem('user_email');
+        localStorage.removeItem('organization_id');
+        localStorage.removeItem('organization_name');
+    }
+
+    private persistAuth(token: string, refreshToken: string, sessionId: string, user: AuthUser) {
+        localStorage.setItem('auth_token', token);
+        localStorage.setItem('refresh_token', refreshToken);
+        localStorage.setItem('session_id', sessionId);
+        localStorage.setItem('auth_user', JSON.stringify(user));
+        localStorage.setItem('user_id', user.id);
+        localStorage.setItem('user_role', user.role);
+        localStorage.setItem('user_name', user.name || '');
+        localStorage.setItem('user_email', user.email || '');
+        if (user.organization_id) {
+            localStorage.setItem('organization_id', user.organization_id);
+        } else {
+            localStorage.removeItem('organization_id');
+        }
+        if (user.organization_name) {
+            localStorage.setItem('organization_name', user.organization_name);
+        } else {
+            localStorage.removeItem('organization_name');
+        }
+    }
+
+    private getStoredUser(): AuthUser | null {
+        const raw = localStorage.getItem('auth_user');
+        if (!raw) return null;
+        try {
+            return JSON.parse(raw) as AuthUser;
+        } catch {
+            return null;
+        }
     }
 
     private async withTimeout<T>(promise: PromiseLike<T>, ms: number = 10000): Promise<any> {
@@ -56,85 +106,226 @@ export class SupabaseService {
     }
 
     async resumeSession() {
+        await this.validateSession();
+    }
+
+    async getCurrentUser(): Promise<AuthUser | null> {
+        return this.getStoredUser();
+    }
+
+    onAuthStateChange(callback: (event: string, session: any) => void) {
+        this.authCallbacks.add(callback);
+        return {
+            data: {
+                subscription: {
+                    unsubscribe: () => this.authCallbacks.delete(callback),
+                },
+            },
+        };
+    }
+
+    private buildAuthHeaders(token: string) {
+        return new HttpHeaders({
+            Authorization: `Bearer ${token}`,
+        });
+    }
+
+    private async refreshAccessToken(): Promise<boolean> {
+        const refreshToken = this.getRefreshToken();
+        if (!refreshToken) return false;
+
         try {
-            const { data, error } = await this.supabase.auth.getSession();
-            if (error) throw error;
+            const res = await firstValueFrom(
+                this.http.post<{ token: string; refreshToken: string; sessionId: string; user: AuthUser }>(
+                    `${this.apiBase}/api/auth/refresh`,
+                    { refreshToken }
+                )
+            );
 
-            if (!data.session) {
-                // Silently return if no session exists (e.g., on login page)
-                return;
+            this.persistAuth(res.token, res.refreshToken, res.sessionId, res.user);
+            return true;
+        } catch {
+            this.clearAuthStorage();
+            return false;
+        }
+    }
+
+    async validateSession(): Promise<AuthUser | null> {
+        let token = this.getToken();
+        if (!token) {
+            this.clearAuthStorage();
+            return null;
+        }
+
+        try {
+            const res = await firstValueFrom(
+                this.http.get<{ user: AuthUser }>(`${this.apiBase}/api/auth/me`, {
+                    headers: this.buildAuthHeaders(token),
+                })
+            );
+
+            this.persistAuth(
+                token,
+                this.getRefreshToken() || '',
+                localStorage.getItem('session_id') || '',
+                res.user
+            );
+            return res.user;
+        } catch {
+            const refreshed = await this.refreshAccessToken();
+            if (!refreshed) {
+                this.clearAuthStorage();
+                return null;
             }
+            token = this.getToken();
+            if (!token) return null;
 
-            console.log('[SupabaseService] Session valid on resume');
-        } catch (error: any) {
-            const msg = error?.message || '';
-            // Handle NavigatorLock / Auth session missing specifically
-            if (msg.includes('NavigatorLock') || msg.includes('lock')) {
-                console.warn('[SupabaseService] Lock contention detected on resume. Skipping manual refresh.');
-            } else if (msg.includes('Auth session missing')) {
-                // Ignore silent session missing
-            } else {
-                console.error('[SupabaseService] Unexpected error in resumeSession:', error);
+            try {
+                const res = await firstValueFrom(
+                    this.http.get<{ user: AuthUser }>(`${this.apiBase}/api/auth/me`, {
+                        headers: this.buildAuthHeaders(token),
+                    })
+                );
+                this.persistAuth(
+                    token,
+                    this.getRefreshToken() || '',
+                    localStorage.getItem('session_id') || '',
+                    res.user
+                );
+                return res.user;
+            } catch {
+                this.clearAuthStorage();
+                return null;
             }
         }
     }
 
-    get client() {
-        return this.supabase;
+    private async getValidAccessToken(): Promise<string> {
+        const token = this.getToken();
+        if (token) return token;
+
+        const refreshed = await this.refreshAccessToken();
+        if (!refreshed) {
+            throw new Error('You are not authenticated');
+        }
+
+        const nextToken = this.getToken();
+        if (!nextToken) {
+            throw new Error('You are not authenticated');
+        }
+
+        return nextToken;
     }
-    async getCurrentUser(): Promise<User | null> {
+
+    private async requestWithAuth<T>(
+        method: 'get' | 'post' | 'patch' | 'delete',
+        path: string,
+        body?: unknown,
+        params?: Record<string, string>
+    ): Promise<T> {
+        let token = await this.getValidAccessToken();
+        const httpParams = params ? new HttpParams({ fromObject: params }) : undefined;
+
+        const makeRequest = async () =>
+            firstValueFrom(
+                this.http.request<T>(method, `${this.apiBase}${path}`, {
+                    body,
+                    params: httpParams,
+                    headers: this.buildAuthHeaders(token),
+                })
+            );
+
         try {
-            const { data } = await this.supabase.auth.getUser()
-            return data.user
+            return await makeRequest();
         } catch (error: any) {
-            if (error?.message?.includes('NavigatorLock') || error?.message?.includes('lock')) {
-                console.warn('[SupabaseService] Lock error in getCurrentUser, retrying in 200ms...');
-                await new Promise(resolve => setTimeout(resolve, 200));
-                const { data } = await this.supabase.auth.getUser();
-                return data.user;
+            if (error?.status === 401) {
+                const refreshed = await this.refreshAccessToken();
+                if (refreshed) {
+                    token = await this.getValidAccessToken();
+                    return await makeRequest();
+                }
             }
             throw error;
         }
     }
 
-    onAuthStateChange(callback: (event: string, session: any) => void) {
-        return this.supabase.auth.onAuthStateChange(callback)
+    private async postWithAuth<T>(path: string, body: unknown): Promise<T> {
+        return this.requestWithAuth('post', path, body);
     }
 
     async signInWithPassword(email: string, password: string) {
         this.loadingService.show();
-        const res = await this.supabase.auth.signInWithPassword({
-            email,
-            password,
-        })
-        this.loadingService.hide();
-        return res;
+        try {
+            const res = await firstValueFrom(
+                this.http.post<{ token: string; refreshToken: string; sessionId: string; user: AuthUser }>(`${this.apiBase}/api/auth/login`, {
+                    email,
+                    password,
+                })
+            );
+
+            this.persistAuth(res.token, res.refreshToken, res.sessionId, res.user);
+            this.emitAuthStateChange('SIGNED_IN', res.user);
+
+            return {
+                data: { session: { user: res.user } },
+                error: null,
+            };
+        } catch (error: any) {
+            const status = Number(error?.status || 0);
+            const message = status === 0
+                ? `Cannot reach API at ${this.apiBase}. Start backend with npm run start:api`
+                : (error?.error?.message || 'Login failed');
+            return {
+                data: { session: null },
+                error: { message },
+            };
+        } finally {
+            this.loadingService.hide();
+        }
     }
-
-    // async signUpWithPassword(email: string, password: string, options?: any) {
-    //     this.loadingService.show();
-    //     const res = await this.supabase.auth.signUp({
-    //         email,
-    //         password,
-    //         options,
-    //     })
-    //     this.loadingService.hide();
-    //     return res;
-    // }
-
-    // async adminSignUp(email: string, password: string, options?: any) {
-    //     return await this.supabase.auth.signInWithPassword({
-    //         email,
-    //         password,
-    //         options,
-    //     })
-    // }
 
     async signOut() {
         this.loadingService.show();
-        const res = await this.supabase.auth.signOut();
-        this.loadingService.hide();
-        return res;
+        const token = this.getToken();
+        const refreshToken = this.getRefreshToken();
+        try {
+            if (token) {
+                await firstValueFrom(
+                    this.http.post(
+                        `${this.apiBase}/api/auth/logout`,
+                        { refreshToken },
+                        {
+                            headers: this.buildAuthHeaders(token),
+                        }
+                    )
+                );
+            }
+        } catch {
+            // Logout is client-authoritative. Ignore API logout failure.
+        } finally {
+            this.clearAuthStorage();
+            this.emitAuthStateChange('SIGNED_OUT', null);
+            this.loadingService.hide();
+        }
+        return { error: null };
+    }
+
+    async changeOwnPassword(currentPassword: string, nextPassword: string) {
+        const res = await this.requestWithAuth<{ user: AuthUser }>(
+            'post',
+            '/api/auth/change-password',
+            { currentPassword, nextPassword }
+        );
+        if (res.user) {
+            const token = this.getToken() || '';
+            this.persistAuth(
+                token,
+                this.getRefreshToken() || '',
+                localStorage.getItem('session_id') || '',
+                res.user
+            );
+        }
+        return res.user;
     }
 
     async getUserProfile(userId: string): Promise<UserProfile | null> {
@@ -143,49 +334,31 @@ export class SupabaseService {
 
         while (attempts < maxAttempts) {
             try {
-                const { data, error } = await this.supabase
-                    .schema('frostflow_data')
-                    .from('users')
-                    .select('*')
-                    .eq('id', userId)
-                    .single()
-
-                if (error) throw error;
-                return data as UserProfile | null;
-
+                const res = await this.requestWithAuth<{ profile: UserProfile }>('get', `/api/app/users/${userId}`);
+                return res.profile || null;
             } catch (err: any) {
                 attempts++;
                 console.warn(`getUserProfile attempt ${attempts} failed:`, err.message || err);
-
-
-
                 if (attempts === maxAttempts) {
                     console.error('Final failure fetching user profile:', err);
                     return null;
                 }
-
                 await new Promise(resolve => setTimeout(resolve, attempts * 1000));
             }
         }
         return null;
     }
 
-    async getProducts(): Promise<Product[]> {
+    async getProducts(options?: { showLoading?: boolean }): Promise<Product[]> {
+        const showLoading = options?.showLoading !== false;
         let attempts = 0;
         const maxAttempts = 3;
 
         while (attempts < maxAttempts) {
             try {
-                this.loadingService.show();
-                const { data, error } = await this.withTimeout(this.supabase
-                    .schema('frostflow_data')
-                    .from('products')
-                    .select('*')
-                    .eq('is_active', true)
-                    .order('name', { ascending: true }));
-
-                if (error) throw error;
-                return data || [];
+                if (showLoading) this.loadingService.show();
+                const res = await this.withTimeout(this.requestWithAuth<{ products: Product[] }>('get', '/api/app/products'));
+                return res.products || [];
             } catch (err: any) {
                 attempts++;
                 console.warn(`[SupabaseService] getProducts attempt ${attempts} failed:`, err.message || err);
@@ -195,149 +368,61 @@ export class SupabaseService {
                 }
                 await new Promise(resolve => setTimeout(resolve, attempts * 500));
             } finally {
-                this.loadingService.hide();
+                if (showLoading) this.loadingService.hide();
             }
         }
         return [];
     }
 
     async getProduct(productId: string) {
-        const { data, error } = await this.supabase
-            .schema('frostflow_data')
-            .from('products')
-            .select('*')
-            .eq('id', productId)
-            .single();
-
-        if (error) throw error;
-        return data;
+        const res = await this.requestWithAuth<{ product: Product }>('get', `/api/app/products/${productId}`);
+        return res.product;
     }
 
     async addProduct(product: Partial<Product>) {
         this.loadingService.show();
-
-        const { data, error } = await this.supabase
-            .schema('frostflow_data')
-            .from('products')
-            .insert(product)
-            .select()
-            .single()
-
-        this.loadingService.hide();
-        if (error) throw error
-        return data
+        try {
+            const { product: created } = await this.requestWithAuth<{ product: Product }>('post', '/api/app/products', product);
+            return created;
+        } finally {
+            this.loadingService.hide();
+        }
     }
 
     async updateProduct(id: string, updates: Partial<Product>) {
         this.loadingService.show();
-        const beforeData = await this.getProduct(id)
-        const { data, error } = await this.supabase
-            .schema('frostflow_data')
-            .from('products')
-            .update(updates)
-            .eq('id', id)
-            .select()
-            .single()
-
-        if (error) {
+        try {
+            const { product: updated } = await this.requestWithAuth<{ product: Product }>('patch', `/api/app/products/${id}`, updates);
+            return updated;
+        } finally {
             this.loadingService.hide();
-            throw error;
         }
-        await this.createAuditLog(
-            'products',
-            id,
-            `Edited Product: ${beforeData.name}`,
-            beforeData,
-            data
-        )
-        this.loadingService.hide();
-        return data
 
     }
 
     async deleteProduct(id: string) {
         this.loadingService.show();
-        const beforeData = await this.getProduct(id)
-
-        const { data, error } = await this.supabase
-            .schema('frostflow_data')
-            .from('products')
-            .update({ is_active: false })
-            .eq('id', id)
-            .select()
-            .single()
-
-        if (error) {
+        try {
+            await this.requestWithAuth('delete', `/api/app/products/${id}`);
+            return true;
+        } finally {
             this.loadingService.hide();
-            throw error;
         }
-
-        await this.createAuditLog(
-            'products',
-            id,
-            `Archived Product: ${beforeData.name}`,
-            beforeData,
-            data
-        )
-        this.loadingService.hide();
-        return true
     }
 
     async getAIReports(): Promise<AIStockReport[]> {
         this.loadingService.show();
-        const { data, error } = await this.supabase
-            .schema('frostflow_data')
-            .from('ai_stock_reports')
-            .select('*')
-            .order('created_at', { ascending: false })
-            .limit(1)
-        this.loadingService.hide();
-        if (error) {
-            console.error('Error fetching AI reports:', error)
-            return []
+        try {
+            const res = await this.requestWithAuth<{ reports: AIStockReport[] }>('get', '/api/app/ai-reports', undefined, { limit: '1' });
+            return res.reports || [];
+        } finally {
+            this.loadingService.hide();
         }
-        return (data || []) as AIStockReport[]
-    }
-
-    private async createAuditLog(
-        tableName: string,
-        recordId: string,
-        action: string,
-        beforeData: any,
-        afterData: any
-    ) {
-
-
-        const { error } = await this.supabase
-            .schema('frostflow_data')
-            .from('audit_logs')
-            .insert({
-                table_name: tableName,
-                record_id: recordId,
-                action: action,
-                changed_by: localStorage.getItem('user_id'),
-                before_data: JSON.stringify(beforeData),
-                after_data: JSON.stringify(afterData),
-            })
-
-        if (error) console.error('Audit Log Failed:', error)
     }
 
     async getPendingMismatches(): Promise<ReconciliationMismatch[]> {
-        const { data, error } = await this.supabase
-            .schema('frostflow_data')
-            .from('reconciliation')
-
-            .select('*, products!product_id(name, unit)')
-            .neq('status', 'match')
-            .neq('status', 'resolved')
-            .order('created_at', { ascending: false })
-
-        if (error) {
-            console.error('Error fetching mismatches:', error)
-            return []
-        }
-        return (data || []) as ReconciliationMismatch[]
+        const res = await this.requestWithAuth<{ mismatches: ReconciliationMismatch[] }>('get', '/api/app/reconciliation/pending');
+        return res.mismatches || [];
     }
 
     async resolveMismatch(
@@ -345,503 +430,367 @@ export class SupabaseService {
         finalQuantity: number,
         resolutionNote: string
     ) {
-        if (!item.products) {
-            throw new Error('Product details missing for this mismatch');
-        }
-
-        const { error: invError } = await this.supabase
-            .schema('frostflow_data')
-            .from('products')
-            .update({ unit: (item.products.unit || 0) + finalQuantity })
-            .eq('id', item.product_id)
-
-        if (invError) throw invError
-
-        await this.createAuditLog(
-            'reconciliation',
-            item.id,
-            `RESOLVED_MISMATCH: ${resolutionNote}`,
+        const response = await this.postWithAuth<{ success: boolean }>(
+            '/api/inventory/reconciliation/resolve',
             {
-                Product: item.products.name,
-                Quantity: item.products.unit || 0,
-            },
-            {
-                Product: item.products.name,
-                Quantity: (item.products.unit || 0) + finalQuantity,
+                reconciliationId: item.id,
+                productId: item.product_id,
+                finalQuantity,
+                resolutionNote,
             }
-        )
-        const { error: logError } = await this.supabase
-            .schema('frostflow_data')
-            .from('reconciliation')
-            .update({
-                status: 'resolved',
-            })
-            .eq('id', item.id)
+        );
 
-        if (logError) throw logError
-        return true
+        return response.success;
+    }
+
+    async runReconciliationNow(windowDate?: string) {
+        const response = await this.postWithAuth<{ summary: {
+            windowDate: string;
+            totalProductsChecked: number;
+            mismatchCount: number;
+            missingCount: number;
+            extraCount: number;
+            escalatedCount: number;
+        } }>('/api/inventory/reconciliation/run', {
+            windowDate: windowDate || undefined,
+        });
+
+        return response.summary;
     }
 
     async getDashboardMetrics() {
         this.loadingService.show();
-        const { data: products, error } = await this.supabase
-            .schema('frostflow_data')
-            .from('products')
-            .select('unit, unit_price')
-            .eq('is_active', true)
-
-        this.loadingService.hide();
-        if (error || !products)
-            return { totalValue: 0, lowStock: 0, totalItems: 0 }
-        const totalValue = products.reduce((sum, item) => {
-            return sum + item.unit * item.unit_price
-        }, 0)
-
-        const lowStock = products.filter((item) => item.unit < 10).length
-        const totalItems = products.length
-
-        return {
-            totalValue,
-            lowStock,
-            totalItems,
+        try {
+            const metrics = await this.requestWithAuth<{ totalValue: number; lowStock: number; totalItems: number }>(
+                'get',
+                '/api/app/metrics/dashboard'
+            );
+            return metrics || { totalValue: 0, lowStock: 0, totalItems: 0 };
+        } finally {
+            this.loadingService.hide();
         }
     }
 
     async getSalesDashboardMetrics() {
-        const { data: sales, error } = await this.supabase
-            .schema('frostflow_data')
-            .from('sales')
-            .select('quantity, total_price')
-        if (error || !sales) return { totalSalesValue: 0, totalUnitsSold: 0 }
-
-        const totalSalesValue = sales.reduce((sum, item) => {
-            return sum + item.total_price
-        }, 0)
-        const totalUnitsSold = sales.reduce((sum, item) => {
-            return sum + item.quantity
-        }, 0)
-
-        return {
-            totalSalesValue,
-            totalUnitsSold,
-        }
+        const metrics = await this.requestWithAuth<{ totalSalesValue: number; totalUnitsSold: number }>(
+            'get',
+            '/api/app/metrics/sales'
+        );
+        return metrics || { totalSalesValue: 0, totalUnitsSold: 0 };
     }
 
     async getTodaySalesMetrics() {
-        const todayStartISO = new Date().toISOString().split('T')[0] + 'T00:00:00.000Z'
-        const { data: sales, error } = await this.supabase
-            .schema('frostflow_data')
-            .from('sales')
-            .select('quantity, total_price')
-            .gte('created_at', todayStartISO)
-            .lte('created_at', new Date().toISOString())
-        if (error || !sales) return { todaySalesValue: 0, todayUnitsSold: 0 }
-
-        const todaySalesValue = sales.reduce((sum, item) => {
-            return sum + item.total_price
-        }, 0)
-        const todayUnitsSold = sales.reduce((sum, item) => {
-            return sum + item.quantity
-        }, 0)
-
-        return {
-            todaySalesValue,
-            todayUnitsSold,
-        }
+        const metrics = await this.requestWithAuth<{ todaySalesValue: number; todayUnitsSold: number }>(
+            'get',
+            '/api/app/metrics/sales/today'
+        );
+        return metrics || { todaySalesValue: 0, todayUnitsSold: 0 };
     }
 
     async getChartData() {
-        const { data, error } = await this.supabase
-            .schema('frostflow_data')
-            .from('products')
-            .select(`
-                name,
-                unit,
-                sales (
-                    quantity
-                )
-            `)
-            .limit(10)
-
-        if (error || !data) {
-            console.error('Chart Data Error:', error)
-            return []
-        }
-
-        return data.map((product: any) => ({
-            name: product.name,
-            current_balance: product.unit,
-            total_sold: product.sales?.reduce((sum: number, sale: any) => sum + (sale.quantity || 0), 0) || 0,
-        }))
+        const res = await this.requestWithAuth<{ chart: any[] }>('get', '/api/app/metrics/chart');
+        return res.chart || [];
     }
 
     async getUnreadNotifications() {
-        const { data } = await this.supabase
-            .schema('frostflow_data')
-            .from('notifications')
-            .select('*')
-            .eq('is_read', false)
-            .order('created_at', { ascending: false })
-        return data || []
+        const res = await this.requestWithAuth<{ notifications: any[] }>('get', '/api/app/notifications');
+        return res.notifications || [];
     }
 
     async markNotificationAsRead(id: string) {
-        await this.supabase
-            .schema('frostflow_data')
-            .from('notifications')
-            .update({ is_read: true })
-            .eq('id', id)
+        await this.requestWithAuth('patch', `/api/app/notifications/${id}/read`, {});
     }
 
     async getDailyEntryStatus() {
-        const today = new Date().toISOString().split('T')[0]
+        const res = await this.requestWithAuth<{ ownerReady: boolean; salesReady: boolean }>(
+            'get',
+            '/api/app/metrics/daily-entry-status'
+        );
 
-        const { count: ownerCount } = await this.supabase
-            .schema('frostflow_data')
-            .from('stock_in')
-            .select('*', { count: 'exact', head: true })
-            .gte('created_at', today)
-
-        const { count: salesCount } = await this.supabase
-            .schema('frostflow_data')
-            .from('stock_in_staff')
-            .select('*', { count: 'exact', head: true })
-            .gte('created_at', today)
-
-        return {
-            ownerReady: (ownerCount || 0) > 0,
-            salesReady: (salesCount || 0) > 0,
-        }
+        return res;
     }
 
     async getInventoryLogs() {
-
-        const { data, error } = await this.supabase
-            .schema('frostflow_data')
-            .from('stock_in')
-            .select('*, products!product_id(name, category, unit, is_variable_weight, standard_box_weight)')
-            .order('created_at', { ascending: false });
-
-        if (error) {
-            console.error('Error fetching inventory logs:', error);
-            return [];
-        }
-        return data || [];
+        const res = await this.requestWithAuth<{ logs: any[] }>('get', '/api/app/inventory/logs');
+        return res.logs || [];
     }
 
-
-
     async getProductHistory(productId: string): Promise<ProductHistoryItem[]> {
-
-        const { data: stockIn, error: errorIn } = await this.supabase
-            .schema('frostflow_data')
-            .from('stock_in')
-            .select('*')
-            .eq('product_id', productId);
-
-
-        const { data: stockOut, error: errorOut } = await this.supabase
-            .schema('frostflow_data')
-            .from('sales')
-            .select('*')
-            .eq('product_id', productId);
-
-        if (errorIn || errorOut) {
-            console.error('Error fetching history:', errorIn || errorOut);
-            return [];
-        }
-
-
-        const history: ProductHistoryItem[] = [
-            ...(stockIn || []).map((item) => ({
-                id: item.id,
-                date: item.created_at,
-                type: 'IN' as const,
-                quantity: item.quantity,
-                unit: item.unit_type,
-                original_qty: item.input_quantity,
-                original_unit: item.input_unit,
-                note: item.reference_note || 'Stock Added'
-            })),
-            ...(stockOut || []).map((item) => ({
-                id: item.id,
-                date: item.created_at,
-                type: 'OUT' as const,
-                quantity: item.quantity,
-                unit: item.unit_type,
-                note: `Sold via ${item.payment_method}`
-            }))
-        ];
-
-
-        return history.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        const res = await this.requestWithAuth<{ history: ProductHistoryItem[] }>('get', `/api/app/products/${productId}/history`);
+        return res.history || [];
     }
 
     async addStockEntry(payload: StockEntry) {
         this.loadingService.show();
-        const { data, error } = await this.supabase
-            .schema('frostflow_data')
-            .from('stock_in')
-            .insert(payload)
-            .select()
-            .single();
-
-        this.loadingService.hide();
-        if (error) throw error;
-
-
-        return data;
+        try {
+            const { record } = await this.postWithAuth<{ record: StockEntry }>('/api/inventory/stock-in', payload);
+            return record;
+        } finally {
+            this.loadingService.hide();
+        }
     }
 
-    async createStaffUser(payload: { email: string; password: string; name: string; role: string }) {
+    async createStaffInvite(payload: { email: string; role: string }) {
+        try {
+            const res = await this.postWithAuth<{
+                invite: {
+                    inviteId: string;
+                    inviteLink: string;
+                    invitedEmail: string;
+                    role: string;
+                    expiresAt: string;
+                    emailStatus?: { sent: boolean; skipped: boolean; error: string | null };
+                };
+            }>('/api/auth/staff/invite', payload);
 
-        const tempClient = createClient(environment.supabase_URL, environment.supabase_anon_key);
+            return res.invite;
+        } catch (error: any) {
+            throw new Error(error?.error?.message || 'Failed to create staff invite');
+        }
+    }
 
-        const { data, error } = await tempClient.auth.signUp({
-            email: payload.email,
-            password: payload.password,
-            options: {
-                data: {
-                    name: payload.name,
-                    role: payload.role,
-                    is_active: true
-                }
-            }
-        });
+    async previewStaffInvite(token: string) {
+        const res = await firstValueFrom(
+            this.http.get<{
+                invite: {
+                    invitedEmail: string;
+                    role: string;
+                    expiresAt: string;
+                };
+            }>(`${this.apiBase}/api/auth/staff/invite/preview`, {
+                params: { token },
+            })
+        );
+        return res.invite;
+    }
 
-        if (error) throw error;
+    async completeStaffInvite(payload: { token: string; email: string; name: string; password: string }) {
+        const res = await firstValueFrom(
+            this.http.post<{ user: AuthUser }>(`${this.apiBase}/api/auth/staff/invite/complete`, payload)
+        );
+        return res.user;
+    }
 
+    async listOrganizations(): Promise<Array<{ id: string; name: string; is_active: boolean; deleted_at?: string | null; created_at: string }>> {
+        const res = await this.requestWithAuth<{ organizations: Array<{ id: string; name: string; is_active: boolean; deleted_at?: string | null; created_at: string }> }>(
+            'get',
+            '/api/admin/organizations'
+        );
+        return res.organizations || [];
+    }
 
-        return data;
+    async createOrganizationWithOwner(payload: {
+        organizationName: string;
+        ownerName: string;
+        ownerEmail: string;
+    }) {
+        const res = await this.requestWithAuth<{ organization: any; owner: AuthUser; tempPassword?: string }>(
+            'post',
+            '/api/admin/organizations',
+            payload
+        );
+        return res;
+    }
+
+    async listAllUsers(): Promise<any[]> {
+        const res = await this.requestWithAuth<{ users: any[] }>('get', '/api/admin/users');
+        return res.users || [];
+    }
+
+    async setUserActive(userId: string, isActive: boolean) {
+        const res = await this.requestWithAuth<{ user: AuthUser }>(
+            'patch',
+            `/api/admin/users/${userId}/active`,
+            { is_active: isActive }
+        );
+        return res.user;
+    }
+
+    async resetUserPassword(userId: string) {
+        const res = await this.requestWithAuth<{ user: AuthUser; tempPassword?: string }>(
+            'post',
+            `/api/admin/users/${userId}/reset-password`,
+            {}
+        );
+        return res;
+    }
+
+    async setOrganizationActive(orgId: string, isActive: boolean) {
+        const res = await this.requestWithAuth<{ organization: any }>(
+            'patch',
+            `/api/admin/organizations/${orgId}/active`,
+            { is_active: isActive }
+        );
+        return res.organization;
+    }
+
+    async deleteOrganization(orgId: string) {
+        await this.requestWithAuth('delete', `/api/admin/organizations/${orgId}`);
+    }
+
+    async softDeleteOrganization(orgId: string) {
+        const res = await this.requestWithAuth<{ organization: any }>(
+            'post',
+            `/api/admin/organizations/${orgId}/soft-delete`,
+            {}
+        );
+        return res.organization;
     }
 
     async getStaffList(): Promise<UserProfile[]> {
-
-
-
-        const { data, error } = await this.supabase
-            .schema('frostflow_data')
-            .from('users')
-            .select('*')
-            .neq('role', 'owner')
-            .order('created_at', { ascending: false });
-
-        if (error) {
-            console.error('Error fetching staff:', error);
-            return [];
-        }
-        return (data || []) as UserProfile[];
+        const res = await this.requestWithAuth<{ staff: UserProfile[] }>('get', '/api/app/users/staff');
+        return res.staff || [];
     }
 
     async updateStaffStatus(userId: string, isActive: boolean) {
-        const { error } = await this.supabase
-            .schema('frostflow_data')
-            .from('users')
-            .update({ is_active: isActive })
-            .eq('id', userId);
-
-        if (error) throw error;
+        await this.requestWithAuth('patch', `/api/app/users/${userId}/active`, { is_active: isActive });
         return true;
     }
 
+    async resetStaffPassword(userId: string, password: string) {
+        const res = await this.requestWithAuth<{ user: AuthUser }>(
+            'post',
+            `/api/auth/staff/${userId}/password`,
+            { password }
+        );
+        return res.user;
+    }
+
+    private createPollingSubscription(poller: () => Promise<void>, intervalMs: number): PollingSubscription {
+        let active = true;
+        const intervalId = setInterval(async () => {
+            if (!active) return;
+            try {
+                await poller();
+            } catch (error) {
+                console.warn('[SupabaseService] Polling error:', error);
+            }
+        }, intervalMs);
+
+        return {
+            unsubscribe: () => {
+                active = false;
+                clearInterval(intervalId);
+            },
+        };
+    }
+
     subscribeToNotifications(callback: (payload: any) => void) {
-        return this.supabase
-            .channel('frostflow_data:notifications')
-            .on(
-                'postgres_changes',
-                {
-                    event: 'INSERT',
-                    schema: 'frostflow_data',
-                    table: 'notifications',
-                },
-                callback
-            )
-            .subscribe()
+        let lastIds = new Set<string>();
+        const poller = async () => {
+            const notifications = await this.getUnreadNotifications();
+            const nextIds = new Set(notifications.map((n: any) => String(n.id)));
+            for (const notif of notifications) {
+                const id = String(notif.id);
+                if (!lastIds.has(id)) {
+                    callback({ new: notif });
+                }
+            }
+            lastIds = nextIds;
+        };
+
+        poller();
+        return this.createPollingSubscription(poller, 15000);
     }
 
-    subscribeToProductChanges(callback: (payload: PostgresChangePayload<Product>) => void) {
-        return this.supabase
-            .channel('frostflow_data:products')
-            .on(
-                'postgres_changes',
-                { event: '*', schema: 'frostflow_data', table: 'products' },
-                (payload: any) => callback(payload as PostgresChangePayload<Product>)
-            )
-            .subscribe()
-    }
+    subscribeToProfileChanges(userId: string, callback: (payload: any) => void) {
+        let lastStatus: boolean | null = null;
+        const poller = async () => {
+            const profile = await this.getUserProfile(userId);
+            if (!profile) return;
+            if (lastStatus !== null && profile.is_active !== lastStatus) {
+                callback({ new: profile });
+            }
+            lastStatus = profile.is_active ?? true;
+        };
 
-    subscribeToProfileChanges(userId: string, callback: (payload: PostgresChangePayload<UserProfile>) => void) {
-        return this.supabase
-            .channel(`frostflow_data:users:${userId}`)
-            .on(
-                'postgres_changes',
-                {
-                    event: 'UPDATE',
-                    schema: 'frostflow_data',
-                    table: 'users',
-                    filter: `id=eq.${userId}`
-                },
-                (payload: any) => callback(payload as PostgresChangePayload<UserProfile>)
-            )
-            .subscribe()
+        poller();
+        return this.createPollingSubscription(poller, 15000);
     }
 
     async getRecentSales() {
-        const { data, error } = await this.supabase
-            .schema('frostflow_data')
-            .from('sales')
-            .select('*, products!product_id(name)')
-            .order('created_at', { ascending: false })
-            .limit(50)
-
-        if (error) {
-            console.error('Error fetching recent sales:', error)
-            return []
-        }
-        return data || []
+        const res = await this.requestWithAuth<{ sales: any[] }>('get', '/api/app/sales/recent');
+        return res.sales || [];
     }
     async addStaffStockEntry(payload: StaffStockEntry) {
-
-        const { data, error } = await this.supabase
-            .schema('frostflow_data')
-            .from('stock_in_staff')
-            .insert(payload)
-            .select()
-            .single()
-
-        if (error) throw error
-        return data
+        const { record } = await this.postWithAuth<{ record: StaffStockEntry }>(
+            '/api/inventory/staff-stock-in',
+            payload
+        );
+        return record
     }
 
     async getRecentStaffEntries(): Promise<StaffStockEntry[]> {
-        const { data, error } = await this.supabase
-            .schema('frostflow_data')
-            .from('stock_in_staff')
-            .select('*, products!product_id(name)')
-            .order('created_at', { ascending: false })
-            .limit(5)
-
-        if (error) {
-            console.error('Error fetching staff entries:', error)
-            return []
-        }
-        const entries = (data || []) as StaffStockEntry[];
+        const res = await this.requestWithAuth<{ entries: StaffStockEntry[] }>('get', '/api/app/staff-stock/recent');
+        const entries = (res.entries || []) as StaffStockEntry[];
         this.staffStock.set(entries);
         return entries;
     }
 
     subscribeToStaffStockChanges(callback?: (payload: any) => void) {
-        return this.supabase
-            .channel('frostflow_data:stock_in_staff')
-            .on(
-                'postgres_changes',
-                {
-                    event: 'INSERT',
-                    schema: 'frostflow_data',
-                    table: 'stock_in_staff',
-                },
-                (payload) => {
-                    this.getRecentStaffEntries();
-                    if (callback) {
-                        callback(payload);
-                    }
+        let lastIds = new Set<string>();
+        const poller = async () => {
+            const entries = await this.getRecentStaffEntries();
+            const nextIds = new Set(entries.map((e) => String(e.id)));
+            for (const entry of entries) {
+                const id = String(entry.id);
+                if (!lastIds.has(id) && callback) {
+                    callback({ new: entry });
                 }
-            )
-            .subscribe();
+            }
+            lastIds = nextIds;
+        };
+
+        poller();
+        return this.createPollingSubscription(poller, 15000);
     }
-
-
 
     async getSalesHistory(startDate: string, endDate: string): Promise<Sale[]> {
         this.loadingService.show();
-        const { data, error } = await this.withTimeout(this.supabase
-            .schema('frostflow_data')
-            .from('sales')
-            .select('*, products!product_id(name), users!recorded_by(name)')
-            .gte('created_at', startDate)
-            .lte('created_at', endDate)
-            .order('created_at', { ascending: false }))
-
-        this.loadingService.hide();
-        if (error) {
-            console.error('Error fetching sales history:', error);
-            return [];
+        try {
+            const res = await this.withTimeout(this.requestWithAuth<{ sales: Sale[] }>(
+                'get',
+                '/api/app/sales/history',
+                undefined,
+                { startDate, endDate }
+            ));
+            return (res.sales || []) as Sale[];
+        } finally {
+            this.loadingService.hide();
         }
-        return (data || []) as Sale[];
     }
 
     async voidSale(saleId: string, productId: string, quantityToReturn: number, reason: string) {
         this.loadingService.show();
+        try {
+            const response = await this.postWithAuth<{ success: boolean }>(
+                '/api/inventory/sales/void',
+                {
+                    saleId,
+                    productId,
+                    quantityToReturn,
+                    reason,
+                }
+            );
 
-        const { error: saleError } = await this.supabase
-            .schema('frostflow_data')
-            .from('sales')
-            .update({ status: 'voided' })
-            .eq('id', saleId);
-
-        if (saleError) {
+            return response.success;
+        } finally {
             this.loadingService.hide();
-            throw saleError;
         }
-
-
-        const { data: product, error: prodError } = await this.supabase
-            .schema('frostflow_data')
-            .from('products')
-            .select('unit, name')
-            .eq('id', productId)
-            .single();
-
-        if (prodError) throw prodError;
-
-        const { error: updateError } = await this.supabase
-            .schema('frostflow_data')
-            .from('products')
-            .update({ unit: (product.unit || 0) + quantityToReturn })
-            .eq('id', productId);
-
-        if (updateError) throw updateError;
-
-
-        await this.createAuditLog(
-            'sales',
-            saleId,
-            `VOID_TRANSACTION: ${reason}`,
-            {
-                saleId,
-                productId,
-                quantity: quantityToReturn,
-                productName: product.name,
-                previousStatus: 'completed'
-            },
-            {
-                status: 'voided',
-                reason: reason,
-                returned_to_stock_at: new Date().toISOString()
-            }
-        );
-
-        this.loadingService.hide();
-        return true;
     }
 
     async getExpenses(startDate: string, endDate: string): Promise<StockEntry[]> {
         this.loadingService.show();
-
-        const { data, error } = await this.withTimeout(this.supabase
-            .schema('frostflow_data')
-            .from('stock_in')
-            .select(`
-                *,
-                products (name, category)
-            `)
-            .gte('created_at', startDate)
-            .lte('created_at', endDate)
-            .order('created_at', { ascending: false }));
-
-        this.loadingService.hide();
-
-        if (error) throw error;
-        return (data || []) as StockEntry[];
+        try {
+            const res = await this.withTimeout(this.requestWithAuth<{ expenses: StockEntry[] }>(
+                'get',
+                '/api/app/expenses',
+                undefined,
+                { startDate, endDate }
+            ));
+            return (res.expenses || []) as StockEntry[];
+        } finally {
+            this.loadingService.hide();
+        }
     }
 }

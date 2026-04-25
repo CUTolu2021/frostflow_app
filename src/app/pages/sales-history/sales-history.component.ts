@@ -2,8 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SupabaseService } from '../../services/supabase.service';
-import { User } from '@supabase/supabase-js';
 import { Sale, GroupedSale } from '../../interfaces/sales';
+import { AuthUser } from '../../interfaces/auth-user';
 
 @Component({
   selector: 'app-sales-history',
@@ -14,7 +14,7 @@ import { Sale, GroupedSale } from '../../interfaces/sales';
 })
 export class SalesHistoryComponent implements OnInit {
   isLoading = true;
-  currentUser: User | null = null;
+  currentUser: AuthUser | null = null;
 
 
   groupedSales: GroupedSale[] = [];

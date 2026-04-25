@@ -11,8 +11,10 @@ import { CommonModule } from '@angular/common';
 })
 export class SidebarComponent implements OnInit {
   userRole: string | null = '';
+  organizationName: string | null = '';
 
   ngOnInit() {
     this.userRole = localStorage.getItem('user_role');
+    this.organizationName = localStorage.getItem('organization_name');
   }
 }

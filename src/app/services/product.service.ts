@@ -2,7 +2,6 @@ import { Injectable, signal, computed, effect, NgZone, inject } from '@angular/c
 import { SupabaseService } from './supabase.service';
 import { Product } from '../interfaces/product';
 import { ToastService } from './toast.service';
-import { PostgresChangePayload } from '../interfaces/profile';
 
 @Injectable({
     providedIn: 'root'
@@ -49,12 +48,12 @@ export class ProductService {
         }
     }
 
-    async loadProducts(force = false) {
+    async loadProducts(force = false, silent = false) {
         if ((this.initialized && !force) || this.loading()) return;
 
         this.loading.set(true);
         try {
-            const data = await this.supabase.getProducts();
+            const data = await this.supabase.getProducts({ showLoading: !silent });
 
             // If fetch failed/timed-out (returned [] or error handled in supabase service)
             // but we already have products, don't overwrite with empty
@@ -114,36 +113,19 @@ export class ProductService {
     }
 
     private setupRealtimeSubscription() {
-        return this.supabase.subscribeToProductChanges((payload) => {
+        let active = true;
+        const intervalId = setInterval(async () => {
+            if (!active) return;
             this.ngZone.run(() => {
-                this.handleRealtimeEvent(payload);
+                this.loadProducts(true, true);
             });
-        });
-    }
+        }, 20000);
 
-    private handleRealtimeEvent(payload: PostgresChangePayload<Product>) {
-        const { eventType, new: newRecord, old: oldRecord } = payload;
-
-        switch (eventType) {
-            case 'INSERT':
-                this.products.update(current => {
-
-                    if (current.some(p => p.id === newRecord.id)) return current;
-                    return [...current, newRecord];
-                });
-                break;
-
-            case 'UPDATE':
-                this.products.update(current =>
-                    current.map(p => p.id === newRecord.id ? newRecord : p)
-                );
-                break;
-
-            case 'DELETE':
-                this.products.update(current =>
-                    current.filter(p => p.id !== oldRecord.id)
-                );
-                break;
-        }
+        return {
+            unsubscribe: () => {
+                active = false;
+                clearInterval(intervalId);
+            },
+        };
     }
 }

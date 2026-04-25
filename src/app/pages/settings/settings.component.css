@@ -1,0 +1,61 @@
+.settings-page {
+    padding: 24px;
+}
+
+.settings-card {
+    max-width: 640px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 24px;
+}
+
+h2 {
+    margin: 0;
+}
+
+.subtitle {
+    margin: 8px 0 20px;
+    color: #6b7280;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.label {
+    color: #6b7280;
+}
+
+.value {
+    font-weight: 600;
+}
+
+.actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.btn {
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 10px 14px;
+    cursor: pointer;
+    text-decoration: none;
+    font: inherit;
+}
+
+.ghost {
+    border-color: #d1d5db;
+    color: #111827;
+    background: #ffffff;
+}
+
+.danger {
+    background: #b91c1c;
+    color: #ffffff;
+}

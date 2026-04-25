@@ -7,7 +7,9 @@
             <p class="page-subtitle">Review and resolve discrepancies between Owner inputs and Sales receipts.</p>
         </div>
         <div class="header-actions">
-            <!-- Potential future actions: Export Report, etc. -->
+            <button class="btn btn-primary" (click)="runCheckNow()" [disabled]="isRunningCheck">
+                {{ isRunningCheck ? 'Running Check...' : 'Run Check Now' }}
+            </button>
         </div>
     </div>
 
@@ -68,8 +70,9 @@
                     </td>
                     <td>
                         <span class="status-badge" [ngClass]="m.status">
-                            {{ $any(statusEnum)[m.status.toUpperCase()] }}
+                            {{ getStatusLabel(m.status) }}
                         </span>
+                        <span *ngIf="m.is_escalated" class="status-badge mismatch">Escalated</span>
                     </td>
                     <td>
                         {{ m.created_at | date:'shortDate' }}

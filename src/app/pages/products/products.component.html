@@ -233,7 +233,16 @@
 
                 <div class="form-group">
                     <label>Category</label>
-                    <input type="text" formControlName="category" class="form-input" placeholder="e.g. Frozen Food">
+                    <input
+                        type="text"
+                        formControlName="category"
+                        class="form-input"
+                        placeholder="e.g. Frozen Food"
+                        list="category-options"
+                    >
+                    <datalist id="category-options">
+                        <option *ngFor="let category of categoryOptions" [value]="category"></option>
+                    </datalist>
                 </div>
 
                 <div class="divider full-width"></div>

@@ -23,6 +23,7 @@ export class ReconciliationComponent implements OnInit {
     criticalItems = 0
     highlightId: string | null = null
     statusEnum = statusEnum
+    isRunningCheck = false;
 
 
     isModalOpen = false;
@@ -53,6 +54,12 @@ export class ReconciliationComponent implements OnInit {
 
     }
 
+    getStatusLabel(status: string): string {
+        const key = String(status || '').toUpperCase();
+        const statusMap = this.statusEnum as unknown as Record<string, string>;
+        return statusMap[key] || key.replace(/_/g, ' ');
+    }
+
     async loadData() {
         this.isLoading = true
         this.mismatches = await this.supabase.getPendingMismatches()
@@ -75,6 +82,22 @@ export class ReconciliationComponent implements OnInit {
             setTimeout(() => {
                 this.highlightId = null
             }, 3000)
+        }
+    }
+
+    async runCheckNow() {
+        this.isRunningCheck = true;
+        try {
+            const summary = await this.supabase.runReconciliationNow();
+            this.toast.show(
+                `Check complete: ${summary.totalProductsChecked} products, ${summary.escalatedCount} escalated.`,
+                'success'
+            );
+            await this.loadData();
+        } catch (error: any) {
+            this.toast.show(error?.message || 'Failed to run reconciliation check', 'error');
+        } finally {
+            this.isRunningCheck = false;
         }
     }
 

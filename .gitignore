@@ -10,6 +10,12 @@
 /node_modules
 npm-debug.log
 yarn-error.log
+build_error.log
+build_error_*.log
+.env
+.env.*
+backend/.env
+!backend/.env.example
 
 src/environments
 

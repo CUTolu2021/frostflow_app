@@ -1,4 +1,5 @@
 import { Component } from '@angular/core'
+import { CommonModule } from '@angular/common'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
 import { Router, RouterOutlet } from '@angular/router'
 import { SupabaseService } from '../services/supabase.service'
@@ -8,7 +9,7 @@ import { ToastService } from '../services/toast.service'
 @Component({
     selector: 'app-login',
     standalone: true,
-    imports: [ReactiveFormsModule],
+    imports: [CommonModule, ReactiveFormsModule],
     templateUrl: './login.component.html',
     styleUrl: './login.component.css',
 })
@@ -22,6 +23,14 @@ export class LoginComponent {
     email = new FormControl('')
     password = new FormControl('')
     passwordVisible: boolean = false
+    readonly testUsers = [
+        { role: 'admin', email: 'admin1@frostflow.test', password: 'Admin@2026' },
+        { role: 'admin', email: 'admin2@frostflow.test', password: 'Admin@2026' },
+        { role: 'manager', email: 'manager1@frostflow.test', password: 'Manager@2026' },
+        { role: 'manager', email: 'manager2@frostflow.test', password: 'Manager@2026' },
+        { role: 'sales', email: 'sales1@frostflow.test', password: 'Sales@2026' },
+        { role: 'sales', email: 'sales2@frostflow.test', password: 'Sales@2026' },
+    ]
 
     async handleLogin() {
         const { data, error } = await this.supabase.signInWithPassword(
@@ -36,30 +45,27 @@ export class LoginComponent {
         }
 
         if (data.session) {
-            const profile = await this.supabase.getUserProfile(
-                data.session.user.id
-            )
+            const user = data.session.user
 
-            if (profile && !profile.is_active) {
+            if (!user.is_active) {
                 await this.supabase.signOut()
                 this.toast.show('Your account has been disabled. Contact admin.', 'error')
                 return
             }
 
-            if (profile && profile.role === UserRole.admin) {
+            if (user.role === UserRole.admin || user.role === UserRole.manager) {
                 this.toast.show('Login successful!', 'login')
                 this.router.navigate(['/admin'])
-            } else if (profile && profile.role === UserRole.sales) {
+            } else if (user.role === UserRole.superadmin) {
+                this.toast.show('Login successful!', 'login')
+                this.router.navigate(['/superadmin'])
+            } else if (user.role === UserRole.sales) {
                 this.toast.show('Login successful!', 'login')
                 this.router.navigate(['/sales'])
             } else {
                 this.router.navigate(['/login'])
                 this.toast.show('Unauthorized role. Contact admin.', 'error')
             }
-            localStorage.setItem('user_id', data.session.user.id)
-            localStorage.setItem('user_role', profile!.role)
-            localStorage.setItem('user_name', profile!.name)
-            localStorage.setItem('user_email', profile!.email)
         }
     }
     togglePasswordVisibility() {

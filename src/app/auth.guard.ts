@@ -7,7 +7,7 @@ export const authGuard: CanActivateFn = async (route, state) => {
     const supabase = inject(SupabaseService)
     const router = inject(Router)
 
-    const user = await supabase.getCurrentUser()
+    const user = await supabase.validateSession()
 
     if (!user) {
         router.navigate(['/login'])
@@ -19,15 +19,18 @@ export const authGuard: CanActivateFn = async (route, state) => {
         return false
     }
 
-    const profile = await supabase.getUserProfile(user.id)
-
-    if (!profile || !profile.is_active) {
+    if (!user.is_active) {
         await supabase.signOut()
         router.navigate(['/login'])
         return false
     }
 
-    const userRole: UserRole = profile.role as UserRole
+    if (user.must_reset_password && !state.url.startsWith('/force-password')) {
+        router.navigate(['/force-password'])
+        return false
+    }
+
+    const userRole: UserRole = user.role as UserRole
     if (requiredRoles.includes(userRole)) {
         return true
     }

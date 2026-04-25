@@ -5,15 +5,23 @@
             <span class="material-symbols-outlined logo-icon">storefront</span>
         </div>
         <div class="brand-text">
-            <h1>Frostflow</h1>
-            <p>{{ userRole === 'admin' ? 'Admin Console' : 'Sales Console' }}</p>
+            <h1>{{ userRole === 'superadmin' ? 'Frostflow' : (organizationName || 'Organization') }}</h1>
+            <p>
+                {{
+                    userRole === 'superadmin'
+                        ? 'Superadmin Console'
+                        : userRole === 'admin' || userRole === 'manager'
+                        ? 'Admin Console'
+                        : 'Sales Console'
+                }}
+            </p>
         </div>
     </div>
 
     <!-- Navigation -->
     <nav class="sidebar-nav">
         <!-- Admin Section -->
-        <ng-container *ngIf="userRole === 'admin'">
+        <ng-container *ngIf="userRole === 'admin' || userRole === 'manager'">
             <a routerLink="/admin/dashboard" routerLinkActive="active" class="nav-item">
                 <span class="material-symbols-outlined nav-icon">dashboard</span>
                 <span class="nav-text">Dashboard</span>
@@ -29,7 +37,7 @@
                 <span class="nav-text">Products</span>
             </a>
 
-            <a routerLink="/admin/staff" routerLinkActive="active" class="nav-item">
+            <a *ngIf="userRole === 'admin'" routerLink="/admin/staff" routerLinkActive="active" class="nav-item">
                 <span class="material-symbols-outlined nav-icon">group</span>
                 <span class="nav-text">Staff</span>
             </a>
@@ -42,6 +50,18 @@
             <a routerLink="/admin/mismatch" routerLinkActive="active" class="nav-item">
                 <span class="material-symbols-outlined nav-icon">warning</span>
                 <span class="nav-text">Mismatch</span>
+            </a>
+        </ng-container>
+
+        <!-- Superadmin Section -->
+        <ng-container *ngIf="userRole === 'superadmin'">
+            <a routerLink="/superadmin/dashboard" routerLinkActive="active" class="nav-item">
+                <span class="material-symbols-outlined nav-icon">admin_panel_settings</span>
+                <span class="nav-text">Organizations</span>
+            </a>
+            <a routerLink="/superadmin/users" routerLinkActive="active" class="nav-item">
+                <span class="material-symbols-outlined nav-icon">manage_accounts</span>
+                <span class="nav-text">Manage Users</span>
             </a>
         </ng-container>
 
@@ -73,7 +93,12 @@
         <div class="nav-divider"></div>
 
         <!-- Settings Section -->
-        <a routerLink="/admin/settings" routerLinkActive="active" class="nav-item">
+        <a
+            *ngIf="userRole === 'admin' || userRole === 'manager'"
+            routerLink="/admin/settings"
+            routerLinkActive="active"
+            class="nav-item"
+        >
             <span class="material-symbols-outlined nav-icon">settings</span>
             <span class="nav-text">Settings</span>
         </a>

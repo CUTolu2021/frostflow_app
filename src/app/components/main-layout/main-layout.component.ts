@@ -12,6 +12,8 @@ import { CommonModule } from '@angular/common';
 })
 export class MainLayoutComponent {
   isMobileMenuOpen = false;
+  userRole = localStorage.getItem('user_role');
+  organizationName = localStorage.getItem('organization_name');
   private router = inject(Router);
 
   constructor(private injector: Injector) {

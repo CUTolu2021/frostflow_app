@@ -14,6 +14,12 @@
         </div>
     </div>
 
+    <div class="system-id-box" *ngIf="latestInviteLink">
+        <label class="text-xs text-muted mb-1 block">Latest Staff Invite Link (share with {{ latestInviteEmail }})</label>
+        <div class="id-display">{{ latestInviteLink }}</div>
+        <button class="btn-sm btn-outline mt-2" (click)="copyInviteLink()">Copy Link</button>
+    </div>
+
     <!-- Staff List Table (Desktop) -->
     <div class="table-container desktop-view">
         <table class="data-table">
@@ -51,6 +57,9 @@
                     <td class="text-right">
                         <button class="btn-sm btn-outline-danger" (click)="toggleStatus(staff)">
                             {{ staff.is_active ? 'Disable' : 'Enable' }}
+                        </button>
+                        <button class="btn-sm btn-outline" (click)="resetPassword(staff)">
+                            Reset Password
                         </button>
                     </td>
                 </tr>
@@ -90,6 +99,9 @@
                 <button class="btn-sm btn-outline-danger full-width" (click)="toggleStatus(staff)">
                     {{ staff.is_active ? 'Disable Staff' : 'Enable Staff' }}
                 </button>
+                <button class="btn-sm btn-outline full-width" (click)="resetPassword(staff)">
+                    Reset Password
+                </button>
             </div>
         </div>
 
@@ -112,12 +124,6 @@
         <div class="modal-body">
             <form (ngSubmit)="createStaff()">
                 <div class="form-group">
-                    <label>Full Name</label>
-                    <input type="text" [(ngModel)]="newStaff.name" (input)="updateGeneratedEmail()" name="name"
-                        class="form-input" placeholder="e.g. Sarah James" required>
-                </div>
-
-                <div class="form-group">
                     <label>Role</label>
                     <div class="radio-group">
                         <label class="radio-option" [class.selected]="newStaff.role === 'sales'">
@@ -131,22 +137,23 @@
                     </div>
                 </div>
 
-                <div class="system-id-box">
-                    <label class="text-xs text-muted mb-1 block">System Login ID (Auto-Generated)</label>
-                    <div class="id-display">{{ generateSystemEmail() }}</div>
-                </div>
-
-                <div class="form-group mt-4">
-                    <label>Set Password</label>
-                    <input type="text" [(ngModel)]="newStaff.password" name="password" class="form-input"
-                        placeholder="e.g. store123" required>
-                    <small class="hint">Share this password with the staff member securely.</small>
+                <div class="form-group">
+                    <label>Staff Email</label>
+                    <input
+                        type="email"
+                        [(ngModel)]="newStaff.email"
+                        name="email"
+                        class="form-input"
+                        placeholder="staff@example.com"
+                        required
+                    >
+                    <small class="hint">The invited user must sign up with this same email.</small>
                 </div>
 
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" (click)="closeModal()">Cancel</button>
                     <button type="submit" class="btn btn-primary"
-                        [disabled]="!newStaff.name || !newStaff.password">Create Account</button>
+                        [disabled]="!newStaff.email">Generate Invite Link</button>
                 </div>
             </form>
         </div>

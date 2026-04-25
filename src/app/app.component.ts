@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef, ApplicationRef, effect, Injector, NgZone } from '@angular/core';
+import { Component, OnInit, OnDestroy, effect, Injector } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { Router, RouterOutlet, NavigationStart, NavigationEnd, NavigationCancel, NavigationError } from '@angular/router'
 import { ToastComponent } from './components/toast/toast.component'
@@ -6,8 +6,6 @@ import { SupabaseService } from './services/supabase.service'
 import { LoadingComponent } from './components/loading/loading.component'
 import { LoadingService } from './services/loading.service'
 import { AutoLogoutService } from './services/auto-logout.service'
-import { PageReloadService } from './services/page-reload.service';
-import { RealtimeChannel } from '@supabase/supabase-js';
 
 @Component({
     selector: 'app-root',
@@ -18,18 +16,14 @@ import { RealtimeChannel } from '@supabase/supabase-js';
 })
 export class AppComponent implements OnInit, OnDestroy {
     title = 'frostflow_app'
-    private profileSubscription: RealtimeChannel | null = null;
+    private profileSubscription: { unsubscribe: () => void } | null = null;
 
     constructor(
         private supabase: SupabaseService,
         private router: Router,
         public loadingService: LoadingService,
         private autoLogout: AutoLogoutService,
-        private pageReload: PageReloadService,
-        private cdRef: ChangeDetectorRef,
-        private appRef: ApplicationRef,
-        private injector: Injector,
-        private ngZone: NgZone
+        private injector: Injector
     ) {
 
     }
@@ -53,9 +47,9 @@ export class AppComponent implements OnInit, OnDestroy {
 
 
 
-        const user = await this.supabase.getCurrentUser();
+        const user = await this.supabase.validateSession();
         if (user) {
-            await this.checkUserStatus(user.id);
+            await this.checkUserStatus();
             this.setupProfileSubscription(user.id);
             this.autoLogout.initListener();
         }
@@ -63,7 +57,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
         this.supabase.onAuthStateChange(async (event, session) => {
             if (event === 'SIGNED_IN' && session?.user) {
-                await this.checkUserStatus(session.user.id);
+                await this.checkUserStatus();
                 this.setupProfileSubscription(session.user.id);
                 this.autoLogout.initListener();
             } else if (event === 'SIGNED_OUT') {
@@ -73,9 +67,9 @@ export class AppComponent implements OnInit, OnDestroy {
         });
     }
 
-    private async checkUserStatus(userId: string) {
-        const profile = await this.supabase.getUserProfile(userId);
-        if (profile && !profile.is_active) {
+    private async checkUserStatus() {
+        const currentUser = await this.supabase.validateSession();
+        if (!currentUser || !currentUser.is_active) {
             this.forceLogout();
         }
     }

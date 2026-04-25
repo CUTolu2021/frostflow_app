@@ -1,0 +1,58 @@
+<div class="signup-page">
+    <div class="signup-card">
+        <h2>Staff Invitation Signup</h2>
+        <p *ngIf="isLoadingInvite">Validating invite...</p>
+
+        <form *ngIf="!isLoadingInvite && invitedEmail" (ngSubmit)="submit()">
+            <div class="meta">
+                <div><strong>Invited Email:</strong> {{ invitedEmail }}</div>
+                <div><strong>Role:</strong> {{ role | titlecase }}</div>
+                <div><strong>Expires:</strong> {{ expiresAt | date: 'medium' }}</div>
+            </div>
+
+            <label>Full Name</label>
+            <input [(ngModel)]="name" name="name" type="text" required />
+
+            <label>Email</label>
+            <input [(ngModel)]="email" name="email" type="email" required />
+
+            <label>Password</label>
+            <div class="password-field">
+                <input
+                    [(ngModel)]="password"
+                    name="password"
+                    [type]="showPassword ? 'text' : 'password'"
+                    required
+                />
+                <button type="button" class="eye-btn" (click)="togglePassword()">
+                    <span class="material-symbols-outlined">
+                        {{ showPassword ? 'visibility_off' : 'visibility' }}
+                    </span>
+                </button>
+            </div>
+
+            <label>Confirm Password</label>
+            <div class="password-field">
+                <input
+                    [(ngModel)]="confirmPassword"
+                    name="confirmPassword"
+                    [type]="showConfirm ? 'text' : 'password'"
+                    required
+                />
+                <button type="button" class="eye-btn" (click)="toggleConfirm()">
+                    <span class="material-symbols-outlined">
+                        {{ showConfirm ? 'visibility_off' : 'visibility' }}
+                    </span>
+                </button>
+            </div>
+
+            <button class="primary-btn" [disabled]="isSubmitting" type="submit">
+                {{ isSubmitting ? 'Creating Account...' : 'Create Account' }}
+            </button>
+        </form>
+
+        <div *ngIf="!isLoadingInvite && !invitedEmail" class="error-state">
+            Invite link is invalid or expired.
+        </div>
+    </div>
+</div>

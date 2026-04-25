@@ -13,7 +13,6 @@ import { CommonModule } from '@angular/common'
 import { ToastService } from '../../services/toast.service'
 import { ProductService } from '../../services/product.service'
 import { Product } from '../../interfaces/product'
-import { RealtimeChannel } from '@supabase/supabase-js'
 
 @Component({
     selector: 'app-sales-dashboard',
@@ -34,7 +33,7 @@ export class SalesDashboardComponent {
         todaySalesValue: 0,
         todayUnitsSold: 0,
     }
-    private productSubscription?: RealtimeChannel
+    private productSubscription?: { unsubscribe: () => void }
     paymentMethods: string[] = ['Cash', 'Card', 'Transfer']
     public name: string = localStorage.getItem('user_name') || ''
     email: string = localStorage.getItem('user_email') || ''

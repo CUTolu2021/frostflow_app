@@ -3,7 +3,9 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
+    min-height: 100vh;
+    padding: 1.25rem;
+    box-sizing: border-box;
     background: linear-gradient(135deg, #ece9e6, #ffffff);
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
@@ -14,53 +16,98 @@
     grid-template-columns: 1fr 1fr;
     width: 100%;
     max-width: 1200px;
-    height: 90vh;
-    max-height: 700px;
+    height: min(92vh, 860px);
     background-color: white;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     border-radius: 15px;
     overflow: hidden;
 }
 
-/* Left side - Branding and Scripture */
+/* Left side - Branding + Test Accounts */
 .branding-section {
     background: linear-gradient(to bottom, #3a7bd5, #00d2ff);
     color: white;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    padding: 4rem;
+    justify-content: flex-start;
+    gap: 1.2rem;
+    padding: 2rem;
+    overflow-y: auto;
+}
+
+.brand-block {
+    margin-bottom: 0.25rem;
 }
 
 .logo {
     font-size: 2.5rem;
     font-weight: bold;
-    opacity: 0.9;
+    color: #f4f9ff;
+    margin-bottom: 0.45rem;
 }
 
-.scripture-container {
-    text-align: left;
+.brand-subtitle {
+    margin: 0;
+    color: #dcf0ff;
+    font-size: 0.98rem;
 }
 
-.scripture-text {
-    font-size: 1.5rem;
-    font-style: italic;
-    line-height: 1.6;
-    margin-bottom: 1rem;
+.test-panel {
+    border: 1px solid rgba(228, 241, 255, 0.35);
+    background: rgba(5, 24, 58, 0.33);
+    border-radius: 12px;
+    padding: 0.95rem 1rem;
+    backdrop-filter: blur(4px);
 }
 
-.scripture-verse {
-    font-size: 1.1rem;
-    font-weight: 600;
-    text-align: right;
+.test-panel h3 {
+    margin: 0 0 0.3rem 0;
+    font-size: 1rem;
+    color: #ffffff;
+}
+
+.test-panel p {
+    margin: 0 0 0.7rem 0;
+    color: #e4f1ff;
+    font-size: 0.84rem;
+}
+
+.test-user-row {
+    display: grid;
+    grid-template-columns: 74px 1fr auto;
+    gap: 0.45rem;
+    padding: 0.34rem 0;
+    border-top: 1px solid rgba(226, 239, 255, 0.28);
+    font-size: 0.82rem;
+    align-items: center;
+}
+
+.test-user-row:first-of-type {
+    border-top: none;
+}
+
+.test-user-row .role {
+    color: #ffffff;
+    font-weight: 700;
+}
+
+.test-user-row .email {
+    color: #eaf4ff;
+    word-break: break-all;
+}
+
+.test-user-row .password {
+    color: #d6ebff;
+    font-family: Consolas, 'Courier New', monospace;
 }
 
 /* Right side - Login Form */
 .login-section {
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start;
     padding: 2rem;
+    overflow-y: auto;
 }
 
 .login-form-card {
@@ -76,7 +123,7 @@
 
 .login-form-card p {
     color: #777;
-    margin-bottom: 2.5rem;
+    margin-bottom: 1.6rem;
 }
 
 .form-group {
@@ -179,15 +226,21 @@
     .login-container {
         grid-template-columns: 1fr;
         height: auto;
-        max-height: none;
+        min-height: auto;
     }
 
     .branding-section {
-        display: none; /* Hide branding on smaller screens for focus */
+        max-height: none;
+        padding: 1.25rem;
     }
 
     .login-page {
         align-items: flex-start;
-        padding-top: 20vh;
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+    }
+
+    .login-section {
+        padding-top: 1.25rem;
     }
 }

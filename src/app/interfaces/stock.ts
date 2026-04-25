@@ -18,12 +18,12 @@ export interface StockEntry {
 }
 
 export interface StaffStockEntry {
-    id: string;
-    created_at: string;
+    id?: string;
+    created_at?: string;
     product_id: string;
     quantity: number;
     unit_type: string;
-    recorded_by: string;
+    recorded_by?: string;
     metadata?: {
         damaged_qty?: number;
         notes?: string;

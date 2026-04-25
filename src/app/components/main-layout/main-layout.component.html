@@ -4,7 +4,7 @@
         <button class="hamburger-btn" (click)="toggleMobileMenu()">
             <span class="material-symbols-outlined">menu</span>
         </button>
-        <span class="mobile-brand">Frostflow</span>
+        <span class="mobile-brand">{{ userRole === 'superadmin' ? 'Frostflow' : (organizationName || 'Organization') }}</span>
     </header>
 
     <!-- Sidebar with dynamic class for mobile -->

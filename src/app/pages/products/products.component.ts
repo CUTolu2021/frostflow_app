@@ -24,6 +24,7 @@ export class ProductsComponent implements OnInit, OnDestroy {
 
   products: Product[] = [];
   filteredProducts: Product[] = [];
+  categoryOptions: string[] = [];
   searchTerm: string = '';
 
 
@@ -83,6 +84,7 @@ export class ProductsComponent implements OnInit, OnDestroy {
 
       this.filterProducts();
       this.calculateStats();
+      this.refreshCategoryOptions();
     });
   }
 
@@ -104,7 +106,21 @@ export class ProductsComponent implements OnInit, OnDestroy {
     this.totalProducts = this.products.length;
     this.lowStock = this.products.filter(p => (p.unit ?? 0) < 10 && (p.unit ?? 0) > 0).length;
     this.outOfStock = this.products.filter(p => (p.unit ?? 0) === 0).length;
-    this.categoriesCount = new Set(this.products.map(p => p.category)).size;
+    this.categoriesCount = new Set(
+      this.products
+        .map((p) => (p.category || '').trim())
+        .filter((category) => Boolean(category))
+    ).size;
+  }
+
+  private refreshCategoryOptions() {
+    this.categoryOptions = Array.from(
+      new Set(
+        this.products
+          .map((p) => (p.category || '').trim())
+          .filter((category) => Boolean(category))
+      )
+    ).sort((a, b) => a.localeCompare(b));
   }
 
   filterProducts() {

@@ -1,0 +1,68 @@
+<div class="superadmin-dashboard">
+    <header class="page-header">
+        <div>
+            <h2>Superadmin Console</h2>
+            <p>Create organizations and primary owners.</p>
+        </div>
+        <button class="refresh-btn" (click)="loadOrganizations()" [disabled]="isLoading">
+            Refresh
+        </button>
+    </header>
+
+    <section class="panel">
+        <h3>Create Organization</h3>
+        <div class="temp-password">
+            <label>Temporary Password (auto-generated)</label>
+            <input [value]="pendingTempPassword" readonly />
+            <small>Final password will be shown after creation.</small>
+        </div>
+        <div class="form-grid">
+            <div class="field">
+                <label>Organization Name</label>
+                <input [(ngModel)]="form.organizationName" placeholder="Frostflow Lagos" />
+            </div>
+            <div class="field">
+                <label>Owner Name</label>
+                <input [(ngModel)]="form.ownerName" placeholder="Owner Name" />
+            </div>
+            <div class="field">
+                <label>Owner Email</label>
+                <input [(ngModel)]="form.ownerEmail" placeholder="owner@company.com" type="email" />
+            </div>
+        </div>
+        <button class="primary-btn" (click)="createOrganization()" [disabled]="isSubmitting">
+            {{ isSubmitting ? 'Creating...' : 'Create Organization' }}
+        </button>
+    </section>
+
+    <section class="panel">
+        <div class="panel-header">
+            <h3>Organizations</h3>
+            <span *ngIf="isLoading">Loading...</span>
+        </div>
+        <div class="org-list" *ngIf="!isLoading && organizations.length > 0">
+            <div class="org-row" *ngFor="let org of organizations">
+                <div class="org-name">{{ org.name }}</div>
+                <div class="org-meta">
+                    <span>ID: {{ org.id }}</span>
+                    <span>Status: {{ org.deleted_at ? 'Soft Deleted' : (org.is_active ? 'Active' : 'Disabled') }}</span>
+                    <span>Created: {{ org.created_at | date: 'medium' }}</span>
+                </div>
+                <div class="org-actions">
+                    <button class="ghost-btn" (click)="toggleOrganization(org)">
+                        {{ org.is_active ? 'Disable' : 'Enable' }}
+                    </button>
+                    <button class="ghost-btn" (click)="softDeleteOrganization(org)" [disabled]="org.deleted_at">
+                        Soft Delete
+                    </button>
+                    <button class="danger-btn" (click)="deleteOrganization(org)">
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="empty-state" *ngIf="!isLoading && organizations.length === 0">
+            No organizations yet.
+        </div>
+    </section>
+</div>

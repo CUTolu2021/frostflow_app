@@ -1,113 +1,152 @@
-# ❄️ FrostFlow: The Retail Operating System
+# FrostFlow Inventory SaaS
 
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/4adbc60c-db75-488d-bd47-03f4cf78ddb8" />
+FrostFlow is a multi-tenant inventory and reconciliation system for retail operations.  
+Primary objective: reduce shrinkage by requiring double-entry stock records and surfacing mismatches quickly.
 
-> **Trustless Inventory Reconciliation for High-Volume Retail.**
-> FrostFlow is an all-in-one Retail OS that eliminates internal shrinkage by enforcing a double-blind verification protocol between business owners and staff.
+## Features
 
----
+- Multi-tenant organizations (`organizations`) with role-based users (`superadmin`, `admin`, `manager`, `sales`)
+- In-house authentication (JWT access + refresh sessions), no third-party auth dependency
+- Superadmin organization provisioning with owner bootstrap flow
+- Staff invite flow with expiring signup links
+- Forced password reset on first login / admin reset
+- Stock-in and staff-receive capture
+- Reconciliation engine using:
+  - `product_id`
+  - daily/session window (`window_date`)
+  - cutoff escalation (`is_escalated`, `escalated_at`)
+- Manual “Run Check Now” reconciliation trigger for immediate verification
+- Audit log trails and role-protected write endpoints
 
-## 🧐 The Problem
+## Tech Stack
 
-Small business retailers lose money annually to internal shrinkage (theft and administrative error). Existing POS systems rely on "trust" assuming the inventory entry is correct. They fail to catch discrepancies until the end-of-month audit, by which time the trail is cold.
+- Frontend: Angular 19
+- Backend: Node.js + Express
+- Database: Supabase Postgres (`frostflow_data` schema)
+- Security: JWT, refresh token rotation, route-level authorization, rate limiting
 
-## 🛡️ The Solution: Double-Blind Handshake
+## Local Setup
 
-FrostFlow introduces a "Nuclear Key" architecture to inventory management:
+### 1. Prerequisites
 
-1. **The Owner** enters stock data (e.g., "Sent 50kg of Chicken").
-2. **The Staff** enters stock data blindly (e.g., "Received 48kg").
-3. **The System** acts as the impartial arbiter. It locks the inventory levels and flags the mismatch immediately before the stock is available for sale.
+- Node.js LTS recommended (20.x or 22.x)
+- npm
+- Supabase project with `frostflow_data` schema
 
----
+### 2. Install
 
-## 🚀 Key Features
-
-### 🔐 Trustless Verification
-
-* **Blind Entry System:** Staff cannot see "Expected Quantity" when receiving goods.
-* **Auto-Reconciliation:** The system automatically cross-references entries at the end of the day.
-* **Mismatch Audit:** Discrepancies are logged into a permanent, immutable audit trail.
-
-### 🧠 Intelligent Workflows (n8n)
-
-* **Automated Alerts:** Instead of spamming users, the system uses n8n workflows to batch notifications (e.g., "Daily Summary" vs. "Urgent Mismatch").
-* **Anomaly Detection:** Monitoring for suspicious patterns in stock levels.
-
-### ⚡ Real-Time & Offline First
-
-* **Variable Unit Support:** Handles "Catch Weight" inventory (e.g., selling by Box vs. selling by KG) with automatic unit conversion.
-* **Live Updates:** Powered by Supabase Realtime, dashboards update instantly without page reloads.
-
----
-
-## 🏗️ Architecture & Tech Stack
-
-This project is built as a self-hosted, containerized ecosystem designed for data sovereignty and scalability.
-
-| Component | Technology | Role |
-| --- | --- | --- |
-| **Frontend** | **Angular (v19+)** | Reactive UI, TypeScript, Component Architecture |
-| **Backend** | **Supabase** | PostgreSQL, Auth, Row Level Security (RLS), Realtime |
-| **Orchestration** | **n8n** | Event-driven workflows, Notification logic, Cron jobs |
-| **Infrastructure** | **Docker** | Containerization for consistent deployment |
-| **Hosting** | **Coolify / Oracle VPS** | Self-hosted PaaS management |
-
-
-## 🛠️ Getting Started
-
-### Prerequisites
-
-* Docker & Docker Compose
-* Node.js v18+ (for local development)
-* A Supabase Project (Free Tier works)
-
-### Installation
-
-1. **Clone the Repository**
 ```bash
-git clone https://github.com/yourusername/frostflow.git
-cd frostflow
-
+npm install
 ```
 
+### 3. Backend environment
 
-2. **Configure Environment**
-Create a `.env` file in the root directory:
+Create `backend/.env` from `backend/.env.example` and fill real values.
+
 ```env
-SUPABASE_URL=your_supabase_url
-SUPABASE_KEY=your_supabase_anon_key
-N8N_WEBHOOK_URL=your_n8n_webhook
-
+API_PORT=3001
+JWT_SECRET=replace-with-a-long-random-secret
+JWT_EXPIRES_IN=15m
+REFRESH_TOKEN_TTL_DAYS=14
+SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+SUPABASE_SCHEMA=frostflow_data
+CORS_ORIGIN=http://localhost:4200,http://127.0.0.1:4200
+BOOTSTRAP_ADMIN_TOKEN=one-time-bootstrap-token
+ALLOW_DUMMY_PASSWORD_LOGIN=true
+FRONTEND_URL=http://localhost:4200
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-google-app-password
+SMTP_FROM="Frostflow <your-email@gmail.com>"
+RECONCILIATION_CUTOFF_HOUR_UTC=20
 ```
 
+### 4. Frontend environment
 
-3. **Run with Docker**
+`src/environments` is intentionally gitignored. Create:
+
+- `src/environments/environment.ts`
+- `src/environments/environment.prod.ts`
+
+Minimum expected shape:
+
+```ts
+export const environment = {
+  api_url: 'http://localhost:3001',
+  supabase_URL: '',
+  supabase_anon_key: '',
+  n8n_webhook: '',
+  production: false,
+};
+```
+
+## Database Migrations
+
+Run in order:
+
+1. `backend/sql/001_auth_password_hash.sql`
+2. `backend/sql/002_auth_sessions.sql`
+3. `backend/sql/003_multitenant_rls.sql`
+4. `backend/sql/004_reset_and_seed.sql`
+5. `backend/sql/005_superadmin_features.sql`
+6. `backend/sql/006_fix_users_id_default.sql`
+7. `backend/sql/007_soft_delete_organizations.sql`
+8. `backend/sql/008_staff_invites.sql`
+9. `backend/sql/009_staff_invites_hardening.sql`
+10. `backend/sql/010_reconciliation_engine.sql`
+
+## Run
+
 ```bash
-docker-compose up --build
-
+npm run dev
 ```
 
+Or split:
 
-Access the application at `http://localhost:80`.
+```bash
+npm run start
+npm run start:api
+```
 
----
+- Frontend: `http://localhost:4200`
+- API: `http://localhost:3001`
 
-## 🔮 Roadmap
+## Useful Scripts
 
-* [x] **Phase 1:** Core Inventory & Double-Blind Verification (Completed)
-* [ ] **Phase 2:** AI-Driven "Daily Intelligence Briefing" (In Progress)
-* [ ] **Phase 3:** Integrated E-commerce Storefront (Unified Database)
-* [ ] **Phase 4:** Mobile App for Barcode Scanning
+- `npm run bootstrap:password`
+- `npm run seed:dummy-users`
+- `npm run build`
 
----
+## API Highlights
 
-## 👨‍💻 Author
+- Auth:
+  - `POST /api/auth/login`
+  - `POST /api/auth/refresh`
+  - `POST /api/auth/logout`
+  - `POST /api/auth/change-password`
+  - `POST /api/auth/staff/invite`
+  - `GET /api/auth/staff/invite/preview`
+  - `POST /api/auth/staff/invite/complete`
+- Inventory/Reconciliation:
+  - `POST /api/inventory/stock-in`
+  - `POST /api/inventory/staff-stock-in`
+  - `POST /api/inventory/reconciliation/resolve`
+  - `POST /api/inventory/reconciliation/run`
+- Admin:
+  - `GET /api/admin/organizations`
+  - `POST /api/admin/organizations`
+  - `GET /api/admin/users`
 
-**Omoniyi Tolulope**
+## Security Notes
 
-* **Portfolio:** https://www.notion.so/Tolulope-Omoniyi-2b044d36684b806eb6a9cdb3ee468af0
-* **LinkedIn:** https://www.linkedin.com/in/omoniyi-tolulope/
-* **Email:** toluomoniyi24@gmail.com
+- Never commit real secrets (`backend/.env`, private keys, production tokens).
+- `backend/.env` and root `.env` are ignored by git.
+- If anything sensitive is exposed, rotate it immediately.
 
-> *Built with ❤️ to protect small business profits.*
+## Contribution Workflow
+
+Use feature branches + pull requests.  
+See [CONTRIBUTING.md](CONTRIBUTING.md) for naming, PR checklist, and review expectations.

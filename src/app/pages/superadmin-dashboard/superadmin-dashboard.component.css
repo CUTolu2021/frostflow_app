@@ -1,0 +1,165 @@
+.superadmin-dashboard {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+}
+
+.page-header h2 {
+    margin: 0 0 4px 0;
+}
+
+.panel {
+    background: #ffffff;
+    border: 1px solid #e6e6e6;
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.temp-password {
+    background: #fff7e6;
+    border: 1px solid #f5c76a;
+    color: #6b4d00;
+    padding: 10px 12px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-weight: 600;
+}
+
+.temp-password label {
+    display: block;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.temp-password input {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #f0c36a;
+    border-radius: 6px;
+    font-family: monospace;
+    background: #fffdf6;
+}
+
+.temp-password small {
+    display: block;
+    margin-top: 6px;
+    font-weight: 400;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin: 16px 0;
+}
+
+.field label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.field input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #d5d5d5;
+    border-radius: 8px;
+    outline: none;
+}
+
+.password-row {
+    display: flex;
+    gap: 8px;
+}
+
+.primary-btn,
+.refresh-btn,
+.ghost-btn {
+    border: none;
+    border-radius: 8px;
+    padding: 10px 14px;
+    cursor: pointer;
+}
+
+.primary-btn {
+    background: #1f3b5c;
+    color: #fff;
+}
+
+.refresh-btn {
+    background: #f3f4f6;
+}
+
+.ghost-btn {
+    background: transparent;
+    border: 1px solid #d5d5d5;
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.org-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.org-row {
+    border: 1px solid #ededed;
+    border-radius: 10px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.org-name {
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.org-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    color: #555;
+}
+
+.org-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.danger-btn {
+    background: #b42318;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 14px;
+    cursor: pointer;
+}
+
+.empty-state {
+    color: #777;
+    font-style: italic;
+}
+
+@media (max-width: 720px) {
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

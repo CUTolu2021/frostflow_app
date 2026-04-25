@@ -6,8 +6,8 @@ import { ToastService } from '../../services/toast.service';
 import { UserProfile } from '../../interfaces/profile';
 import { GroupedSale, Sale } from '../../interfaces/sales';
 import { AIStockReport } from '../../interfaces/ai-report';
-import { User } from '@supabase/supabase-js';
 import { StockEntry } from '../../interfaces/stock';
+import { AuthUser } from '../../interfaces/auth-user';
 
 @Component({
     selector: 'app-analysis',
@@ -59,7 +59,7 @@ export class AnalysisComponent implements OnInit {
         netProfit: 0
     }
 
-    currentUser: User | null = null;
+    currentUser: AuthUser | null = null;
 
     constructor(
         private supabase: SupabaseService,

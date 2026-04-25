@@ -6,7 +6,7 @@ import { ToastService } from '../../services/toast.service';
 import { WebhookService } from '../../services/webhook.service';
 import { Product } from '../../interfaces/product';
 import { StaffStockEntry } from '../../interfaces/stock';
-import { RealtimeChannel, User } from '@supabase/supabase-js';
+import { AuthUser } from '../../interfaces/auth-user';
 @Component({
   selector: 'app-receive-stock',
   standalone: true,
@@ -29,7 +29,7 @@ export class SalesReceiveComponent implements OnInit {
     damagedQty: null as number | null
   };
 
-  currentUser: User | null = null;
+  currentUser: AuthUser | null = null;
 
   constructor(
     private supabase: SupabaseService,
@@ -41,7 +41,7 @@ export class SalesReceiveComponent implements OnInit {
     });
   }
 
-  private stockSubscription?: RealtimeChannel;
+  private stockSubscription?: { unsubscribe: () => void };
 
   async ngOnInit() {
     this.currentUser = await this.supabase.getCurrentUser();
@@ -87,11 +87,9 @@ export class SalesReceiveComponent implements OnInit {
     this.isLoading = true;
 
     const payload = {
-      organization_id: 'e01a884e-fd78-4389-9e8c-5509c2565611',
       product_id: this.receiveForm.product.id,
       quantity: this.receiveForm.qty,
       unit_type: this.receiveForm.unit,
-      recorded_by: this.currentUser?.id,
       metadata: {
         damaged_qty: this.receiveForm.damagedQty || 0,
         notes: 'Received from truck (Mobile Entry)'
@@ -99,8 +97,9 @@ export class SalesReceiveComponent implements OnInit {
     };
 
     try {
-
-      this.n8n.sendSalesStock(payload)
+      await this.supabase.addStaffStockEntry(payload as StaffStockEntry);
+      // Keep n8n as optional side-channel notification, not the source of truth.
+      this.n8n.sendSalesStock(payload).catch(() => undefined);
       this.toast.show('Stock recorded successfully!', 'success');
 
 

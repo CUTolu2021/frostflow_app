@@ -13,6 +13,10 @@ export interface UserProfile {
 
     is_active?: boolean
 
+    organization_id?: string | null
+
+    must_reset_password?: boolean
+
     created_at: string
 
     updated_at: string
