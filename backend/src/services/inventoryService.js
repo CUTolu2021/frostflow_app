@@ -20,7 +20,7 @@ const {
   updateProductUnit,
   updateReconciliationStatus,
 } = require('../repositories/inventoryRepository');
-const { markSaleVoided } = require('../repositories/salesRepository');
+const { createSale, markSaleVoided } = require('../repositories/salesRepository');
 const { insertAuditLog } = require('../repositories/auditRepository');
 const { env } = require('../config/env');
 
@@ -336,6 +336,72 @@ const normalizeOwnerStockPayload = ({ payload, product }) => {
   return normalized;
 };
 
+const normalizeSalePayload = ({ payload, product }) => {
+  const quantity = Number(payload?.quantity);
+  if (!Number.isFinite(quantity) || quantity <= 0) {
+    throw new HttpError(400, 'quantity must be a positive number');
+  }
+
+  const unitPrice = Number(payload?.unit_price ?? payload?.selling_price);
+  if (!Number.isFinite(unitPrice) || unitPrice < 0) {
+    throw new HttpError(400, 'unit_price must be a non-negative number');
+  }
+
+  const paymentMethod = String(payload?.payment_method || '').trim();
+  if (!paymentMethod) {
+    throw new HttpError(400, 'payment_method is required');
+  }
+
+  const normalizedUnitType = String(payload?.unit_type || product?.base_unit || 'kg')
+    .trim()
+    .toLowerCase();
+
+  if (!normalizedUnitType) {
+    throw new HttpError(400, 'unit_type is required');
+  }
+
+  let stockReductionKg = quantity;
+  let boxWeight = null;
+
+  if (normalizedUnitType === 'box' || normalizedUnitType === 'carton') {
+    const explicitBoxWeight = Number(payload?.box_weight ?? payload?.box_weight_kg);
+    if (Number.isFinite(explicitBoxWeight) && explicitBoxWeight > 0) {
+      boxWeight = explicitBoxWeight;
+      stockReductionKg = quantity * explicitBoxWeight;
+    } else {
+      const standardBoxWeight = Number(product?.standard_box_weight || 0);
+      if (!Number.isFinite(standardBoxWeight) || standardBoxWeight <= 0) {
+        throw new HttpError(
+          400,
+          'Box/carton sale requires product standard box weight or box_weight_kg in request',
+        );
+      }
+      boxWeight = standardBoxWeight;
+      stockReductionKg = quantity * standardBoxWeight;
+    }
+  }
+
+  if (!Number.isFinite(stockReductionKg) || stockReductionKg <= 0) {
+    throw new HttpError(400, 'Unable to calculate stock reduction');
+  }
+
+  const totalPriceInput = Number(payload?.total_price);
+  const totalPrice = Number.isFinite(totalPriceInput) && totalPriceInput >= 0
+    ? totalPriceInput
+    : quantity * unitPrice;
+
+  return {
+    quantity,
+    unitPrice,
+    totalPrice,
+    paymentMethod,
+    unitType: normalizedUnitType,
+    stockReductionKg,
+    boxWeight,
+    customerType: payload?.customer_type || null,
+  };
+};
+
 const runLegacyReconciliationForProductWindow = async ({ organizationId, productId, windowDate }) => {
   const ownerQuantity = await aggregateStockInQuantity({
     organizationId,
@@ -547,6 +613,69 @@ const addStaffStockEntry = async ({ actor, payload }) => {
   return record;
 };
 
+const recordDailySale = async ({ actor, payload }) => {
+  assertRole(actor, ['admin', 'manager', 'sales']);
+  if (!payload?.product_id) {
+    throw new HttpError(400, 'product_id is required');
+  }
+
+  const organizationId = resolveOrganizationId(actor, payload.organization_id);
+  const product = await findProductById(payload.product_id, organizationId);
+  const normalized = normalizeSalePayload({
+    payload,
+    product,
+  });
+
+  const previousUnit = Number(product.unit || 0);
+  if (previousUnit < normalized.stockReductionKg) {
+    throw new HttpError(400, 'Insufficient stock for this sale');
+  }
+
+  const nextUnit = previousUnit - normalized.stockReductionKg;
+  await updateProductUnit({
+    productId: product.id,
+    organizationId,
+    nextUnit,
+  });
+
+  const sale = await createSale({
+    organizationId,
+    productId: product.id,
+    quantity: normalized.quantity,
+    sellingPrice: Math.round(normalized.unitPrice),
+    totalPrice: Math.round(normalized.totalPrice),
+    paymentMethod: normalized.paymentMethod,
+    recordedBy: actor.id,
+    customerType: normalized.customerType,
+    unitType: normalized.unitType,
+    boxWeight: normalized.boxWeight,
+    status: 'completed',
+  });
+
+  await insertAuditLog({
+    tableName: 'sales',
+    recordId: sale.id,
+    action: 'RECORDED_SALE',
+    changedBy: actor.id,
+    organizationId,
+    beforeData: {
+      product_id: product.id,
+      product_name: product.name,
+      product_unit_before: previousUnit,
+    },
+    afterData: {
+      sale_id: sale.id,
+      quantity: normalized.quantity,
+      unit_type: normalized.unitType,
+      stock_reduction_kg: normalized.stockReductionKg,
+      product_unit_after: nextUnit,
+      total_price: Math.round(normalized.totalPrice),
+    },
+  });
+
+  return sale;
+};
+
 const voidSale = async ({ actor, saleId, productId, quantityToReturn, reason }) => {
   assertRole(actor, ['admin', 'manager']);
 
@@ -674,6 +803,7 @@ const resolveMismatch = async ({
 module.exports = {
   addStaffStockEntry,
   addStockEntry,
+  recordDailySale,
   runReconciliationForWindow,
   resolveMismatch,
   voidSale,

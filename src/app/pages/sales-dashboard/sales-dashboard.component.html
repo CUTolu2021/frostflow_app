@@ -106,7 +106,8 @@
                         <!-- Hidden Recorded By -->
                         <input type="hidden" formControlName="recorded_by">
 
-                        <button type="submit" class="btn btn-primary full-width" [disabled]="!dailySalesForm.valid">
+                        <button type="submit" class="btn btn-primary full-width"
+                            [disabled]="!dailySalesForm.valid || isSubmittingSale">
                             Record Sale
                         </button>
                     </form>

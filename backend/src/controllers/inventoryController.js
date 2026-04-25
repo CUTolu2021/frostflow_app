@@ -2,6 +2,7 @@ const { asyncHandler } = require('../utils/asyncHandler');
 const {
   addStaffStockEntry,
   addStockEntry,
+  recordDailySale,
   runReconciliationForWindow,
   resolveMismatch,
   voidSale,
@@ -21,6 +22,15 @@ const addStaffStockEntryHandler = asyncHandler(async (req, res) => {
     payload: req.body,
   });
   res.status(201).json({ record });
+});
+
+const recordDailySaleHandler = asyncHandler(async (req, res) => {
+  const sale = await recordDailySale({
+    actor: req.user,
+    payload: req.body,
+  });
+
+  res.status(201).json({ sale });
 });
 
 const voidSaleHandler = asyncHandler(async (req, res) => {
@@ -60,6 +70,7 @@ const runReconciliationHandler = asyncHandler(async (req, res) => {
 module.exports = {
   addStaffStockEntryHandler,
   addStockEntryHandler,
+  recordDailySaleHandler,
   runReconciliationHandler,
   resolveMismatchHandler,
   voidSaleHandler,

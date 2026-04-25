@@ -7,7 +7,7 @@ import { Product } from '../interfaces/product'
 import { LoadingService } from './loading.service'
 import { StaffStockEntry, StockEntry, ProductHistoryItem } from '../interfaces/stock'
 import { AIStockReport } from '../interfaces/ai-report'
-import { Sale } from '../interfaces/sales'
+import { DailySales, Sale } from '../interfaces/sales'
 import { ReconciliationMismatch } from '../interfaces/reconciliation'
 import { AuthUser } from '../interfaces/auth-user'
 import {
@@ -725,6 +725,15 @@ export class SupabaseService {
         const res = await this.requestWithAuth<{ sales: Sale[] }>('get', '/api/app/sales/recent');
         return res.sales || [];
     }
+
+    async recordDailySale(payload: Partial<DailySales>): Promise<Sale> {
+        const { sale } = await this.postWithAuth<{ sale: Sale }>(
+            '/api/inventory/sales/record',
+            payload
+        );
+        return sale;
+    }
+
     async addStaffStockEntry(payload: StaffStockEntry) {
         const { record } = await this.postWithAuth<{ record: StaffStockEntry }>(
             '/api/inventory/staff-stock-in',
