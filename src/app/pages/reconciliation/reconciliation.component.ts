@@ -1,12 +1,13 @@
-import { Component, OnInit, effect } from '@angular/core'
+import { Component, OnInit, Signal, effect } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { ActivatedRoute } from '@angular/router'
+import { ActivatedRoute, Params } from '@angular/router'
 import { CommonModule } from '@angular/common'
 import { SupabaseService } from '../../services/supabase.service'
 import { FormsModule } from '@angular/forms'
 import { ToastService } from '../../services/toast.service'
 
 import { ReconciliationMismatch, statusEnum } from '../../interfaces/reconciliation'
+import { getErrorMessage } from '../../utils/error-message'
 
 @Component({
     selector: 'app-reconciliation',
@@ -32,7 +33,7 @@ export class ReconciliationComponent implements OnInit {
     manualQty: number = 0;
     resolutionNote: string = '';
 
-    queryParams: any;
+    queryParams: Signal<Params | undefined>;
 
     constructor(
         private supabase: SupabaseService,
@@ -94,8 +95,8 @@ export class ReconciliationComponent implements OnInit {
                 'success'
             );
             await this.loadData();
-        } catch (error: any) {
-            this.toast.show(error?.message || 'Failed to run reconciliation check', 'error');
+        } catch (error: unknown) {
+            this.toast.show(getErrorMessage(error, 'Failed to run reconciliation check'), 'error');
         } finally {
             this.isRunningCheck = false;
         }

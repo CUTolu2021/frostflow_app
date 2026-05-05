@@ -10,6 +10,7 @@ import {
 import { ProductService } from '../../services/product.service';
 import { Product } from '../../interfaces/product';
 import { ToastService } from '../../services/toast.service';
+import { getErrorMessage } from '../../utils/error-message';
 
 @Component({
   selector: 'app-products',
@@ -135,8 +136,9 @@ export class ProductsComponent implements OnInit, OnDestroy {
     }
   }
 
-  onSearch(event: any) {
-    this.searchTerm = event.target.value;
+  onSearch(event: Event) {
+    const target = event.target as HTMLInputElement | null;
+    this.searchTerm = target?.value || '';
     this.filterProducts();
   }
 
@@ -221,16 +223,16 @@ export class ProductsComponent implements OnInit, OnDestroy {
       }
       this.closeModal();
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Save failed', error);
-      this.toast.show('Error saving product: ' + error.message, 'error');
+      this.toast.show('Error saving product: ' + getErrorMessage(error), 'error');
     } finally {
       this.isSubmitting = false;
     }
   }
 
   private getFormErrors() {
-    const errors: any = {};
+    const errors: Record<string, unknown> = {};
     Object.keys(this.productForm.controls).forEach(key => {
       const controlErrors = this.productForm.get(key)?.errors;
       if (controlErrors) {
@@ -246,8 +248,8 @@ export class ProductsComponent implements OnInit, OnDestroy {
       try {
         await this.productService.deleteProduct(id);
         this.toast.show('Product deleted successfully', 'success');
-      } catch (error: any) {
-        this.toast.show('Delete failed: ' + error.message, 'error');
+      } catch (error: unknown) {
+        this.toast.show('Delete failed: ' + getErrorMessage(error), 'error');
       } finally {
         this.isSubmitting = false;
       }

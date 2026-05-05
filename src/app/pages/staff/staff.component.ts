@@ -5,6 +5,7 @@ import { SupabaseService } from '../../services/supabase.service';
 import { ToastService } from '../../services/toast.service';
 import { UserProfile } from '../../interfaces/profile';
 import { UserRole } from '../../enums/role';
+import { getErrorMessage } from '../../utils/error-message';
 
 @Component({
   selector: 'app-staff',
@@ -79,9 +80,9 @@ export class StaffComponent implements OnInit {
       }
       this.resetForm();
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
-      this.toast.show(error.message || 'Failed to create staff invite', 'error');
+      this.toast.show(getErrorMessage(error, 'Failed to create staff invite'), 'error');
     }
   }
 
@@ -119,8 +120,8 @@ export class StaffComponent implements OnInit {
     try {
       await this.supabase.resetStaffPassword(user.id, tempPassword);
       this.toast.show(`Temporary password: ${tempPassword}`, 'success');
-    } catch (error: any) {
-      this.toast.show(error?.message || 'Failed to reset password', 'error');
+    } catch (error: unknown) {
+      this.toast.show(getErrorMessage(error, 'Failed to reset password'), 'error');
     }
   }
 

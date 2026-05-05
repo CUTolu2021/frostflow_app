@@ -1,8 +1,8 @@
 export interface Notification {
-    id: string;
+    id: string | number;
     created_at: string;
     message: string;
-    type: 'alert' | 'info' | 'success' | 'warning';
+    type: string;
     is_read: boolean;
     link?: string;
 }

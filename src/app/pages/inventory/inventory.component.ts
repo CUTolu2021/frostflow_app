@@ -6,6 +6,7 @@ import { ProductService } from '../../services/product.service';
 import { ToastService } from '../../services/toast.service';
 import { Product } from '../../interfaces/product';
 import { StockEntry, ProductHistoryItem } from '../../interfaces/stock';
+import { getErrorMessage } from '../../utils/error-message';
 
 @Component({
   selector: 'app-inventory',
@@ -170,9 +171,9 @@ export class InventoryComponent implements OnInit, OnDestroy {
       await this.supabase.addStockEntry(payload);
       this.toast.show('Stock Added Successfully!', 'success');
       this.closeModal();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
-      this.toast.show(error.message || 'Failed to add stock', 'error');
+      this.toast.show(getErrorMessage(error, 'Failed to add stock'), 'error');
     }
   }
 }

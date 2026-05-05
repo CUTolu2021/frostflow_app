@@ -2,6 +2,11 @@ import { Injectable, signal, computed, effect, NgZone, inject } from '@angular/c
 import { SupabaseService } from './supabase.service';
 import { Product } from '../interfaces/product';
 import { ToastService } from './toast.service';
+import { getErrorMessage } from '../utils/error-message';
+
+interface SubscriptionHandle {
+    unsubscribe: () => void;
+}
 
 @Injectable({
     providedIn: 'root'
@@ -16,7 +21,7 @@ export class ProductService {
     outOfStockCount = computed(() => this.products().filter(p => (p.unit ?? 0) === 0).length);
     categoriesCount = computed(() => new Set(this.products().map(p => p.category)).size);
 
-    private productSubscription: any;
+    private productSubscription: SubscriptionHandle | null = null;
     private listenerCount = 0;
     private initialized = false;
     private ngZone = inject(NgZone);
@@ -64,8 +69,8 @@ export class ProductService {
             }
 
             this.initialized = true;
-        } catch (err: any) {
-            this.error.set(err.message);
+        } catch (err: unknown) {
+            this.error.set(getErrorMessage(err, 'Failed to load products'));
             this.toast.show('Failed to load products', 'error');
         } finally {
             this.loading.set(false);
@@ -77,7 +82,7 @@ export class ProductService {
             const newProduct = await this.supabase.addProduct(product);
             this.products.update(current => [...current, newProduct]);
             return newProduct;
-        } catch (err: any) {
+        } catch (err: unknown) {
             throw err;
         }
     }
@@ -94,7 +99,7 @@ export class ProductService {
                 current.map(p => p.id === id ? updated : p)
             );
             return updated;
-        } catch (err: any) {
+        } catch (err: unknown) {
             this.products.set(previousProducts);
             throw err;
         }
@@ -106,7 +111,7 @@ export class ProductService {
 
         try {
             await this.supabase.deleteProduct(id);
-        } catch (err: any) {
+        } catch (err: unknown) {
             this.products.set(previousProducts);
             throw err;
         }

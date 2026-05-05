@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { SupabaseService } from '../../services/supabase.service';
 import { Router } from '@angular/router';
 import { ToastService } from '../../services/toast.service';
+import { getErrorMessage } from '../../utils/error-message';
 
 @Component({
   selector: 'app-force-password',
@@ -43,8 +44,8 @@ export class ForcePasswordComponent {
       this.toast.show('Password updated. Please log in again.', 'success');
       await this.supabase.signOut();
       this.router.navigate(['/login']);
-    } catch (error: any) {
-      this.toast.show(error?.error?.message || error?.message || 'Failed to update password', 'error');
+    } catch (error: unknown) {
+      this.toast.show(getErrorMessage(error, 'Failed to update password'), 'error');
     } finally {
       this.isSubmitting = false;
     }

@@ -2,6 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SupabaseService } from '../../services/supabase.service';
 import { ToastService } from '../../services/toast.service';
+import { AdminUser } from '../../interfaces/api';
+import { getErrorMessage } from '../../utils/error-message';
 
 @Component({
   selector: 'app-superadmin-users',
@@ -11,7 +13,7 @@ import { ToastService } from '../../services/toast.service';
   styleUrl: './superadmin-users.component.css',
 })
 export class SuperadminUsersComponent implements OnInit {
-  users: any[] = [];
+  users: AdminUser[] = [];
   isLoading = false;
   lastReset = { email: '', tempPassword: '' };
 
@@ -25,30 +27,30 @@ export class SuperadminUsersComponent implements OnInit {
     this.isLoading = true;
     try {
       this.users = await this.supabase.listAllUsers();
-    } catch (error: any) {
-      this.toast.show(error?.message || 'Failed to load users', 'error');
+    } catch (error: unknown) {
+      this.toast.show(getErrorMessage(error, 'Failed to load users'), 'error');
     } finally {
       this.isLoading = false;
     }
   }
 
-  async toggleActive(user: any) {
+  async toggleActive(user: AdminUser) {
     try {
       const updated = await this.supabase.setUserActive(user.id, !user.is_active);
       user.is_active = updated.is_active;
       this.toast.show(`User ${updated.is_active ? 'activated' : 'disabled'}`, 'info');
-    } catch (error: any) {
-      this.toast.show(error?.message || 'Failed to update user', 'error');
+    } catch (error: unknown) {
+      this.toast.show(getErrorMessage(error, 'Failed to update user'), 'error');
     }
   }
 
-  async resetPassword(user: any) {
+  async resetPassword(user: AdminUser) {
     try {
       const res = await this.supabase.resetUserPassword(user.id);
       this.lastReset = { email: user.email, tempPassword: res.tempPassword || '' };
       this.toast.show('Temporary password generated and emailed', 'success');
-    } catch (error: any) {
-      this.toast.show(error?.message || 'Failed to reset password', 'error');
+    } catch (error: unknown) {
+      this.toast.show(getErrorMessage(error, 'Failed to reset password'), 'error');
     }
   }
 }

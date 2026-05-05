@@ -10,6 +10,19 @@ import { AIStockReport } from '../interfaces/ai-report'
 import { Sale } from '../interfaces/sales'
 import { ReconciliationMismatch } from '../interfaces/reconciliation'
 import { AuthUser } from '../interfaces/auth-user'
+import {
+    AdminUser,
+    AuthSessionLike,
+    ChartDataPoint,
+    CreateOrganizationResponse,
+    InventoryLog,
+    NotificationRecord,
+    OrganizationSummary,
+    PollingPayload,
+    RecentStaffEntry,
+    StaffInviteResult,
+} from '../interfaces/api'
+import { getErrorMessage } from '../utils/error-message'
 
 interface PollingSubscription {
     unsubscribe: () => void;
@@ -20,7 +33,7 @@ interface PollingSubscription {
 })
 export class SupabaseService {
     private readonly apiBase = environment.api_url || 'http://localhost:3001'
-    private authCallbacks = new Set<(event: string, session: any) => void>()
+    private authCallbacks = new Set<(event: string, session: AuthSessionLike) => void>()
     staffStock = signal<StaffStockEntry[]>([])
 
     constructor(
@@ -91,7 +104,7 @@ export class SupabaseService {
         }
     }
 
-    private async withTimeout<T>(promise: PromiseLike<T>, ms: number = 10000): Promise<any> {
+    private async withTimeout<T>(promise: PromiseLike<T>, ms: number = 10000): Promise<T> {
         const timeout = new Promise<T>((_, reject) => {
             const id = setTimeout(() => {
                 clearTimeout(id);
@@ -113,7 +126,7 @@ export class SupabaseService {
         return this.getStoredUser();
     }
 
-    onAuthStateChange(callback: (event: string, session: any) => void) {
+    onAuthStateChange(callback: (event: string, session: AuthSessionLike) => void) {
         this.authCallbacks.add(callback);
         return {
             data: {
@@ -237,8 +250,11 @@ export class SupabaseService {
 
         try {
             return await makeRequest();
-        } catch (error: any) {
-            if (error?.status === 401) {
+        } catch (error: unknown) {
+            const status = (typeof error === 'object' && error !== null && typeof (error as { status?: unknown }).status === 'number')
+                ? (error as { status: number }).status
+                : undefined;
+            if (status === 401) {
                 const refreshed = await this.refreshAccessToken();
                 if (refreshed) {
                     token = await this.getValidAccessToken();
@@ -270,11 +286,15 @@ export class SupabaseService {
                 data: { session: { user: res.user } },
                 error: null,
             };
-        } catch (error: any) {
-            const status = Number(error?.status || 0);
+        } catch (error: unknown) {
+            const status = Number(
+                typeof error === 'object' && error !== null && typeof (error as { status?: unknown }).status === 'number'
+                    ? (error as { status: number }).status
+                    : 0
+            );
             const message = status === 0
                 ? `Cannot reach API at ${this.apiBase}. Start backend with npm run start:api`
-                : (error?.error?.message || 'Login failed');
+                : getErrorMessage(error, 'Login failed');
             return {
                 data: { session: null },
                 error: { message },
@@ -336,9 +356,9 @@ export class SupabaseService {
             try {
                 const res = await this.requestWithAuth<{ profile: UserProfile }>('get', `/api/app/users/${userId}`);
                 return res.profile || null;
-            } catch (err: any) {
+            } catch (err: unknown) {
                 attempts++;
-                console.warn(`getUserProfile attempt ${attempts} failed:`, err.message || err);
+                console.warn(`getUserProfile attempt ${attempts} failed:`, getErrorMessage(err));
                 if (attempts === maxAttempts) {
                     console.error('Final failure fetching user profile:', err);
                     return null;
@@ -359,9 +379,9 @@ export class SupabaseService {
                 if (showLoading) this.loadingService.show();
                 const res = await this.withTimeout(this.requestWithAuth<{ products: Product[] }>('get', '/api/app/products'));
                 return res.products || [];
-            } catch (err: any) {
+            } catch (err: unknown) {
                 attempts++;
-                console.warn(`[SupabaseService] getProducts attempt ${attempts} failed:`, err.message || err);
+                console.warn(`[SupabaseService] getProducts attempt ${attempts} failed:`, getErrorMessage(err));
                 if (attempts === maxAttempts) {
                     console.error('[SupabaseService] Final failure fetching products:', err);
                     return [];
@@ -487,18 +507,18 @@ export class SupabaseService {
         return metrics || { todaySalesValue: 0, todayUnitsSold: 0 };
     }
 
-    async getChartData() {
-        const res = await this.requestWithAuth<{ chart: any[] }>('get', '/api/app/metrics/chart');
+    async getChartData(): Promise<ChartDataPoint[]> {
+        const res = await this.requestWithAuth<{ chart: ChartDataPoint[] }>('get', '/api/app/metrics/chart');
         return res.chart || [];
     }
 
-    async getUnreadNotifications() {
-        const res = await this.requestWithAuth<{ notifications: any[] }>('get', '/api/app/notifications');
+    async getUnreadNotifications(): Promise<NotificationRecord[]> {
+        const res = await this.requestWithAuth<{ notifications: NotificationRecord[] }>('get', '/api/app/notifications');
         return res.notifications || [];
     }
 
-    async markNotificationAsRead(id: string) {
-        await this.requestWithAuth('patch', `/api/app/notifications/${id}/read`, {});
+    async markNotificationAsRead(id: string | number) {
+        await this.requestWithAuth('patch', `/api/app/notifications/${String(id)}/read`, {});
     }
 
     async getDailyEntryStatus() {
@@ -510,8 +530,8 @@ export class SupabaseService {
         return res;
     }
 
-    async getInventoryLogs() {
-        const res = await this.requestWithAuth<{ logs: any[] }>('get', '/api/app/inventory/logs');
+    async getInventoryLogs(): Promise<InventoryLog[]> {
+        const res = await this.requestWithAuth<{ logs: InventoryLog[] }>('get', '/api/app/inventory/logs');
         return res.logs || [];
     }
 
@@ -530,22 +550,15 @@ export class SupabaseService {
         }
     }
 
-    async createStaffInvite(payload: { email: string; role: string }) {
+    async createStaffInvite(payload: { email: string; role: string }): Promise<StaffInviteResult> {
         try {
             const res = await this.postWithAuth<{
-                invite: {
-                    inviteId: string;
-                    inviteLink: string;
-                    invitedEmail: string;
-                    role: string;
-                    expiresAt: string;
-                    emailStatus?: { sent: boolean; skipped: boolean; error: string | null };
-                };
+                invite: StaffInviteResult;
             }>('/api/auth/staff/invite', payload);
 
             return res.invite;
-        } catch (error: any) {
-            throw new Error(error?.error?.message || 'Failed to create staff invite');
+        } catch (error: unknown) {
+            throw new Error(getErrorMessage(error, 'Failed to create staff invite'));
         }
     }
 
@@ -571,8 +584,8 @@ export class SupabaseService {
         return res.user;
     }
 
-    async listOrganizations(): Promise<Array<{ id: string; name: string; is_active: boolean; deleted_at?: string | null; created_at: string }>> {
-        const res = await this.requestWithAuth<{ organizations: Array<{ id: string; name: string; is_active: boolean; deleted_at?: string | null; created_at: string }> }>(
+    async listOrganizations(): Promise<OrganizationSummary[]> {
+        const res = await this.requestWithAuth<{ organizations: OrganizationSummary[] }>(
             'get',
             '/api/admin/organizations'
         );
@@ -583,8 +596,8 @@ export class SupabaseService {
         organizationName: string;
         ownerName: string;
         ownerEmail: string;
-    }) {
-        const res = await this.requestWithAuth<{ organization: any; owner: AuthUser; tempPassword?: string }>(
+    }): Promise<CreateOrganizationResponse> {
+        const res = await this.requestWithAuth<CreateOrganizationResponse>(
             'post',
             '/api/admin/organizations',
             payload
@@ -592,8 +605,8 @@ export class SupabaseService {
         return res;
     }
 
-    async listAllUsers(): Promise<any[]> {
-        const res = await this.requestWithAuth<{ users: any[] }>('get', '/api/admin/users');
+    async listAllUsers(): Promise<AdminUser[]> {
+        const res = await this.requestWithAuth<{ users: AdminUser[] }>('get', '/api/admin/users');
         return res.users || [];
     }
 
@@ -615,8 +628,8 @@ export class SupabaseService {
         return res;
     }
 
-    async setOrganizationActive(orgId: string, isActive: boolean) {
-        const res = await this.requestWithAuth<{ organization: any }>(
+    async setOrganizationActive(orgId: string, isActive: boolean): Promise<OrganizationSummary> {
+        const res = await this.requestWithAuth<{ organization: OrganizationSummary }>(
             'patch',
             `/api/admin/organizations/${orgId}/active`,
             { is_active: isActive }
@@ -628,8 +641,8 @@ export class SupabaseService {
         await this.requestWithAuth('delete', `/api/admin/organizations/${orgId}`);
     }
 
-    async softDeleteOrganization(orgId: string) {
-        const res = await this.requestWithAuth<{ organization: any }>(
+    async softDeleteOrganization(orgId: string): Promise<OrganizationSummary> {
+        const res = await this.requestWithAuth<{ organization: OrganizationSummary }>(
             'post',
             `/api/admin/organizations/${orgId}/soft-delete`,
             {}
@@ -675,11 +688,11 @@ export class SupabaseService {
         };
     }
 
-    subscribeToNotifications(callback: (payload: any) => void) {
+    subscribeToNotifications(callback: (payload: PollingPayload<NotificationRecord>) => void) {
         let lastIds = new Set<string>();
         const poller = async () => {
             const notifications = await this.getUnreadNotifications();
-            const nextIds = new Set(notifications.map((n: any) => String(n.id)));
+            const nextIds = new Set(notifications.map((n) => String(n.id)));
             for (const notif of notifications) {
                 const id = String(notif.id);
                 if (!lastIds.has(id)) {
@@ -693,7 +706,7 @@ export class SupabaseService {
         return this.createPollingSubscription(poller, 15000);
     }
 
-    subscribeToProfileChanges(userId: string, callback: (payload: any) => void) {
+    subscribeToProfileChanges(userId: string, callback: (payload: PollingPayload<UserProfile>) => void) {
         let lastStatus: boolean | null = null;
         const poller = async () => {
             const profile = await this.getUserProfile(userId);
@@ -708,8 +721,8 @@ export class SupabaseService {
         return this.createPollingSubscription(poller, 15000);
     }
 
-    async getRecentSales() {
-        const res = await this.requestWithAuth<{ sales: any[] }>('get', '/api/app/sales/recent');
+    async getRecentSales(): Promise<Sale[]> {
+        const res = await this.requestWithAuth<{ sales: Sale[] }>('get', '/api/app/sales/recent');
         return res.sales || [];
     }
     async addStaffStockEntry(payload: StaffStockEntry) {
@@ -727,7 +740,7 @@ export class SupabaseService {
         return entries;
     }
 
-    subscribeToStaffStockChanges(callback?: (payload: any) => void) {
+    subscribeToStaffStockChanges(callback?: (payload: PollingPayload<RecentStaffEntry>) => void) {
         let lastIds = new Set<string>();
         const poller = async () => {
             const entries = await this.getRecentStaffEntries();
