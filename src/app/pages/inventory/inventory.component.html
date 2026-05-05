@@ -168,8 +168,8 @@
                     <input type="number" [(ngModel)]="entry.inputQty" class="form-input large-input" placeholder="0">
                 </div>
 
-                <!-- Manual Weight Input for Variable Boxes (e.g. Chicken) -->
-                <div *ngIf="entry.unitType === 'box' && selectedProduct.is_variable_weight"
+                <!-- Manual Weight Input for Variable or Unconfigured Box Weights -->
+                <div *ngIf="requiresManualWeightForBox()"
                     class="alert-box warning-box">
                     <label class="alert-label">
                         <span class="material-symbols-outlined icon-sm">scale</span>
@@ -177,15 +177,14 @@
                     </label>
                     <input type="number" [(ngModel)]="entry.manualTotalWeight" class="form-input mt-2"
                         placeholder="e.g. 25.5">
-                    <small class="hint">This product has variable weight per box. Please enter the exact total
-                        weight.</small>
+                    <small class="hint">{{ boxWeightGuidance }}</small>
                 </div>
 
                 <!-- Auto Calculation Feedback -->
                 <div class="calculation-preview">
                     <span class="preview-label">System will record:</span>
                     <div class="preview-value">{{ calculateFinalWeight() | number:'1.2-2' }} KG</div>
-                    <small class="preview-sub" *ngIf="entry.unitType === 'box' && !selectedProduct.is_variable_weight">
+                    <small class="preview-sub" *ngIf="entry.unitType === 'box' && hasConfiguredStandardBoxWeight()">
                         (Based on {{ selectedProduct.standard_box_weight }}kg per box)
                     </small>
                 </div>

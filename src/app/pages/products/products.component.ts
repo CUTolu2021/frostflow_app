@@ -64,6 +64,9 @@ export class ProductsComponent implements OnInit, OnDestroy {
     const isBoxSoldSignal = toSignal(this.productForm.get('is_box_sold')!.valueChanges, {
       initialValue: this.productForm.get('is_box_sold')?.value
     });
+    const isVariableWeightSignal = toSignal(this.productForm.get('is_variable_weight')!.valueChanges, {
+      initialValue: this.productForm.get('is_variable_weight')?.value
+    });
 
     effect(() => {
       if (!isBoxSoldSignal()) {
@@ -72,6 +75,10 @@ export class ProductsComponent implements OnInit, OnDestroy {
           standard_box_weight: null
         }, { emitEvent: false });
       }
+    });
+
+    effect(() => {
+      this.updateStandardWeightValidators(Boolean(isBoxSoldSignal()), Boolean(isVariableWeightSignal()));
     });
 
 
@@ -190,6 +197,7 @@ export class ProductsComponent implements OnInit, OnDestroy {
   }
 
   async saveProduct() {
+    this.productForm.markAllAsTouched();
     if (this.productForm.invalid) {
       const errors = this.getFormErrors();
       const invalidFields = Object.keys(errors).join(', ');
@@ -199,6 +207,16 @@ export class ProductsComponent implements OnInit, OnDestroy {
 
     this.isSubmitting = true;
     const formValue = this.productForm.getRawValue();
+
+    if (
+      formValue.is_box_sold
+      && !formValue.is_variable_weight
+      && (!Number.isFinite(Number(formValue.standard_box_weight)) || Number(formValue.standard_box_weight) <= 0)
+    ) {
+      this.toast.show('Set a valid standard box weight (KG) or mark this product as variable weight.', 'error');
+      this.isSubmitting = false;
+      return;
+    }
 
     const payload: Partial<Product> = {
       name: formValue.name,
@@ -229,6 +247,25 @@ export class ProductsComponent implements OnInit, OnDestroy {
     } finally {
       this.isSubmitting = false;
     }
+  }
+
+  get showStandardBoxWeightError() {
+    const control = this.productForm.get('standard_box_weight');
+    if (!control) return false;
+    return control.invalid && (control.touched || this.isSubmitting);
+  }
+
+  private updateStandardWeightValidators(isBoxSold: boolean, isVariableWeight: boolean) {
+    const control = this.productForm.get('standard_box_weight');
+    if (!control) return;
+
+    if (isBoxSold && !isVariableWeight) {
+      control.setValidators([Validators.required, Validators.min(0.01)]);
+    } else {
+      control.setValidators([Validators.min(0)]);
+    }
+
+    control.updateValueAndValidity({ emitEvent: false });
   }
 
   private getFormErrors() {

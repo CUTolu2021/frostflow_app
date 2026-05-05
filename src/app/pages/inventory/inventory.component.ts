@@ -122,19 +122,45 @@ export class InventoryComponent implements OnInit, OnDestroy {
     this.entry.manualTotalWeight = 0;
   }
 
+  private getStandardBoxWeight(product: Product | null): number {
+    const weight = Number(product?.standard_box_weight || 0);
+    if (!Number.isFinite(weight) || weight <= 0) return 0;
+    return weight;
+  }
+
+  requiresManualWeightForBox(): boolean {
+    if (this.entry.unitType !== 'box' || !this.selectedProduct) return false;
+    if (this.selectedProduct.is_variable_weight) return true;
+    return this.getStandardBoxWeight(this.selectedProduct) <= 0;
+  }
+
+  get boxWeightGuidance(): string {
+    if (!this.selectedProduct || this.entry.unitType !== 'box') return '';
+    if (this.selectedProduct.is_variable_weight) {
+      return 'This product uses variable box weights. Enter the invoice total KG for this entry.';
+    }
+    if (this.getStandardBoxWeight(this.selectedProduct) <= 0) {
+      return 'No standard box weight is configured for this product. Enter invoice total KG now or set standard box weight in Product setup.';
+    }
+    return '';
+  }
+
+  hasConfiguredStandardBoxWeight(): boolean {
+    if (!this.selectedProduct || this.entry.unitType !== 'box') return false;
+    return this.getStandardBoxWeight(this.selectedProduct) > 0;
+  }
+
   calculateFinalWeight(): number {
     if (!this.selectedProduct) return 0;
-    const qty = this.entry.inputQty || 0;
+    const qty = Number(this.entry.inputQty || 0);
 
     if (this.entry.unitType === 'kg') return qty;
 
-    if (!this.product) return 0;
-
     if (this.entry.unitType === 'box') {
-      if (this.product.is_variable_weight) {
-        return this.entry.manualTotalWeight || 0;
+      if (this.requiresManualWeightForBox()) {
+        return Number(this.entry.manualTotalWeight || 0);
       }
-      const standardWeight = this.product.standard_box_weight || 0;
+      const standardWeight = this.getStandardBoxWeight(this.selectedProduct);
       return qty * standardWeight;
     }
     return 0;
@@ -146,10 +172,20 @@ export class InventoryComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (!Number.isFinite(Number(this.entry.inputQty)) || Number(this.entry.inputQty) <= 0) {
+      this.toast.show('Enter a valid quantity greater than zero.', 'error');
+      return;
+    }
+
+    if (this.entry.unitType === 'box' && this.requiresManualWeightForBox() && Number(this.entry.manualTotalWeight) <= 0) {
+      this.toast.show('Enter the total invoice weight in KG for this box/carton entry.', 'error');
+      return;
+    }
+
     const calculatedWeight = this.calculateFinalWeight();
 
     if (calculatedWeight <= 0) {
-      this.toast.show('Invalid Weight Calculation', 'error');
+      this.toast.show('Unable to calculate total KG. Check quantity and box weight settings.', 'error');
       return;
     }
 

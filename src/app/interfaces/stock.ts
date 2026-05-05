@@ -2,12 +2,15 @@ import { Product } from './product';
 
 export interface StockEntry {
     product_id: string;
+    delivery_session_id?: string;
     created_at?: string;
     quantity: number;
     input_quantity?: number;
     unit_type: string;
     total_weight?: number;
     reference_note?: string;
+    expected_arrival_at?: string;
+    grace_until?: string;
     recorded_by: string;
     unit_cost?: number;
     unit_price?: number;
@@ -21,8 +24,11 @@ export interface StaffStockEntry {
     id?: string;
     created_at?: string;
     product_id: string;
+    delivery_session_id?: string;
     quantity: number;
     unit_type: string;
+    expected_arrival_at?: string;
+    grace_until?: string;
     recorded_by?: string;
     metadata?: {
         damaged_qty?: number;
