@@ -15,6 +15,15 @@ const isNotificationsSchemaError = (error) => {
   );
 };
 
+const isMissingDeliverySessionSchemaError = (error) => {
+  const message = String(error?.message || '').toLowerCase();
+  return (
+    message.includes('delivery_session_id')
+    || message.includes("relation \"frostflow_data.delivery_sessions\" does not exist")
+    || message.includes("could not find the table 'delivery_sessions'")
+  );
+};
+
 const selectSingle = async (query, message) => {
   const { data, error } = await query.single();
   if (error || !data) {
@@ -82,7 +91,67 @@ const listPendingMismatches = async ({ organizationId }) => {
   if (error) {
     throw new HttpError(500, 'Unable to fetch mismatches');
   }
-  return data || [];
+
+  const mismatches = data || [];
+  const resolveUnitsForRow = async (row, tableName) => {
+    let query = table(tableName)
+      .select('unit_type')
+      .eq('organization_id', organizationId)
+      .eq('product_id', row.product_id);
+
+    if (row.delivery_session_id) {
+      query = query.eq('delivery_session_id', row.delivery_session_id);
+    } else if (row.window_date) {
+      query = query.eq('logged_date', row.window_date).is('delivery_session_id', null);
+    } else {
+      return [];
+    }
+
+    let { data: rows, error: rowError } = await query;
+
+    if (
+      rowError
+      && !row.delivery_session_id
+      && row.window_date
+      && isMissingDeliverySessionSchemaError(rowError)
+    ) {
+      const fallback = await table(tableName)
+        .select('unit_type')
+        .eq('organization_id', organizationId)
+        .eq('product_id', row.product_id)
+        .eq('logged_date', row.window_date);
+      rows = fallback.data;
+      rowError = fallback.error;
+    }
+
+    if (rowError) {
+      throw new HttpError(500, 'Unable to fetch mismatch unit details');
+    }
+
+    const unique = new Set();
+    for (const unitRow of rows || []) {
+      const normalized = String(unitRow?.unit_type || 'kg').trim().toLowerCase();
+      if (normalized) unique.add(normalized);
+    }
+    return Array.from(unique);
+  };
+
+  const enriched = await Promise.all(
+    mismatches.map(async (row) => {
+      const [ownerUnits, staffUnits] = await Promise.all([
+        resolveUnitsForRow(row, 'stock_in'),
+        resolveUnitsForRow(row, 'stock_in_staff'),
+      ]);
+      return {
+        ...row,
+        owner_units: ownerUnits,
+        staff_units: staffUnits,
+        normalized_unit: 'kg',
+      };
+    }),
+  );
+
+  return enriched;
 };
 
 const listProductUnits = async ({ organizationId }) => {

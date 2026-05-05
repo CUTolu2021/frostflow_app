@@ -12,6 +12,9 @@ export interface ReconciliationMismatch {
     status: statusEnum;
     is_escalated?: boolean;
     escalated_at?: string | null;
+    owner_units?: string[];
+    staff_units?: string[];
+    normalized_unit?: string;
 
     // Joins
     products?: Product;

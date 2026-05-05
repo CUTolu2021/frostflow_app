@@ -15,6 +15,7 @@
     border-radius: 12px;
     padding: 24px;
     box-sizing: border-box;
+    position: relative;
 }
 
 .signup-card h2 {
@@ -84,4 +85,52 @@ input {
 .error-state {
     color: #b42318;
     font-weight: 600;
+}
+
+.submit-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.85);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 5;
+}
+
+.submit-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 14px 18px;
+    background: #fff;
+}
+
+.submit-card p {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #0f172a;
+}
+
+.submit-card small {
+    color: #64748b;
+    font-size: 12px;
+}
+
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
 }
