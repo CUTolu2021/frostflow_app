@@ -47,9 +47,14 @@
                 <span class="nav-text">Analytics</span>
             </a>
 
-            <a routerLink="/admin/mismatch" routerLinkActive="active" class="nav-item">
-                <span class="material-symbols-outlined nav-icon">warning</span>
-                <span class="nav-text">Mismatch</span>
+            <a routerLink="/admin/mismatch" routerLinkActive="active" class="nav-item nav-item-with-badge">
+                <span class="nav-label">
+                    <span class="material-symbols-outlined nav-icon">warning</span>
+                    <span class="nav-text">Mismatch</span>
+                </span>
+                <span *ngIf="pendingMismatchCount > 0" class="nav-badge">
+                    {{ pendingMismatchCount > 99 ? '99+' : pendingMismatchCount }}
+                </span>
             </a>
         </ng-container>
 

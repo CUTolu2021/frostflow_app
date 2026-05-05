@@ -58,12 +58,22 @@
                         <span class="font-medium">{{ m.products?.name }}</span>
                     </td>
                     <td>
-                        <span class="stock-val owner">{{ m.owner_quantity }}</span>
+                        <div class="qty-cell">
+                            <span class="stock-val owner">{{ m.owner_quantity }}</span>
+                            <span class="qty-meta">
+                                entered as {{ formatUnitList(m.owner_units) }} -> {{ getNormalizedUnitLabel(m) }}
+                            </span>
+                        </div>
                     </td>
                     <td>
-                        <span class="stock-val sales" [class.missing]="!m.staff_quantity">
-                            {{ m.staff_quantity !== null ? m.staff_quantity : 'MISSING' }}
-                        </span>
+                        <div class="qty-cell">
+                            <span class="stock-val sales" [class.missing]="!m.staff_quantity">
+                                {{ m.staff_quantity !== null ? m.staff_quantity : 'MISSING' }}
+                            </span>
+                            <span class="qty-meta">
+                                entered as {{ formatUnitList(m.staff_units) }} -> {{ getNormalizedUnitLabel(m) }}
+                            </span>
+                        </div>
                     </td>
                     <td>
                         <span class="diff-badge" [class.high]="m.difference > 5">{{ m.difference }}</span>
@@ -107,11 +117,13 @@
                     <div class="comp-item">
                         <span class="label">Owner</span>
                         <span class="val owner">{{ m.owner_quantity }}</span>
+                        <span class="unit-detail">{{ formatUnitList(m.owner_units) }} -> {{ getNormalizedUnitLabel(m) }}</span>
                     </div>
                     <div class="vs-divider">VS</div>
                     <div class="comp-item">
                         <span class="label">Sales</span>
                         <span class="val sales">{{ m.staff_quantity || '?' }}</span>
+                        <span class="unit-detail">{{ formatUnitList(m.staff_units) }} -> {{ getNormalizedUnitLabel(m) }}</span>
                     </div>
                 </div>
                 <div class="diff-row" [class.critical]="m.difference > 5">
@@ -147,6 +159,9 @@
                 <div class="res-card" [class.selected]="resolutionType === 'owner'" (click)="setResolution('owner')">
                     <div class="res-header">Owner's Input</div>
                     <div class="res-value">{{ selectedMismatch.owner_quantity }}</div>
+                    <div class="res-unit">
+                        {{ formatUnitList(selectedMismatch.owner_units) }} -> {{ getNormalizedUnitLabel(selectedMismatch) }}
+                    </div>
                     <div class="res-sub">Usually correct if Sales missed scanning.</div>
                     <div class="radio-check"></div>
                 </div>
@@ -155,6 +170,9 @@
                 <div class="res-card" [class.selected]="resolutionType === 'sales'" (click)="setResolution('sales')">
                     <div class="res-header">Sales Receipt</div>
                     <div class="res-value">{{ selectedMismatch.staff_quantity || 0 }}</div>
+                    <div class="res-unit">
+                        {{ formatUnitList(selectedMismatch.staff_units) }} -> {{ getNormalizedUnitLabel(selectedMismatch) }}
+                    </div>
                     <div class="res-sub">User confirmed receipt of only this amount.</div>
                     <div class="radio-check"></div>
                 </div>

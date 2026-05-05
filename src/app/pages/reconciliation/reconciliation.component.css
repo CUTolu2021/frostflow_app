@@ -162,6 +162,19 @@
     font-style: italic;
 }
 
+.qty-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+}
+
+.qty-meta {
+    font-size: 11px;
+    color: #64748b;
+    white-space: nowrap;
+}
+
 .diff-badge {
     background: #f1f5f9;
     color: #475569;
@@ -386,6 +399,12 @@
     line-height: 1.4;
 }
 
+.res-unit {
+    font-size: 11px;
+    color: #475569;
+    margin-bottom: 8px;
+}
+
 .radio-check {
     width: 16px;
     height: 16px;
@@ -509,6 +528,13 @@
     .comp-item .val {
         font-size: 18px;
         font-weight: 700;
+    }
+
+    .unit-detail {
+        display: block;
+        font-size: 11px;
+        color: #64748b;
+        margin-top: 4px;
     }
 
     .vs-divider {

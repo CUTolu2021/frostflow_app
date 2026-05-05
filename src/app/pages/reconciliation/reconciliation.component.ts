@@ -61,14 +61,32 @@ export class ReconciliationComponent implements OnInit {
         return statusMap[key] || key.replace(/_/g, ' ');
     }
 
+    formatUnitList(units: string[] | undefined): string {
+        const values = (units || []).filter(Boolean);
+        if (!values.length) return 'kg';
+        return values.join(', ');
+    }
+
+    getNormalizedUnitLabel(item: ReconciliationMismatch): string {
+        return String(item.normalized_unit || 'kg').toLowerCase();
+    }
+
     async loadData() {
         this.isLoading = true
-        this.mismatches = await this.supabase.getPendingMismatches()
-        this.totalMismatches = this.mismatches.length
-        this.criticalItems = this.mismatches.filter(
-            (m) => m.difference > 5
-        ).length
-        this.isLoading = false
+        try {
+            this.mismatches = await this.supabase.getPendingMismatches()
+            this.totalMismatches = this.mismatches.length
+            this.criticalItems = this.mismatches.filter(
+                (m) => m.difference > 5
+            ).length
+        } catch (error: unknown) {
+            this.toast.show(getErrorMessage(error, 'Failed to load mismatch data'), 'error');
+            this.mismatches = [];
+            this.totalMismatches = 0;
+            this.criticalItems = 0;
+        } finally {
+            this.isLoading = false
+        }
 
         if (this.highlightId) {
             setTimeout(() => {

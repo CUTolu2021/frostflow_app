@@ -310,6 +310,63 @@ const loadWindowRows = async ({ tableName, organizationId, windowDate, productId
   return { data, error };
 };
 
+const toPositiveNumber = (value) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) return 0;
+  return numeric;
+};
+
+const normalizeUnitType = (value) => String(value || 'kg').trim().toLowerCase();
+
+const parseMetadataWeight = (metadata) => {
+  if (!metadata) return 0;
+  let parsed = metadata;
+  if (typeof metadata === 'string') {
+    try {
+      parsed = JSON.parse(metadata);
+    } catch {
+      return 0;
+    }
+  }
+  if (!parsed || typeof parsed !== 'object') return 0;
+  return toPositiveNumber(
+    parsed.total_weight
+    || parsed.totalWeight
+    || parsed.invoice_total_weight
+    || parsed.invoiceTotalWeight,
+  );
+};
+
+const normalizeEntryToKg = ({ quantity, unitType, totalWeight, metadata, standardBoxWeight }) => {
+  const normalizedUnit = normalizeUnitType(unitType);
+  const qty = toPositiveNumber(quantity);
+  if (qty <= 0) return 0;
+
+  if (normalizedUnit === 'box' || normalizedUnit === 'carton') {
+    const explicitWeight = toPositiveNumber(totalWeight);
+    if (explicitWeight > 0) return explicitWeight;
+    const metadataWeight = parseMetadataWeight(metadata);
+    if (metadataWeight > 0) return metadataWeight;
+    if (standardBoxWeight > 0) return qty * standardBoxWeight;
+  }
+
+  return qty;
+};
+
+const getProductStandardBoxWeight = async ({ organizationId, productId }) => {
+  let query = table('products').select('standard_box_weight').eq('id', productId);
+  if (organizationId) {
+    query = query.eq('organization_id', organizationId);
+  }
+
+  const { data, error } = await query.single();
+  if (error) {
+    if (String(error?.code || '') === 'PGRST116') return 0;
+    throw new HttpError(500, 'Unable to fetch product unit conversion config');
+  }
+  return toPositiveNumber(data?.standard_box_weight);
+};
+
 const aggregateStockInQuantity = async ({ organizationId, productId, windowDate, unassignedOnly = false }) => {
   const { data, error } = await loadWindowRows({
     tableName: 'stock_in',
@@ -317,14 +374,22 @@ const aggregateStockInQuantity = async ({ organizationId, productId, windowDate,
     productId,
     windowDate,
     unassignedOnly,
-    select: 'quantity',
+    select: 'quantity, unit_type, total_weight',
   });
 
   if (error) {
     throw new HttpError(500, 'Unable to aggregate owner stock entries');
   }
 
-  return (data || []).reduce((sum, row) => sum + Number(row.quantity || 0), 0);
+  const standardBoxWeight = await getProductStandardBoxWeight({ organizationId, productId });
+  return (data || []).reduce((sum, row) => (
+    sum + normalizeEntryToKg({
+      quantity: row.quantity,
+      unitType: row.unit_type,
+      totalWeight: row.total_weight,
+      standardBoxWeight,
+    })
+  ), 0);
 };
 
 const aggregateStaffStockInQuantity = async ({ organizationId, productId, windowDate, unassignedOnly = false }) => {
@@ -334,19 +399,27 @@ const aggregateStaffStockInQuantity = async ({ organizationId, productId, window
     productId,
     windowDate,
     unassignedOnly,
-    select: 'quantity',
+    select: 'quantity, unit_type, metadata',
   });
 
   if (error) {
     throw new HttpError(500, 'Unable to aggregate staff stock entries');
   }
 
-  return (data || []).reduce((sum, row) => sum + Number(row.quantity || 0), 0);
+  const standardBoxWeight = await getProductStandardBoxWeight({ organizationId, productId });
+  return (data || []).reduce((sum, row) => (
+    sum + normalizeEntryToKg({
+      quantity: row.quantity,
+      unitType: row.unit_type,
+      metadata: row.metadata,
+      standardBoxWeight,
+    })
+  ), 0);
 };
 
 const aggregateStockInQuantityBySession = async ({ organizationId, productId, deliverySessionId }) => {
   const { data, error } = await table('stock_in')
-    .select('quantity')
+    .select('quantity, unit_type, total_weight')
     .eq('organization_id', organizationId)
     .eq('product_id', productId)
     .eq('delivery_session_id', deliverySessionId);
@@ -358,12 +431,20 @@ const aggregateStockInQuantityBySession = async ({ organizationId, productId, de
     throw new HttpError(500, 'Unable to aggregate owner stock entries by session');
   }
 
-  return (data || []).reduce((sum, row) => sum + Number(row.quantity || 0), 0);
+  const standardBoxWeight = await getProductStandardBoxWeight({ organizationId, productId });
+  return (data || []).reduce((sum, row) => (
+    sum + normalizeEntryToKg({
+      quantity: row.quantity,
+      unitType: row.unit_type,
+      totalWeight: row.total_weight,
+      standardBoxWeight,
+    })
+  ), 0);
 };
 
 const aggregateStaffStockInQuantityBySession = async ({ organizationId, productId, deliverySessionId }) => {
   const { data, error } = await table('stock_in_staff')
-    .select('quantity')
+    .select('quantity, unit_type, metadata')
     .eq('organization_id', organizationId)
     .eq('product_id', productId)
     .eq('delivery_session_id', deliverySessionId);
@@ -375,7 +456,15 @@ const aggregateStaffStockInQuantityBySession = async ({ organizationId, productI
     throw new HttpError(500, 'Unable to aggregate staff stock entries by session');
   }
 
-  return (data || []).reduce((sum, row) => sum + Number(row.quantity || 0), 0);
+  const standardBoxWeight = await getProductStandardBoxWeight({ organizationId, productId });
+  return (data || []).reduce((sum, row) => (
+    sum + normalizeEntryToKg({
+      quantity: row.quantity,
+      unitType: row.unit_type,
+      metadata: row.metadata,
+      standardBoxWeight,
+    })
+  ), 0);
 };
 
 const listWindowProductIds = async ({ organizationId, windowDate, unassignedOnly = false }) => {

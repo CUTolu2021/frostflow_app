@@ -116,7 +116,7 @@
     <div class="modal-content">
         <div class="modal-header">
             <h2 class="modal-title">Add New Staff</h2>
-            <button class="btn-icon" (click)="closeModal()">
+            <button class="btn-icon" (click)="closeModal()" [disabled]="isCreatingInvite">
                 <span class="material-symbols-outlined">close</span>
             </button>
         </div>
@@ -127,11 +127,11 @@
                     <label>Role</label>
                     <div class="radio-group">
                         <label class="radio-option" [class.selected]="newStaff.role === 'sales'">
-                            <input type="radio" [(ngModel)]="newStaff.role" name="role" value="sales">
+                            <input type="radio" [(ngModel)]="newStaff.role" name="role" value="sales" [disabled]="isCreatingInvite">
                             <span>Sales Rep (POS)</span>
                         </label>
                         <label class="radio-option" [class.selected]="newStaff.role === 'manager'">
-                            <input type="radio" [(ngModel)]="newStaff.role" name="role" value="manager">
+                            <input type="radio" [(ngModel)]="newStaff.role" name="role" value="manager" [disabled]="isCreatingInvite">
                             <span>Manager (Dashboard)</span>
                         </label>
                     </div>
@@ -145,17 +145,28 @@
                         name="email"
                         class="form-input"
                         placeholder="staff@example.com"
+                        [disabled]="isCreatingInvite"
                         required
                     >
                     <small class="hint">The invited user must sign up with this same email.</small>
                 </div>
 
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline" (click)="closeModal()">Cancel</button>
+                    <button type="button" class="btn btn-outline" (click)="closeModal()" [disabled]="isCreatingInvite">Cancel</button>
                     <button type="submit" class="btn btn-primary"
-                        [disabled]="!newStaff.email">Generate Invite Link</button>
+                        [disabled]="!newStaff.email || isCreatingInvite">
+                        {{ isCreatingInvite ? 'Generating Invite...' : 'Generate Invite Link' }}
+                    </button>
                 </div>
             </form>
+        </div>
+
+        <div class="modal-loading" *ngIf="isCreatingInvite">
+            <div class="loading-card">
+                <span class="material-symbols-outlined spin">progress_activity</span>
+                <p>Generating invite link...</p>
+                <small>Please wait, this can take a few seconds.</small>
+            </div>
         </div>
     </div>
 </div>

@@ -20,6 +20,7 @@ export class StaffComponent implements OnInit {
   isModalOpen = false;
   latestInviteLink = '';
   latestInviteEmail = '';
+  isCreatingInvite = false;
 
   newStaff = {
     email: '',
@@ -56,11 +57,14 @@ export class StaffComponent implements OnInit {
   }
 
   async createStaff() {
+    if (this.isCreatingInvite) return;
+
     if (!this.newStaff.email || !this.newStaff.role) {
       this.toast.show('Please fill in all fields', 'error');
       return;
     }
 
+    this.isCreatingInvite = true;
     try {
       const invite = await this.supabase.createStaffInvite({
         email: this.newStaff.email.trim().toLowerCase(),
@@ -83,6 +87,8 @@ export class StaffComponent implements OnInit {
     } catch (error: unknown) {
       console.error(error);
       this.toast.show(getErrorMessage(error, 'Failed to create staff invite'), 'error');
+    } finally {
+      this.isCreatingInvite = false;
     }
   }
 

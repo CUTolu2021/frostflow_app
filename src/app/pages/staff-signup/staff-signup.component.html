@@ -11,10 +11,10 @@
             </div>
 
             <label>Full Name</label>
-            <input [(ngModel)]="name" name="name" type="text" required />
+            <input [(ngModel)]="name" name="name" type="text" [disabled]="isSubmitting" required />
 
             <label>Email</label>
-            <input [(ngModel)]="email" name="email" type="email" required />
+            <input [(ngModel)]="email" name="email" type="email" [disabled]="isSubmitting" required />
 
             <label>Password</label>
             <div class="password-field">
@@ -22,9 +22,10 @@
                     [(ngModel)]="password"
                     name="password"
                     [type]="showPassword ? 'text' : 'password'"
+                    [disabled]="isSubmitting"
                     required
                 />
-                <button type="button" class="eye-btn" (click)="togglePassword()">
+                <button type="button" class="eye-btn" (click)="togglePassword()" [disabled]="isSubmitting">
                     <span class="material-symbols-outlined">
                         {{ showPassword ? 'visibility_off' : 'visibility' }}
                     </span>
@@ -37,9 +38,10 @@
                     [(ngModel)]="confirmPassword"
                     name="confirmPassword"
                     [type]="showConfirm ? 'text' : 'password'"
+                    [disabled]="isSubmitting"
                     required
                 />
-                <button type="button" class="eye-btn" (click)="toggleConfirm()">
+                <button type="button" class="eye-btn" (click)="toggleConfirm()" [disabled]="isSubmitting">
                     <span class="material-symbols-outlined">
                         {{ showConfirm ? 'visibility_off' : 'visibility' }}
                     </span>
@@ -53,6 +55,14 @@
 
         <div *ngIf="!isLoadingInvite && !invitedEmail" class="error-state">
             Invite link is invalid or expired.
+        </div>
+
+        <div class="submit-overlay" *ngIf="isSubmitting">
+            <div class="submit-card">
+                <span class="material-symbols-outlined spin">progress_activity</span>
+                <p>Creating your account...</p>
+                <small>Hang tight, we are finishing setup.</small>
+            </div>
         </div>
     </div>
 </div>
