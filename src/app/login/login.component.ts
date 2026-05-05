@@ -40,7 +40,7 @@ export class LoginComponent {
 
         if (error) {
             console.error('Login failed:', error.message)
-            this.toast.show('Login failed: ' + error.message, 'error')
+            this.toast.show(error.message || 'Login failed', 'error')
             return
         }
 

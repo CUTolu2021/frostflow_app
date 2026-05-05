@@ -4,7 +4,7 @@
             <h2>Superadmin Console</h2>
             <p>Create organizations and primary owners.</p>
         </div>
-        <button class="refresh-btn" (click)="loadOrganizations()" [disabled]="isLoading">
+        <button class="refresh-btn" (click)="loadOrganizations()" [disabled]="isLoading || activeOrgActionId !== null || isSubmitting">
             Refresh
         </button>
     </header>
@@ -30,7 +30,7 @@
                 <input [(ngModel)]="form.ownerEmail" placeholder="owner@company.com" type="email" />
             </div>
         </div>
-        <button class="primary-btn" (click)="createOrganization()" [disabled]="isSubmitting">
+        <button class="primary-btn" (click)="createOrganization()" [disabled]="isSubmitting || activeOrgActionId !== null">
             {{ isSubmitting ? 'Creating...' : 'Create Organization' }}
         </button>
     </section>
@@ -49,13 +49,13 @@
                     <span>Created: {{ org.created_at | date: 'medium' }}</span>
                 </div>
                 <div class="org-actions">
-                    <button class="ghost-btn" (click)="toggleOrganization(org)">
+                    <button class="ghost-btn" (click)="toggleOrganization(org)" [disabled]="activeOrgActionId !== null || isSubmitting">
                         {{ org.is_active ? 'Disable' : 'Enable' }}
                     </button>
-                    <button class="ghost-btn" (click)="softDeleteOrganization(org)" [disabled]="org.deleted_at">
+                    <button class="ghost-btn" (click)="softDeleteOrganization(org)" [disabled]="org.deleted_at || activeOrgActionId !== null || isSubmitting">
                         Soft Delete
                     </button>
-                    <button class="danger-btn" (click)="deleteOrganization(org)">
+                    <button class="danger-btn" (click)="deleteOrganization(org)" [disabled]="activeOrgActionId !== null || isSubmitting">
                         Delete
                     </button>
                 </div>

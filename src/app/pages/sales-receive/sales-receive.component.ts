@@ -7,6 +7,7 @@ import { WebhookService } from '../../services/webhook.service';
 import { Product } from '../../interfaces/product';
 import { StaffStockEntry } from '../../interfaces/stock';
 import { AuthUser } from '../../interfaces/auth-user';
+import { ProductService } from '../../services/product.service';
 @Component({
   selector: 'app-receive-stock',
   standalone: true,
@@ -34,10 +35,15 @@ export class SalesReceiveComponent implements OnInit {
   constructor(
     private supabase: SupabaseService,
     private toast: ToastService,
-    private n8n: WebhookService
+    private n8n: WebhookService,
+    private productService: ProductService,
   ) {
     effect(() => {
       this.recentEntries = this.supabase.staffStock();
+    });
+
+    effect(() => {
+      this.products = this.productService.products();
     });
   }
 
@@ -45,7 +51,8 @@ export class SalesReceiveComponent implements OnInit {
 
   async ngOnInit() {
     this.currentUser = await this.supabase.getCurrentUser();
-    this.products = await this.supabase.getProducts();
+    this.productService.startListening();
+    await this.productService.loadProducts();
     this.loadRecentEntries();
 
 
@@ -54,6 +61,7 @@ export class SalesReceiveComponent implements OnInit {
   }
 
   ngOnDestroy() {
+    this.productService.stopListening();
     if (this.stockSubscription) {
       this.stockSubscription.unsubscribe();
     }
@@ -76,8 +84,16 @@ export class SalesReceiveComponent implements OnInit {
     this.receiveForm.damagedQty = null;
   }
 
-  async submitReceive() {
+  trackByProductId(_: number, product: Product): string {
+    return product.id;
+  }
 
+  trackByEntryId(_: number, entry: StaffStockEntry): string {
+    return String(entry.id);
+  }
+
+  async submitReceive() {
+    if (this.isLoading) return;
 
     if (!this.receiveForm.product || !this.receiveForm.qty || this.receiveForm.qty <= 0) {
       this.toast.show('Please enter a valid quantity.', 'error');
@@ -100,6 +116,7 @@ export class SalesReceiveComponent implements OnInit {
       await this.supabase.addStaffStockEntry(payload as StaffStockEntry);
       // Keep n8n as optional side-channel notification, not the source of truth.
       this.n8n.sendSalesStock(payload).catch(() => undefined);
+      await this.productService.loadProducts(true, true);
       this.toast.show('Stock recorded successfully!', 'success');
 
 

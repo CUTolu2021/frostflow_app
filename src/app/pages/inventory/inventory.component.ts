@@ -18,6 +18,7 @@ import { getErrorMessage } from '../../utils/error-message';
 export class InventoryComponent implements OnInit, OnDestroy {
   products: Product[] = [];
   product: Product | null = null;
+  isSubmitting = false;
 
 
   isSidePanelOpen = false;
@@ -122,6 +123,10 @@ export class InventoryComponent implements OnInit, OnDestroy {
     this.entry.manualTotalWeight = 0;
   }
 
+  trackByProductId(_: number, product: Product): string {
+    return product.id;
+  }
+
   private getStandardBoxWeight(product: Product | null): number {
     const weight = Number(product?.standard_box_weight || 0);
     if (!Number.isFinite(weight) || weight <= 0) return 0;
@@ -167,6 +172,8 @@ export class InventoryComponent implements OnInit, OnDestroy {
   }
 
   async submitStock() {
+    if (this.isSubmitting) return;
+
     if (!this.selectedProduct) {
       this.toast.show('Please select a product', 'error');
       return;
@@ -203,13 +210,18 @@ export class InventoryComponent implements OnInit, OnDestroy {
       logistics_fee: this.entry.logisticsFee,
     };
 
+    this.isSubmitting = true;
+
     try {
       await this.supabase.addStockEntry(payload);
+      await this.productService.loadProducts(true, true);
       this.toast.show('Stock Added Successfully!', 'success');
       this.closeModal();
     } catch (error: unknown) {
       console.error(error);
       this.toast.show(getErrorMessage(error, 'Failed to add stock'), 'error');
+    } finally {
+      this.isSubmitting = false;
     }
   }
 }

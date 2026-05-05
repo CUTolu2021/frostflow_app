@@ -293,7 +293,7 @@ export class SupabaseService {
                     : 0
             );
             const message = status === 0
-                ? `Cannot reach API at ${this.apiBase}. Start backend with npm run start:api`
+                ? 'Cannot reach server. Please ensure the backend is running and try again.'
                 : getErrorMessage(error, 'Login failed');
             return {
                 data: { session: null },

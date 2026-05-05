@@ -14,9 +14,9 @@
         <!-- STEP 1: Product Selection -->
         <div class="form-section">
             <label class="section-label">What arrived?</label>
-            <select [(ngModel)]="receiveForm.product" (change)="onProductSelect()" class="input-lg dropdown">
+            <select [(ngModel)]="receiveForm.product" (change)="onProductSelect()" class="input-lg dropdown" [disabled]="isLoading">
                 <option [ngValue]="null">Select Product...</option>
-                <option *ngFor="let p of products" [ngValue]="p">{{ p.name }}</option>
+                <option *ngFor="let p of products; trackBy: trackByProductId" [ngValue]="p">{{ p.name }}</option>
             </select>
         </div>
 
@@ -29,10 +29,10 @@
 
                 <!-- Normal Item: Toggle allowed -->
                 <div class="toggle-row">
-                    <button (click)="receiveForm.unit='box'" [class.active]="receiveForm.unit=='box'" class="unit-btn">
+                    <button (click)="receiveForm.unit='box'" [class.active]="receiveForm.unit=='box'" class="unit-btn" [disabled]="isLoading">
                         📦 Boxes
                     </button>
-                    <button (click)="receiveForm.unit='kg'" [class.active]="receiveForm.unit=='kg'" class="unit-btn">
+                    <button (click)="receiveForm.unit='kg'" [class.active]="receiveForm.unit=='kg'" class="unit-btn" [disabled]="isLoading">
                         ⚖️ KG
                     </button>
                 </div>
@@ -47,19 +47,19 @@
             <!-- Main Quantity Input -->
             <div class="form-section">
                 <label class="section-label">Quantity Counted</label>
-                <input type="number" [(ngModel)]="receiveForm.qty" class="input-giant" placeholder="0" min="0">
+                <input type="number" [(ngModel)]="receiveForm.qty" class="input-giant" placeholder="0" min="0" [disabled]="isLoading">
             </div>
 
             <!-- Damaged Goods Logic -->
             <div class="damages-section">
                 <div class="checkbox-row">
-                    <input type="checkbox" [(ngModel)]="receiveForm.hasDamages" id="damages" class="checkbox-lg">
+                    <input type="checkbox" [(ngModel)]="receiveForm.hasDamages" id="damages" class="checkbox-lg" [disabled]="isLoading">
                     <label for="damages" class="label-danger">Some items are damaged?</label>
                 </div>
 
                 <div *ngIf="receiveForm.hasDamages" class="damage-input-box animate-fade-in">
                     <label class="label-tiny text-red">Damaged Quantity</label>
-                    <input type="number" [(ngModel)]="receiveForm.damagedQty" class="input-md border-red"
+                    <input type="number" [(ngModel)]="receiveForm.damagedQty" class="input-md border-red" [disabled]="isLoading"
                         placeholder="How many?" min="0">
                 </div>
             </div>
@@ -80,7 +80,7 @@
             </div>
 
             <div class="entry-list">
-                <div *ngFor="let entry of recentEntries" class="entry-item">
+                <div *ngFor="let entry of recentEntries; trackBy: trackByEntryId" class="entry-item">
                     <div class="entry-info">
                         <span class="entry-name">{{ entry.products?.name }}</span>
                         <span class="entry-time">{{ entry.created_at | date: 'short' }}</span>

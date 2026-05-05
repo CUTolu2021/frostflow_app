@@ -6,11 +6,13 @@ import { SupabaseService } from './services/supabase.service'
 import { LoadingComponent } from './components/loading/loading.component'
 import { LoadingService } from './services/loading.service'
 import { AutoLogoutService } from './services/auto-logout.service'
+import { DialogComponent } from './components/dialog/dialog.component'
+import { ToastService } from './services/toast.service'
 
 @Component({
     selector: 'app-root',
     standalone: true,
-    imports: [RouterOutlet, ToastComponent, LoadingComponent],
+    imports: [RouterOutlet, ToastComponent, LoadingComponent, DialogComponent],
     templateUrl: './app.component.html',
     styleUrl: './app.component.css',
 })
@@ -23,7 +25,8 @@ export class AppComponent implements OnInit, OnDestroy {
         private router: Router,
         public loadingService: LoadingService,
         private autoLogout: AutoLogoutService,
-        private injector: Injector
+        private injector: Injector,
+        private toast: ToastService
     ) {
 
     }
@@ -87,8 +90,7 @@ export class AppComponent implements OnInit, OnDestroy {
         this.supabase.signOut().then(() => {
             this.cleanupSubscription();
             this.router.navigate(['/login']);
-
-            alert('Your account has been deactivated. You will be logged out.');
+            this.toast.show('Your account was deactivated. You have been logged out.', 'error');
         });
     }
 

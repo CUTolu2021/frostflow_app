@@ -6,6 +6,7 @@ import { ToastService } from '../../services/toast.service';
 import { UserProfile } from '../../interfaces/profile';
 import { UserRole } from '../../enums/role';
 import { getErrorMessage } from '../../utils/error-message';
+import { DialogService } from '../../services/dialog.service';
 
 @Component({
   selector: 'app-staff',
@@ -21,6 +22,7 @@ export class StaffComponent implements OnInit {
   latestInviteLink = '';
   latestInviteEmail = '';
   isCreatingInvite = false;
+  activeUserActionId: string | null = null;
 
   newStaff = {
     email: '',
@@ -29,7 +31,8 @@ export class StaffComponent implements OnInit {
 
   constructor(
     private supabase: SupabaseService,
-    private toast: ToastService
+    private toast: ToastService,
+    private dialog: DialogService
   ) { }
 
   async ngOnInit() {
@@ -93,14 +96,19 @@ export class StaffComponent implements OnInit {
   }
 
   async toggleStatus(user: UserProfile) {
+    if (this.activeUserActionId) return;
+
     const newStatus = !user.is_active;
+    this.activeUserActionId = user.id;
     try {
       await this.supabase.updateStaffStatus(user.id, newStatus);
       user.is_active = newStatus;
       this.toast.show(`User ${newStatus ? 'Activated' : 'Disabled'}`, 'info');
-    } catch (error) {
-      this.toast.show('Failed to update status', 'error');
+    } catch (error: unknown) {
+      this.toast.show(getErrorMessage(error, 'Failed to update staff status'), 'error');
       user.is_active = !newStatus;
+    } finally {
+      this.activeUserActionId = null;
     }
   }
 
@@ -119,15 +127,26 @@ export class StaffComponent implements OnInit {
   }
 
   async resetPassword(user: UserProfile) {
+    if (this.activeUserActionId) return;
+
     const tempPassword = this.generateTempPassword();
-    const confirmed = confirm(`Reset password for ${user.name}? A temporary password will be generated.`);
+    const confirmed = await this.dialog.confirm({
+      title: 'Reset Staff Password',
+      message: `Reset password for ${user.name}? A temporary password will be generated.`,
+      confirmText: 'Reset Password',
+      cancelText: 'Cancel',
+      tone: 'danger',
+    });
     if (!confirmed) return;
 
+    this.activeUserActionId = user.id;
     try {
       await this.supabase.resetStaffPassword(user.id, tempPassword);
       this.toast.show(`Temporary password: ${tempPassword}`, 'success');
     } catch (error: unknown) {
       this.toast.show(getErrorMessage(error, 'Failed to reset password'), 'error');
+    } finally {
+      this.activeUserActionId = null;
     }
   }
 

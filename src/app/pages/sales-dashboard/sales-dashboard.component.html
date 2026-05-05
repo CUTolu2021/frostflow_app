@@ -67,7 +67,7 @@
                             <label>Product</label>
                             <select formControlName="product_id" class="form-select">
                                 <option value="">-- Select Product --</option>
-                                <option *ngFor="let p of products" [value]="p.id">{{ p.name }}</option>
+                                <option *ngFor="let p of products; trackBy: trackByProductId" [value]="p.id">{{ p.name }}</option>
                             </select>
                         </div>
 
@@ -108,7 +108,7 @@
 
                         <button type="submit" class="btn btn-primary full-width"
                             [disabled]="!dailySalesForm.valid || isSubmittingSale">
-                            Record Sale
+                            {{ isSubmittingSale ? 'Recording...' : 'Record Sale' }}
                         </button>
                     </form>
                 </div>
@@ -124,7 +124,7 @@
                 </div>
                 <div class="card-body p-0">
                     <div class="stock-list">
-                        <div *ngFor="let product of products" class="stock-item">
+                        <div *ngFor="let product of products; trackBy: trackByProductId" class="stock-item">
                             <div class="item-info">
                                 <span class="item-name">{{ product.name }}</span>
                             </div>
