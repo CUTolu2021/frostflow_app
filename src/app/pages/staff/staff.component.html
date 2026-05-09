@@ -17,7 +17,7 @@
     <div class="system-id-box" *ngIf="latestInviteLink">
         <label class="text-xs text-muted mb-1 block">Latest Staff Invite Link (share with {{ latestInviteEmail }})</label>
         <div class="id-display">{{ latestInviteLink }}</div>
-        <button class="btn-sm btn-outline mt-2" (click)="copyInviteLink()">Copy Link</button>
+        <button class="btn-sm btn-outline mt-2" (click)="copyInviteLink()" [disabled]="!latestInviteLink || isCreatingInvite">Copy Link</button>
     </div>
 
     <!-- Staff List Table (Desktop) -->
@@ -55,10 +55,12 @@
                         </span>
                     </td>
                     <td class="text-right">
-                        <button class="btn-sm btn-outline-danger" (click)="toggleStatus(staff)">
+                        <button class="btn-sm btn-outline-danger" (click)="toggleStatus(staff)"
+                            [disabled]="activeUserActionId !== null || isCreatingInvite">
                             {{ staff.is_active ? 'Disable' : 'Enable' }}
                         </button>
-                        <button class="btn-sm btn-outline" (click)="resetPassword(staff)">
+                        <button class="btn-sm btn-outline" (click)="resetPassword(staff)"
+                            [disabled]="activeUserActionId !== null || isCreatingInvite">
                             Reset Password
                         </button>
                     </td>
@@ -96,10 +98,12 @@
                 </div>
             </div>
             <div class="card-footer">
-                <button class="btn-sm btn-outline-danger full-width" (click)="toggleStatus(staff)">
+                <button class="btn-sm btn-outline-danger full-width" (click)="toggleStatus(staff)"
+                    [disabled]="activeUserActionId !== null || isCreatingInvite">
                     {{ staff.is_active ? 'Disable Staff' : 'Enable Staff' }}
                 </button>
-                <button class="btn-sm btn-outline full-width" (click)="resetPassword(staff)">
+                <button class="btn-sm btn-outline full-width" (click)="resetPassword(staff)"
+                    [disabled]="activeUserActionId !== null || isCreatingInvite">
                     Reset Password
                 </button>
             </div>

@@ -28,7 +28,7 @@
                 </tr>
             </thead>
             <tbody>
-                <tr *ngFor="let product of products" (click)="openHistory(product)">
+                <tr *ngFor="let product of products; trackBy: trackByProductId" (click)="openHistory(product)">
                     <td>
                         <span class="font-medium">{{ product.name }}</span>
                     </td>
@@ -60,7 +60,7 @@
 
     <!-- Mobile View: Product Cards -->
     <div class="mobile-view">
-        <div class="inventory-card" *ngFor="let product of products" (click)="openHistory(product)">
+        <div class="inventory-card" *ngFor="let product of products; trackBy: trackByProductId" (click)="openHistory(product)">
             <div class="card-row">
                 <div>
                     <h3 class="card-title">{{ product.name }}</h3>
@@ -135,7 +135,7 @@
         <div class="modal-header">
             <div class="mobile-swipe-handle"></div>
             <h2 class="modal-title">Add Stock Entry</h2>
-            <button class="btn-icon" (click)="closeModal()">
+            <button class="btn-icon" (click)="closeModal()" [disabled]="isSubmitting">
                 <span class="material-symbols-outlined">close</span>
             </button>
         </div>
@@ -143,9 +143,9 @@
         <div class="modal-body">
             <div class="form-group">
                 <label>Select Product</label>
-                <select [(ngModel)]="selectedProduct" (change)="onProductSelect()" class="form-select">
+                <select [(ngModel)]="selectedProduct" (change)="onProductSelect()" class="form-select" [disabled]="isSubmitting">
                     <option [ngValue]="null">-- Choose Product --</option>
-                    <option *ngFor="let p of products" [ngValue]="p">{{ p.name }}</option>
+                    <option *ngFor="let p of products; trackBy: trackByProductId" [ngValue]="p">{{ p.name }}</option>
                 </select>
             </div>
 
@@ -153,19 +153,19 @@
 
                 <div class="radio-group">
                     <label class="radio-option" [class.selected]="entry.unitType === 'kg'">
-                        <input type="radio" name="uType" value="kg" [(ngModel)]="entry.unitType">
+                        <input type="radio" name="uType" value="kg" [(ngModel)]="entry.unitType" [disabled]="isSubmitting">
                         <span>By Weight (KG)</span>
                     </label>
 
                     <label class="radio-option" [class.selected]="entry.unitType === 'box'">
-                        <input type="radio" name="uType" value="box" [(ngModel)]="entry.unitType">
+                        <input type="radio" name="uType" value="box" [(ngModel)]="entry.unitType" [disabled]="isSubmitting">
                         <span>By Box/Carton</span>
                     </label>
                 </div>
 
                 <div class="form-group mt-4">
                     <label>Quantity ({{ entry.unitType === 'box' ? 'Boxes' : 'KG' }})</label>
-                    <input type="number" [(ngModel)]="entry.inputQty" class="form-input large-input" placeholder="0">
+                    <input type="number" [(ngModel)]="entry.inputQty" class="form-input large-input" placeholder="0" [disabled]="isSubmitting">
                 </div>
 
                 <!-- Manual Weight Input for Variable or Unconfigured Box Weights -->
@@ -176,6 +176,7 @@
                         Total Weight from Invoice (KG) <span class="required">*</span>
                     </label>
                     <input type="number" [(ngModel)]="entry.manualTotalWeight" class="form-input mt-2"
+                        [disabled]="isSubmitting"
                         placeholder="e.g. 25.5">
                     <small class="hint">{{ boxWeightGuidance }}</small>
                 </div>
@@ -193,7 +194,7 @@
                     <div class="form-group">
                         <label>Unit Cost (₦)</label>
                         <div class="input-prefix">
-                            <input type="number" [(ngModel)]="entry.unitCost" class="form-input" placeholder="0.00">
+                            <input type="number" [(ngModel)]="entry.unitCost" class="form-input" placeholder="0.00" [disabled]="isSubmitting">
                         </div>
                     </div>
                 </div>
@@ -202,25 +203,26 @@
                     <div class="form-group">
                         <label>Logistics Fee (₦)</label>
                         <div class="input-prefix">
-                            <input type="number" [(ngModel)]="entry.logisticsFee" class="form-input" placeholder="0.00">
+                            <input type="number" [(ngModel)]="entry.logisticsFee" class="form-input" placeholder="0.00" [disabled]="isSubmitting">
                         </div>
                     </div>
                     <div class="form-group">
                         <label>Selling Price per KG (₦)</label>
                         <div class="input-prefix">
-                            <input type="number" [(ngModel)]="entry.unitPrice" class="form-input" placeholder="0.00">
+                            <input type="number" [(ngModel)]="entry.unitPrice" class="form-input" placeholder="0.00" [disabled]="isSubmitting">
                         </div>
                     </div>
                 </div>
 
                 <div class="form-group mt-2" *ngIf="entry.unitType === 'box'">
                     <label>Selling Price per Box (₦)</label>
-                    <input type="number" [(ngModel)]="entry.boxPrice" class="form-input" placeholder="0.00">
+                    <input type="number" [(ngModel)]="entry.boxPrice" class="form-input" placeholder="0.00" [disabled]="isSubmitting">
                 </div>
 
                 <div class="form-group mt-4">
                     <label>Reference / Note (Optional)</label>
                     <input type="text" [(ngModel)]="entry.referenceNote" class="form-input"
+                        [disabled]="isSubmitting"
                         placeholder="e.g. Invoice #1234">
                 </div>
 
@@ -228,10 +230,10 @@
         </div>
 
         <div class="modal-footer">
-            <button class="btn btn-outline" (click)="closeModal()">Cancel</button>
+            <button class="btn btn-outline" (click)="closeModal()" [disabled]="isSubmitting">Cancel</button>
             <button class="btn btn-primary" (click)="submitStock()"
-                [disabled]="!selectedProduct || calculateFinalWeight() <= 0">
-                Save Stock
+                [disabled]="isSubmitting || !selectedProduct || calculateFinalWeight() <= 0">
+                {{ isSubmitting ? 'Saving...' : 'Save Stock' }}
             </button>
         </div>
     </div>

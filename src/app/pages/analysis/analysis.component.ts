@@ -9,6 +9,7 @@ import { AIStockReport } from '../../interfaces/ai-report';
 import { StockEntry } from '../../interfaces/stock';
 import { AuthUser } from '../../interfaces/auth-user';
 import { getErrorMessage } from '../../utils/error-message';
+import { DialogService } from '../../services/dialog.service';
 
 @Component({
     selector: 'app-analysis',
@@ -64,7 +65,8 @@ export class AnalysisComponent implements OnInit {
 
     constructor(
         private supabase: SupabaseService,
-        private toast: ToastService
+        private toast: ToastService,
+        private dialog: DialogService
     ) { }
 
 
@@ -202,17 +204,26 @@ export class AnalysisComponent implements OnInit {
     }
 
     async voidTransaction(invoice: GroupedSale) {
+        if (this.isLoading) return;
+
         if (!this.isVoidingMode) {
             this.isVoidingMode = true;
             return;
         }
 
         if (!this.voidReason || this.voidReason.trim().length < 5) {
-            alert('Please provide a valid reason (min 5 characters)');
+            this.toast.show('Please provide a valid reason (at least 5 characters).', 'error');
             return;
         }
 
-        if (!confirm(`Are you sure you want to VOID Invoice #${invoice.invoice_id}? This will reverse stock and mark it as voided.`)) return;
+        const confirmed = await this.dialog.confirm({
+            title: 'Void Invoice',
+            message: `Are you sure you want to void invoice #${invoice.invoice_id}? This will reverse stock and mark it as voided.`,
+            confirmText: 'Void Invoice',
+            cancelText: 'Cancel',
+            tone: 'danger',
+        });
+        if (!confirmed) return;
 
         this.isLoading = true;
         try {
@@ -227,13 +238,13 @@ export class AnalysisComponent implements OnInit {
                 );
             }
 
-            alert('Invoice Voided Successfully');
+            this.toast.show('Invoice voided successfully.', 'success');
             this.closeReceiptModal();
             await this.loadHistory();
 
         } catch (error: unknown) {
             console.error(error);
-            alert('Failed to void: ' + getErrorMessage(error));
+            this.toast.show(getErrorMessage(error, 'Failed to void invoice'), 'error');
         } finally {
             this.isLoading = false;
         }

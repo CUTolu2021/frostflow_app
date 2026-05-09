@@ -5,6 +5,7 @@ import { SupabaseService } from '../../services/supabase.service';
 import { ToastService } from '../../services/toast.service';
 import { OrganizationSummary } from '../../interfaces/api';
 import { getErrorMessage } from '../../utils/error-message';
+import { DialogService } from '../../services/dialog.service';
 
 @Component({
   selector: 'app-superadmin-dashboard',
@@ -20,6 +21,7 @@ export class SuperadminDashboardComponent implements OnInit {
   lastTempPassword = '';
   lastOwnerEmail = '';
   pendingTempPassword = '';
+  activeOrgActionId: string | null = null;
 
   form = {
     organizationName: '',
@@ -27,7 +29,11 @@ export class SuperadminDashboardComponent implements OnInit {
     ownerEmail: '',
   };
 
-  constructor(private supabase: SupabaseService, private toast: ToastService) {}
+  constructor(
+    private supabase: SupabaseService,
+    private toast: ToastService,
+    private dialog: DialogService
+  ) {}
 
   async ngOnInit() {
     await this.loadOrganizations();
@@ -88,6 +94,9 @@ export class SuperadminDashboardComponent implements OnInit {
   }
 
   async toggleOrganization(org: OrganizationSummary) {
+    if (this.activeOrgActionId) return;
+
+    this.activeOrgActionId = org.id;
     try {
       if (org.deleted_at) {
         this.toast.show('Soft-deleted organizations cannot be toggled. Use hard delete.', 'info');
@@ -98,11 +107,24 @@ export class SuperadminDashboardComponent implements OnInit {
       this.toast.show(`Organization ${org.is_active ? 'enabled' : 'disabled'}`, 'info');
     } catch (error: unknown) {
       this.toast.show(getErrorMessage(error, 'Failed to update organization'), 'error');
+    } finally {
+      this.activeOrgActionId = null;
     }
   }
 
   async softDeleteOrganization(org: OrganizationSummary) {
-    if (!confirm(`Soft delete organization "${org.name}"? It will be disabled but data preserved.`)) return;
+    if (this.activeOrgActionId) return;
+
+    const confirmed = await this.dialog.confirm({
+      title: 'Soft Delete Organization',
+      message: `Soft delete "${org.name}"? It will be disabled but data preserved.`,
+      confirmText: 'Soft Delete',
+      cancelText: 'Cancel',
+      tone: 'danger',
+    });
+    if (!confirmed) return;
+
+    this.activeOrgActionId = org.id;
     try {
       const updated = await this.supabase.softDeleteOrganization(org.id);
       org.is_active = updated.is_active;
@@ -110,17 +132,32 @@ export class SuperadminDashboardComponent implements OnInit {
       this.toast.show('Organization soft deleted', 'info');
     } catch (error: unknown) {
       this.toast.show(getErrorMessage(error, 'Failed to soft delete organization'), 'error');
+    } finally {
+      this.activeOrgActionId = null;
     }
   }
 
   async deleteOrganization(org: OrganizationSummary) {
-    if (!confirm(`Delete organization "${org.name}"? This cannot be undone.`)) return;
+    if (this.activeOrgActionId) return;
+
+    const confirmed = await this.dialog.confirm({
+      title: 'Delete Organization',
+      message: `Delete "${org.name}" permanently? This action cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      tone: 'danger',
+    });
+    if (!confirmed) return;
+
+    this.activeOrgActionId = org.id;
     try {
       await this.supabase.deleteOrganization(org.id);
       this.organizations = this.organizations.filter((o) => o.id !== org.id);
       this.toast.show('Organization deleted', 'success');
     } catch (error: unknown) {
       this.toast.show(getErrorMessage(error, 'Failed to delete organization'), 'error');
+    } finally {
+      this.activeOrgActionId = null;
     }
   }
 }

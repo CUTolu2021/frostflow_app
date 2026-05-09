@@ -1,0 +1,33 @@
+<div class="dialog-overlay" *ngIf="dialogService.dialog() as dialog">
+  <div class="dialog-card">
+    <div class="dialog-header">
+      <h3 class="dialog-title">{{ dialog.title }}</h3>
+    </div>
+
+    <div class="dialog-body">
+      <p>{{ dialog.message }}</p>
+    </div>
+
+    <div class="dialog-footer">
+      <button
+        *ngIf="dialog.type === 'confirm'"
+        type="button"
+        class="dialog-btn dialog-cancel"
+        (click)="cancel()"
+      >
+        {{ dialog.cancelText || 'Cancel' }}
+      </button>
+
+      <button
+        type="button"
+        class="dialog-btn"
+        [class.dialog-danger]="dialog.tone === 'danger'"
+        [class.dialog-primary]="dialog.tone !== 'danger'"
+        (click)="confirm()"
+      >
+        {{ dialog.confirmText }}
+      </button>
+    </div>
+  </div>
+</div>
+

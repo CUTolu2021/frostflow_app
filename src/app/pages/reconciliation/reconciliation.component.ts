@@ -5,6 +5,7 @@ import { CommonModule } from '@angular/common'
 import { SupabaseService } from '../../services/supabase.service'
 import { FormsModule } from '@angular/forms'
 import { ToastService } from '../../services/toast.service'
+import { ProductService } from '../../services/product.service'
 
 import { ReconciliationMismatch, statusEnum } from '../../interfaces/reconciliation'
 import { getErrorMessage } from '../../utils/error-message'
@@ -38,7 +39,8 @@ export class ReconciliationComponent implements OnInit {
     constructor(
         private supabase: SupabaseService,
         private route: ActivatedRoute,
-        private toast: ToastService
+        private toast: ToastService,
+        private productService: ProductService
     ) {
         this.queryParams = toSignal(this.route.queryParams);
 
@@ -112,6 +114,7 @@ export class ReconciliationComponent implements OnInit {
                 `Check complete: ${summary.totalProductsChecked} products, ${summary.escalatedCount} escalated.`,
                 'success'
             );
+            await this.productService.loadProducts(true, true);
             await this.loadData();
         } catch (error: unknown) {
             this.toast.show(getErrorMessage(error, 'Failed to run reconciliation check'), 'error');
@@ -170,6 +173,7 @@ export class ReconciliationComponent implements OnInit {
     async processResolution(item: ReconciliationMismatch, finalQty: number, note: string) {
         try {
             await this.supabase.resolveMismatch(item, finalQty, note)
+            await this.productService.loadProducts(true, true);
             this.toast.show('Mismatch resolved successfully', 'success');
 
             this.loadData()

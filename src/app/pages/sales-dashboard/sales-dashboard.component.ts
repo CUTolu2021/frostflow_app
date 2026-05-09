@@ -34,7 +34,6 @@ export class SalesDashboardComponent {
         todayUnitsSold: 0,
     }
     isSubmittingSale = false
-    private productSubscription?: { unsubscribe: () => void }
     paymentMethods: string[] = ['Cash', 'Card', 'Transfer']
     public name: string = localStorage.getItem('user_name') || ''
     email: string = localStorage.getItem('user_email') || ''
@@ -76,8 +75,8 @@ export class SalesDashboardComponent {
         this.salesMetrics = await this.supabase.getSalesDashboardMetrics()
         this.todaySalesMetrics = await this.supabase.getTodaySalesMetrics()
 
-
-        this.productService.loadProducts();
+        this.productService.startListening();
+        await this.productService.loadProducts();
     }
 
     setupFormListeners() {
@@ -113,6 +112,10 @@ export class SalesDashboardComponent {
                 dropdownControl?.enable({ emitEvent: false })
             }
         })
+    }
+
+    trackByProductId(_: number, product: Product): string {
+        return product.id;
     }
 
     private setupDailySalesFormListeners() {
@@ -190,9 +193,7 @@ export class SalesDashboardComponent {
     }
 
     ngOnDestroy() {
-        if (this.productSubscription) {
-            this.productSubscription.unsubscribe()
-        }
+        this.productService.stopListening();
     }
 
     handleLogout() {

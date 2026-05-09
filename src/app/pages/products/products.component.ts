@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, OnDestroy, effect, inject } from '@angular/core';
+import { Component, Input, OnInit, OnDestroy, effect, inject, ChangeDetectionStrategy } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import {
@@ -11,13 +11,15 @@ import { ProductService } from '../../services/product.service';
 import { Product } from '../../interfaces/product';
 import { ToastService } from '../../services/toast.service';
 import { getErrorMessage } from '../../utils/error-message';
+import { DialogService } from '../../services/dialog.service';
 
 @Component({
   selector: 'app-products',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './products.component.html',
-  styleUrl: './products.component.css'
+  styleUrl: './products.component.css',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProductsComponent implements OnInit, OnDestroy {
   @Input() viewMode: 'admin' | 'lookup' = 'admin';
@@ -46,6 +48,7 @@ export class ProductsComponent implements OnInit, OnDestroy {
   private productService = inject(ProductService);
   private fb = inject(FormBuilder);
   private toast = inject(ToastService);
+  private dialog = inject(DialogService);
 
   constructor() {
     this.productForm = this.fb.group({
@@ -147,6 +150,10 @@ export class ProductsComponent implements OnInit, OnDestroy {
     const target = event.target as HTMLInputElement | null;
     this.searchTerm = target?.value || '';
     this.filterProducts();
+  }
+
+  trackByProductId(_: number, product: Product): string {
+    return product.id;
   }
 
   openAddModal() {
@@ -280,16 +287,24 @@ export class ProductsComponent implements OnInit, OnDestroy {
   }
 
   async deleteProduct(id: string) {
-    if (confirm('Are you sure you want to delete this product?')) {
-      this.isSubmitting = true;
-      try {
-        await this.productService.deleteProduct(id);
-        this.toast.show('Product deleted successfully', 'success');
-      } catch (error: unknown) {
-        this.toast.show('Delete failed: ' + getErrorMessage(error), 'error');
-      } finally {
-        this.isSubmitting = false;
-      }
+    const confirmed = await this.dialog.confirm({
+      title: 'Delete Product',
+      message: 'Are you sure you want to delete this product? This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      tone: 'danger',
+    });
+
+    if (!confirmed) return;
+
+    this.isSubmitting = true;
+    try {
+      await this.productService.deleteProduct(id);
+      this.toast.show('Product deleted successfully', 'success');
+    } catch (error: unknown) {
+      this.toast.show(getErrorMessage(error, 'Unable to delete product'), 'error');
+    } finally {
+      this.isSubmitting = false;
     }
   }
 }

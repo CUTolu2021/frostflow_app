@@ -1,4 +1,4 @@
-import { Injectable, signal, computed, effect, NgZone, inject } from '@angular/core';
+import { Injectable, signal, computed } from '@angular/core';
 import { SupabaseService } from './supabase.service';
 import { Product } from '../interfaces/product';
 import { ToastService } from './toast.service';
@@ -24,20 +24,12 @@ export class ProductService {
     private productSubscription: SubscriptionHandle | null = null;
     private listenerCount = 0;
     private initialized = false;
-    private ngZone = inject(NgZone);
+    private isFetching = false;
 
     constructor(
         private supabase: SupabaseService,
         private toast: ToastService
-    ) {
-        effect(() => {
-            const currentProducts = this.products();
-            console.log(`[ProductService] Products signal updated. Count: ${currentProducts.length}`);
-            if (currentProducts.length === 0 && this.initialized) {
-                console.warn('[ProductService] Warning: Products signal was cleared (set to empty array) while initialized.');
-            }
-        });
-    }
+    ) {}
 
     startListening() {
         this.listenerCount++;
@@ -54,9 +46,12 @@ export class ProductService {
     }
 
     async loadProducts(force = false, silent = false) {
-        if ((this.initialized && !force) || this.loading()) return;
+        if ((this.initialized && !force) || this.isFetching) return;
 
-        this.loading.set(true);
+        this.isFetching = true;
+        if (!silent) {
+            this.loading.set(true);
+        }
         try {
             const data = await this.supabase.getProducts({ showLoading: !silent });
 
@@ -70,10 +65,15 @@ export class ProductService {
 
             this.initialized = true;
         } catch (err: unknown) {
-            this.error.set(getErrorMessage(err, 'Failed to load products'));
-            this.toast.show('Failed to load products', 'error');
+            if (!silent) {
+                this.error.set(getErrorMessage(err, 'Failed to load products'));
+                this.toast.show('Failed to load products', 'error');
+            }
         } finally {
-            this.loading.set(false);
+            if (!silent) {
+                this.loading.set(false);
+            }
+            this.isFetching = false;
         }
     }
 
@@ -119,17 +119,28 @@ export class ProductService {
 
     private setupRealtimeSubscription() {
         let active = true;
-        const intervalId = setInterval(async () => {
+        let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+        const scheduleNext = () => {
             if (!active) return;
-            this.ngZone.run(() => {
-                this.loadProducts(true, true);
-            });
-        }, 20000);
+            timeoutId = setTimeout(async () => {
+                if (!active) return;
+                if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+                    await this.loadProducts(true, true);
+                }
+                scheduleNext();
+            }, 20000);
+        };
+
+        scheduleNext();
 
         return {
             unsubscribe: () => {
                 active = false;
-                clearInterval(intervalId);
+                if (timeoutId) {
+                    clearTimeout(timeoutId);
+                    timeoutId = null;
+                }
             },
         };
     }
