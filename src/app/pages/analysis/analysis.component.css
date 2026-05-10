@@ -36,19 +36,6 @@
     align-items: center;
 }
 
-.date-picker-mock {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: white;
-    border: 1px solid #e2e8f0;
-    padding: 8px 16px;
-    border-radius: 8px;
-    color: #334155;
-    font-size: 14px;
-    font-weight: 500;
-}
-
 /* Tabs */
 .tabs-header {
     display: flex;
@@ -972,11 +959,6 @@
     .header-actions {
         width: 100%;
         flex-wrap: wrap;
-    }
-
-    .date-picker-mock {
-        flex: 1;
-        justify-content: center;
     }
 
     .header-actions .btn {
