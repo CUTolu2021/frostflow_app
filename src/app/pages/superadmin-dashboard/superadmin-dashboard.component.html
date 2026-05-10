@@ -4,9 +4,15 @@
             <h2>Superadmin Console</h2>
             <p>Create organizations and primary owners.</p>
         </div>
-        <button class="refresh-btn" (click)="loadOrganizations()" [disabled]="isLoading || activeOrgActionId !== null || isSubmitting">
-            Refresh
-        </button>
+        <div class="header-actions">
+            <button class="refresh-btn" (click)="loadOrganizations()"
+                [disabled]="isLoading || activeOrgActionId !== null || isSubmitting">
+                Refresh
+            </button>
+            <button class="ghost-btn" (click)="handleLogout()" [disabled]="isSubmitting || activeOrgActionId !== null">
+                Logout
+            </button>
+        </div>
     </header>
 
     <section class="panel">

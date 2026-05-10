@@ -72,10 +72,9 @@
                         </div>
 
                         <div class="form-group">
-                            <label>Sold By</label>
+                            <label>Unit</label>
                             <select formControlName="unit_type" class="form-select">
-                                <option value="kg">Weight (kg)</option>
-                                <option value="box">Box / Carton</option>
+                                <option *ngFor="let unit of getSaleUnitOptions()" [value]="unit.value">{{ unit.label }}</option>
                             </select>
                         </div>
 
@@ -86,8 +85,7 @@
                         </div>
 
                         <div class="form-group">
-                            <label>Selling Price ({{ dailySalesForm.value.unit_type === 'box' ? 'per Box' : 'per KG'
-                                }})</label>
+                            <label>Selling Price (per {{ getCurrentPriceUnitLabel() }})</label>
                             <div class="input-prefix">
                                 <span>₦</span>
                                 <input type="number" formControlName="unit_price" class="form-input" placeholder="0.00"
@@ -129,7 +127,7 @@
                                 <span class="item-name">{{ product.name }}</span>
                             </div>
                             <div class="item-status">
-                                <span class="item-meta">{{ product.unit }} units</span>
+                                <span class="item-meta">{{ product.unit }} {{ getStockUnitLabel(product) }}</span>
                                 <span class="status-indicator" [class.ok]="(product.unit || 0) > 10"
                                     [class.low]="(product.unit || 0) <= 10"></span>
                             </div>

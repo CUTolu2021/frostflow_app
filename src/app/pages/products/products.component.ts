@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, OnDestroy, effect, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, Input, OnInit, OnDestroy, effect, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import {
@@ -19,7 +19,6 @@ import { DialogService } from '../../services/dialog.service';
   imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './products.component.html',
   styleUrl: './products.component.css',
-  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProductsComponent implements OnInit, OnDestroy {
   @Input() viewMode: 'admin' | 'lookup' = 'admin';
@@ -220,7 +219,7 @@ export class ProductsComponent implements OnInit, OnDestroy {
       && !formValue.is_variable_weight
       && (!Number.isFinite(Number(formValue.standard_box_weight)) || Number(formValue.standard_box_weight) <= 0)
     ) {
-      this.toast.show('Set a valid standard box weight (KG) or mark this product as variable weight.', 'error');
+      this.toast.show('Set a valid standard units-per-box value or mark this product as variable.', 'error');
       this.isSubmitting = false;
       return;
     }

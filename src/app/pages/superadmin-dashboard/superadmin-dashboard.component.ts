@@ -6,6 +6,7 @@ import { ToastService } from '../../services/toast.service';
 import { OrganizationSummary } from '../../interfaces/api';
 import { getErrorMessage } from '../../utils/error-message';
 import { DialogService } from '../../services/dialog.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-superadmin-dashboard',
@@ -32,7 +33,8 @@ export class SuperadminDashboardComponent implements OnInit {
   constructor(
     private supabase: SupabaseService,
     private toast: ToastService,
-    private dialog: DialogService
+    private dialog: DialogService,
+    private router: Router
   ) {}
 
   async ngOnInit() {
@@ -159,5 +161,12 @@ export class SuperadminDashboardComponent implements OnInit {
     } finally {
       this.activeOrgActionId = null;
     }
+  }
+
+  handleLogout() {
+    localStorage.clear();
+    this.supabase.signOut();
+    this.toast.show('Logout successful!', 'logout');
+    this.router.navigate(['/login']);
   }
 }

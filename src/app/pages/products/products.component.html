@@ -274,23 +274,23 @@
                 <div *ngIf="productForm.get('is_box_sold')?.value" class="box-logic-group full-width">
                     <div class="form-group checkbox-group">
                         <input type="checkbox" formControlName="is_variable_weight" id="is_variable_weight">
-                        <label for="is_variable_weight">Variable Weight? (e.g. Fish cartons vary in size)</label>
+                        <label for="is_variable_weight">Variable Box Quantity? (e.g. each box has different unit count)</label>
                     </div>
 
                     <!-- If Standard Weight -->
                     <div *ngIf="!productForm.get('is_variable_weight')?.value" class="form-group">
-                        <label>Standard Box Weight (kg)</label>
+                        <label>Standard Units Per Box</label>
                         <input type="number" formControlName="standard_box_weight" class="form-input"
                             placeholder="e.g. 20" min="0">
                         <small class="field-error" *ngIf="showStandardBoxWeightError">
-                            Enter a valid box weight above 0 KG, or mark this product as variable weight.
+                            Enter a valid units-per-box value above 0, or mark this product as variable.
                         </small>
                     </div>
 
                     <!-- If Variable Weight -->
                     <div *ngIf="productForm.get('is_variable_weight')?.value" class="warning-box">
                         <span class="material-symbols-outlined">info</span>
-                        <p>Staff will be required to weigh every box during sale/entry.</p>
+                        <p>Staff will enter the total units for each box entry during sale/stock intake.</p>
                     </div>
                 </div>
 

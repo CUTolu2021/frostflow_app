@@ -173,7 +173,7 @@ const updateDeliverySessionState = async ({ organizationId, deliverySessionId, s
 
 const findProductById = async (productId, organizationId) => {
   let query = table('products')
-    .select('id,name,unit,base_unit,is_variable_weight,standard_box_weight')
+    .select('id,name,unit,base_unit,unit_price,box_price,is_variable_weight,standard_box_weight')
     .eq('id', productId);
   if (organizationId) {
     query = query.eq('organization_id', organizationId);

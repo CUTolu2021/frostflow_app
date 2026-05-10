@@ -2,6 +2,8 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { SupabaseService } from '../../services/supabase.service';
+import { ToastService } from '../../services/toast.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-sidebar',
@@ -17,7 +19,11 @@ export class SidebarComponent implements OnInit, OnDestroy {
   organizationName: string | null = '';
   pendingMismatchCount = 0;
 
-  constructor(private supabase: SupabaseService) {}
+  constructor(
+    private supabase: SupabaseService,
+    private toast: ToastService,
+    private router: Router,
+  ) {}
 
   ngOnInit() {
     this.userRole = localStorage.getItem('user_role');
@@ -45,5 +51,12 @@ export class SidebarComponent implements OnInit, OnDestroy {
     } catch {
       this.pendingMismatchCount = 0;
     }
+  }
+
+  handleLogout() {
+    localStorage.clear();
+    this.supabase.signOut();
+    this.toast.show('Logout successful!', 'logout');
+    this.router.navigate(['/login']);
   }
 }

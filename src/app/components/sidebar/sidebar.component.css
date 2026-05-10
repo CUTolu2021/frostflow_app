@@ -73,6 +73,15 @@
     transition: all 0.2s ease;
 }
 
+.nav-button {
+    width: 100%;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+    font: inherit;
+}
+
 .nav-item-with-badge {
     justify-content: space-between;
 }

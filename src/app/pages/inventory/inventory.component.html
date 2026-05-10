@@ -143,28 +143,24 @@
         <div class="modal-body">
             <div class="form-group">
                 <label>Select Product</label>
-                <select [(ngModel)]="selectedProduct" (change)="onProductSelect()" class="form-select" [disabled]="isSubmitting">
+                <select [(ngModel)]="selectedProductId" (change)="onProductSelect()" class="form-select" [disabled]="isSubmitting">
                     <option [ngValue]="null">-- Choose Product --</option>
-                    <option *ngFor="let p of products; trackBy: trackByProductId" [ngValue]="p">{{ p.name }}</option>
+                    <option *ngFor="let p of products; trackBy: trackByProductId" [ngValue]="p.id">{{ p.name }}</option>
                 </select>
             </div>
 
             <div *ngIf="selectedProduct" class="entry-section">
 
                 <div class="radio-group">
-                    <label class="radio-option" [class.selected]="entry.unitType === 'kg'">
-                        <input type="radio" name="uType" value="kg" [(ngModel)]="entry.unitType" [disabled]="isSubmitting">
-                        <span>By Weight (KG)</span>
-                    </label>
-
-                    <label class="radio-option" [class.selected]="entry.unitType === 'box'">
-                        <input type="radio" name="uType" value="box" [(ngModel)]="entry.unitType" [disabled]="isSubmitting">
-                        <span>By Box/Carton</span>
+                    <label class="radio-option" *ngFor="let unit of getInventoryUnitOptions()" [class.selected]="entry.unitType === unit">
+                        <input type="radio" name="uType" [value]="unit" [(ngModel)]="entry.unitType" [disabled]="isSubmitting">
+                        <span *ngIf="unit === 'box'">By Box/Carton</span>
+                        <span *ngIf="unit !== 'box'">By {{ getUnitDisplay(unit) }}</span>
                     </label>
                 </div>
 
                 <div class="form-group mt-4">
-                    <label>Quantity ({{ entry.unitType === 'box' ? 'Boxes' : 'KG' }})</label>
+                    <label>Quantity ({{ getUnitDisplay(entry.unitType) }})</label>
                     <input type="number" [(ngModel)]="entry.inputQty" class="form-input large-input" placeholder="0" [disabled]="isSubmitting">
                 </div>
 
@@ -173,7 +169,7 @@
                     class="alert-box warning-box">
                     <label class="alert-label">
                         <span class="material-symbols-outlined icon-sm">scale</span>
-                        Total Weight from Invoice (KG) <span class="required">*</span>
+                        Total from Invoice ({{ getUnitDisplay(selectedProduct.base_unit) }}) <span class="required">*</span>
                     </label>
                     <input type="number" [(ngModel)]="entry.manualTotalWeight" class="form-input mt-2"
                         [disabled]="isSubmitting"
@@ -184,9 +180,9 @@
                 <!-- Auto Calculation Feedback -->
                 <div class="calculation-preview">
                     <span class="preview-label">System will record:</span>
-                    <div class="preview-value">{{ calculateFinalWeight() | number:'1.2-2' }} KG</div>
+                    <div class="preview-value">{{ calculateFinalWeight() | number:'1.2-2' }} {{ getUnitDisplay(selectedProduct.base_unit) }}</div>
                     <small class="preview-sub" *ngIf="entry.unitType === 'box' && hasConfiguredStandardBoxWeight()">
-                        (Based on {{ selectedProduct.standard_box_weight }}kg per box)
+                        (Based on {{ selectedProduct.standard_box_weight }} {{ getUnitDisplay(selectedProduct.base_unit) }} per box)
                     </small>
                 </div>
 
@@ -207,7 +203,7 @@
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>Selling Price per KG (₦)</label>
+                        <label>Selling Price per {{ getUnitDisplay(selectedProduct.base_unit) }} (₦)</label>
                         <div class="input-prefix">
                             <input type="number" [(ngModel)]="entry.unitPrice" class="form-input" placeholder="0.00" [disabled]="isSubmitting">
                         </div>

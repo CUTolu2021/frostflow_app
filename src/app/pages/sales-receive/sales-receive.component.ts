@@ -8,6 +8,7 @@ import { Product } from '../../interfaces/product';
 import { StaffStockEntry } from '../../interfaces/stock';
 import { AuthUser } from '../../interfaces/auth-user';
 import { ProductService } from '../../services/product.service';
+
 @Component({
   selector: 'app-receive-stock',
   standalone: true,
@@ -16,16 +17,14 @@ import { ProductService } from '../../services/product.service';
   styleUrls: ['./sales-receive.component.css']
 })
 export class SalesReceiveComponent implements OnInit {
-
   products: Product[] = [];
   recentEntries: StaffStockEntry[] = [];
   isLoading = false;
 
-
   receiveForm = {
-    product: null as Product | null,
+    productId: null as string | null,
     qty: null as number | null,
-    unit: 'box',
+    unit: '',
     hasDamages: false,
     damagedQty: null as number | null
   };
@@ -53,9 +52,7 @@ export class SalesReceiveComponent implements OnInit {
     this.currentUser = await this.supabase.getCurrentUser();
     this.productService.startListening();
     await this.productService.loadProducts();
-    this.loadRecentEntries();
-
-
+    await this.loadRecentEntries();
 
     this.stockSubscription = this.supabase.subscribeToStaffStockChanges();
   }
@@ -67,18 +64,52 @@ export class SalesReceiveComponent implements OnInit {
     }
   }
 
+  get selectedProduct(): Product | null {
+    if (!this.receiveForm.productId) return null;
+    return this.products.find((p) => p.id === this.receiveForm.productId) || null;
+  }
+
+  private normalizeUnit(unit: string | null | undefined): string {
+    return String(unit || 'kg').trim().toLowerCase();
+  }
+
+  private getBaseUnit(product: Product | null): string {
+    return this.normalizeUnit(product?.base_unit || 'kg');
+  }
+
+  private supportsBoxUnit(product: Product | null): boolean {
+    if (!product) return false;
+    return Boolean(
+      product.is_variable_weight
+      || Number(product.standard_box_weight || 0) > 0
+      || Number(product.box_price || 0) > 0
+      || this.getBaseUnit(product) === 'box'
+    );
+  }
+
+  getReceiveUnitOptions(): string[] {
+    const product = this.selectedProduct;
+    if (!product) return [];
+    const base = this.getBaseUnit(product);
+    const options = [base];
+    if (this.supportsBoxUnit(product) && base !== 'box') {
+      options.push('box');
+    }
+    return options;
+  }
+
+  getUnitDisplay(unit: string | null | undefined): string {
+    const normalized = this.normalizeUnit(unit);
+    if (normalized === 'kg') return 'KG';
+    if (normalized === 'pcs') return 'Pieces';
+    if (normalized === 'liters') return 'Liters';
+    if (normalized === 'box') return 'Box / Carton';
+    return normalized || 'Unit';
+  }
+
   onProductSelect() {
-    if (!this.receiveForm.product) return;
-
-
-
-
-
-
-
-
-
-
+    if (!this.selectedProduct) return;
+    this.receiveForm.unit = this.getReceiveUnitOptions()[0] || this.getBaseUnit(this.selectedProduct);
     this.receiveForm.qty = null;
     this.receiveForm.hasDamages = false;
     this.receiveForm.damagedQty = null;
@@ -95,15 +126,20 @@ export class SalesReceiveComponent implements OnInit {
   async submitReceive() {
     if (this.isLoading) return;
 
-    if (!this.receiveForm.product || !this.receiveForm.qty || this.receiveForm.qty <= 0) {
+    if (!this.selectedProduct || !this.receiveForm.qty || this.receiveForm.qty <= 0) {
       this.toast.show('Please enter a valid quantity.', 'error');
+      return;
+    }
+
+    if (!this.receiveForm.unit) {
+      this.toast.show('Please select a unit.', 'error');
       return;
     }
 
     this.isLoading = true;
 
     const payload = {
-      product_id: this.receiveForm.product.id,
+      product_id: this.selectedProduct.id,
       quantity: this.receiveForm.qty,
       unit_type: this.receiveForm.unit,
       metadata: {
@@ -114,15 +150,11 @@ export class SalesReceiveComponent implements OnInit {
 
     try {
       await this.supabase.addStaffStockEntry(payload as StaffStockEntry);
-      // Keep n8n as optional side-channel notification, not the source of truth.
       this.n8n.sendSalesStock(payload).catch(() => undefined);
       await this.productService.loadProducts(true, true);
       this.toast.show('Stock recorded successfully!', 'success');
 
-
-
-      this.receiveForm = { product: null, qty: null, unit: 'box', hasDamages: false, damagedQty: null };
-
+      this.receiveForm = { productId: null, qty: null, unit: '', hasDamages: false, damagedQty: null };
     } catch (error) {
       console.error(error);
       this.toast.show('Failed to save entry. Try again.', 'error');
@@ -135,3 +167,4 @@ export class SalesReceiveComponent implements OnInit {
     await this.supabase.getRecentStaffEntries();
   }
 }
+

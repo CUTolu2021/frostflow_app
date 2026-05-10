@@ -166,8 +166,12 @@ export class AnalysisComponent implements OnInit {
         );
 
         this.groupedSales.forEach(g => {
-            const names = g.items.map((i: Sale) => i.products?.name).join(', ');
-            g.item_summary = `${g.items.length} Item(s): ${names}`;
+            const preview = g.items
+                .map((item: Sale) => this.formatSaleLine(item))
+                .slice(0, 3)
+                .join(' | ');
+            const remaining = g.items.length > 3 ? ` +${g.items.length - 3} more` : '';
+            g.item_summary = `${preview}${remaining}`;
         });
 
 
@@ -187,6 +191,20 @@ export class AnalysisComponent implements OnInit {
             else if (inv.payment_method === 'transfer' || inv.payment_method === 'card') this.financials.bankTransfer += inv.total;
             else if (inv.payment_method === 'credit') this.financials.credit += inv.total;
         });
+    }
+
+    getUnitLabel(unitType: string | null | undefined): string {
+        const normalized = String(unitType || '').trim().toLowerCase();
+        if (normalized === 'kg') return 'KG';
+        if (normalized === 'pcs') return 'Pieces';
+        if (normalized === 'liters') return 'Liters';
+        if (normalized === 'box' || normalized === 'carton') return 'Box';
+        return normalized || 'Unit';
+    }
+
+    formatSaleLine(item: Sale): string {
+        const productName = item.products?.name || 'Unknown Product';
+        return `${item.quantity} ${this.getUnitLabel(item.unit_type)} ${productName}`;
     }
 
 

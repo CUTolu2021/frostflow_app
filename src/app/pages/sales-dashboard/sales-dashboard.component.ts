@@ -58,7 +58,7 @@ export class SalesDashboardComponent {
             product_id: ['', Validators.required],
             quantity: [null, [Validators.required, Validators.min(1)]],
             unit_price: [null, [Validators.required, Validators.min(0)]],
-            unit_type: ['kg', [Validators.required, Validators.min(0)]],
+            unit_type: ['', Validators.required],
             total_price: [0, [Validators.required, Validators.min(0)]],
             payment_method: ['', Validators.required],
             recorded_by: [this.id, Validators.required],
@@ -118,6 +118,66 @@ export class SalesDashboardComponent {
         return product.id;
     }
 
+    private normalizeUnit(unit: string | null | undefined): string {
+        return String(unit || 'kg').trim().toLowerCase();
+    }
+
+    private getBaseUnit(product: Product | null): string {
+        return this.normalizeUnit(product?.base_unit || 'kg');
+    }
+
+    private supportsBoxUnit(product: Product | null): boolean {
+        if (!product) return false;
+        return Boolean(
+            product.is_variable_weight
+            || Number(product.standard_box_weight || 0) > 0
+            || Number(product.box_price || 0) > 0
+            || this.getBaseUnit(product) === 'box'
+        );
+    }
+
+    private getSaleUnitValuesForProduct(product: Product | null): string[] {
+        if (!product) return ['kg'];
+        const base = this.getBaseUnit(product);
+        const values = [base];
+        if (this.supportsBoxUnit(product) && base !== 'box') {
+            values.push('box');
+        }
+        return values;
+    }
+
+    getSaleUnitOptions(): Array<{ value: string; label: string }> {
+        const product = this.getSelectedProduct();
+        const values = this.getSaleUnitValuesForProduct(product);
+        return values.map((value) => ({
+            value,
+            label: value === 'box' ? 'Box / Carton' : this.getUnitDisplay(value),
+        }));
+    }
+
+    getUnitDisplay(unit: string | null | undefined): string {
+        const normalized = this.normalizeUnit(unit);
+        if (normalized === 'kg') return 'KG';
+        if (normalized === 'pcs') return 'Pieces';
+        if (normalized === 'liters') return 'Liters';
+        if (normalized === 'box') return 'Box';
+        return normalized || 'Unit';
+    }
+
+    getCurrentPriceUnitLabel(): string {
+        return this.getUnitDisplay(this.dailySalesForm.get('unit_type')?.value || this.getBaseUnit(this.getSelectedProduct()));
+    }
+
+    getStockUnitLabel(product: Product): string {
+        return this.getUnitDisplay(product.base_unit);
+    }
+
+    private getSelectedProduct(): Product | null {
+        const productId = String(this.dailySalesForm.get('product_id')?.value || '');
+        if (!productId) return null;
+        return this.products.find((item) => item.id === productId) || null;
+    }
+
     private setupDailySalesFormListeners() {
         const productIdSignal = toSignal(
             this.dailySalesForm.get('product_id')!.valueChanges,
@@ -138,9 +198,16 @@ export class SalesDashboardComponent {
 
         effect(() => {
             const selectedProductId = productIdSignal()
-            const unitType = String(unitTypeSignal() || 'kg')
+            const unitTypeRaw = String(unitTypeSignal() || '')
             const selected = this.products.find((item) => item.id === selectedProductId)
             if (!selected) return
+
+            const unitOptions = this.getSaleUnitValuesForProduct(selected);
+            let unitType = this.normalizeUnit(unitTypeRaw);
+            if (!unitOptions.includes(unitType)) {
+                unitType = unitOptions[0];
+                this.dailySalesForm.patchValue({ unit_type: unitType }, { emitEvent: false });
+            }
 
             const fallbackPrice = Number(selected.unit_price || 0)
             const boxPrice = Number(selected.box_price || 0)
@@ -182,7 +249,7 @@ export class SalesDashboardComponent {
 
             this.dailySalesForm.reset({
                 recorded_by: this.id,
-                unit_type: 'kg',
+                unit_type: '',
                 total_price: 0,
             })
         } catch (error: unknown) {

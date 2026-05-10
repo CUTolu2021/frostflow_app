@@ -294,7 +294,8 @@
                                         class="badge badge-gray text-xs">OK</span>
                                 </td>
                                 <td class="text-center">
-                                    <button class="btn-icon">
+                                    <button class="btn-icon" type="button"
+                                        (click)="viewReceipt(sale); $event.stopPropagation()">
                                         <span class="material-symbols-outlined">visibility</span>
                                     </button>
                                 </td>
@@ -458,6 +459,94 @@
                     </div>
                 </div>
 
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" *ngIf="isReceiptModalOpen && selectedInvoice" (click)="closeReceiptModal()">
+    <div class="modal-container receipt-modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+            <h3>Receipt #{{ selectedInvoice.invoice_id }}</h3>
+            <button class="btn-icon" type="button" (click)="closeReceiptModal()">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+
+        <div class="modal-body">
+            <div class="receipt-meta">
+                <div class="meta-row">
+                    <span>Date</span>
+                    <span>{{ selectedInvoice.raw_date | date:'medium' }}</span>
+                </div>
+                <div class="meta-row">
+                    <span>Staff</span>
+                    <span>{{ selectedInvoice.staff_name }}</span>
+                </div>
+                <div class="meta-row">
+                    <span>Payment</span>
+                    <span>{{ selectedInvoice.payment_method | uppercase }}</span>
+                </div>
+            </div>
+
+            <div class="receipt-items-table">
+                <div class="r-head">
+                    <span>Product</span>
+                    <span>Qty</span>
+                    <span class="text-right">Amount</span>
+                </div>
+                <div class="r-row" *ngFor="let item of selectedInvoice.items">
+                    <span>{{ item.products?.name || 'Unknown Product' }}</span>
+                    <span>{{ item.quantity }} {{ getUnitLabel(item.unit_type) }}</span>
+                    <span class="text-right">{{ item.total_price | currency:'NGN':'symbol-narrow' }}</span>
+                </div>
+            </div>
+
+            <div class="r-divider"></div>
+            <div class="r-total">
+                <span>Total</span>
+                <span>{{ selectedInvoice.total | currency:'NGN':'symbol-narrow' }}</span>
+            </div>
+
+            <div *ngIf="selectedInvoice.status === 'void' || selectedInvoice.status === 'voided' || selectedInvoice.status === 'rejected'"
+                class="void-watermark">
+                VOIDED
+            </div>
+
+            <div class="danger-zone" *ngIf="selectedInvoice.status !== 'void' && selectedInvoice.status !== 'voided' && selectedInvoice.status !== 'rejected'">
+                <div class="void-initial-view" *ngIf="!isVoidingMode">
+                    <h4>Danger Zone</h4>
+                    <button class="btn-danger-filled" type="button" (click)="voidTransaction(selectedInvoice)">
+                        <span class="material-symbols-outlined">delete_forever</span>
+                        Void this invoice
+                    </button>
+                </div>
+
+                <div class="void-active-form" *ngIf="isVoidingMode">
+                    <div class="void-form-header">
+                        <span class="material-symbols-outlined">warning</span>
+                        <h4>Confirm void action</h4>
+                    </div>
+
+                    <div class="void-input-group">
+                        <label class="void-label" for="void-reason">Reason</label>
+                        <textarea id="void-reason" class="void-textarea" rows="3"
+                            [(ngModel)]="voidReason"
+                            placeholder="Tell us why this invoice is being voided (minimum 5 characters)."></textarea>
+                        <p class="void-hint">This action reverses stock and cannot be undone.</p>
+                    </div>
+
+                    <div class="void-actions-stack">
+                        <button class="btn-danger-filled" type="button"
+                            (click)="voidTransaction(selectedInvoice)">
+                            <span class="material-symbols-outlined">delete_forever</span>
+                            Confirm void
+                        </button>
+                        <button class="btn-ghost-gray" type="button" (click)="isVoidingMode = false">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

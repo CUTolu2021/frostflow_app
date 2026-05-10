@@ -180,6 +180,37 @@ const assertSessionProduct = (session, productId) => {
   }
 };
 
+const normalizeBaseUnit = (value) => String(value || 'kg').trim().toLowerCase();
+
+const supportsBoxUnit = (product) => {
+  if (!product) return false;
+  return (
+    normalizeBaseUnit(product.base_unit) === 'box'
+    || product.is_variable_weight === true
+    || Number(product.standard_box_weight || 0) > 0
+    || Number(product.box_price || 0) > 0
+  );
+};
+
+const validateUnitTypeForProduct = ({ product, unitType }) => {
+  const normalizedUnitType = normalizeBaseUnit(unitType);
+  const productBaseUnit = normalizeBaseUnit(product?.base_unit || 'kg');
+  const canUseBox = supportsBoxUnit(product);
+
+  if (normalizedUnitType === productBaseUnit) {
+    return normalizedUnitType;
+  }
+
+  if ((normalizedUnitType === 'box' || normalizedUnitType === 'carton') && canUseBox) {
+    return normalizedUnitType;
+  }
+
+  throw new HttpError(
+    400,
+    `Unit type "${normalizedUnitType}" is not valid for this product. Use ${productBaseUnit}${canUseBox ? ' or box/carton' : ''}.`,
+  );
+};
+
 const ensureOwnerDeliverySession = async ({ actor, organizationId, payload }) => {
   const requestedSessionId = String(payload?.delivery_session_id || payload?.deliverySessionId || '').trim();
   if (requestedSessionId) {
@@ -292,13 +323,10 @@ const normalizeOwnerStockPayload = ({ payload, product }) => {
     throw new HttpError(400, 'quantity must be a positive number');
   }
 
-  const normalizedUnitType = String(payload?.unit_type || product?.base_unit || 'kg')
-    .trim()
-    .toLowerCase();
-
-  if (!normalizedUnitType) {
-    throw new HttpError(400, 'unit_type is required');
-  }
+  const normalizedUnitType = validateUnitTypeForProduct({
+    product,
+    unitType: payload?.unit_type || product?.base_unit || 'kg',
+  });
 
   const normalized = {
     ...payload,
@@ -307,6 +335,12 @@ const normalizeOwnerStockPayload = ({ payload, product }) => {
   };
 
   if (normalizedUnitType === 'box' || normalizedUnitType === 'carton') {
+    const productBaseUnit = String(product?.base_unit || 'kg').trim().toLowerCase();
+    if (productBaseUnit === 'box') {
+      normalized.total_weight = quantity;
+      return normalized;
+    }
+
     const manualTotalWeight = Number(payload?.total_weight);
     if (Number.isFinite(manualTotalWeight) && manualTotalWeight > 0) {
       normalized.total_weight = manualTotalWeight;
@@ -322,7 +356,7 @@ const normalizeOwnerStockPayload = ({ payload, product }) => {
 
     throw new HttpError(
       400,
-      'Box/carton stock entry requires total weight in KG or a configured standard box weight for this product',
+      'Box/carton stock entry requires invoice total in base unit or a configured standard units-per-box value',
     );
   }
 
@@ -352,32 +386,34 @@ const normalizeSalePayload = ({ payload, product }) => {
     throw new HttpError(400, 'payment_method is required');
   }
 
-  const normalizedUnitType = String(payload?.unit_type || product?.base_unit || 'kg')
-    .trim()
-    .toLowerCase();
-
-  if (!normalizedUnitType) {
-    throw new HttpError(400, 'unit_type is required');
-  }
+  const normalizedUnitType = validateUnitTypeForProduct({
+    product,
+    unitType: payload?.unit_type || product?.base_unit || 'kg',
+  });
 
   let stockReductionKg = quantity;
   let boxWeight = null;
 
   if (normalizedUnitType === 'box' || normalizedUnitType === 'carton') {
-    const explicitBoxWeight = Number(payload?.box_weight ?? payload?.box_weight_kg);
-    if (Number.isFinite(explicitBoxWeight) && explicitBoxWeight > 0) {
-      boxWeight = explicitBoxWeight;
-      stockReductionKg = quantity * explicitBoxWeight;
+    const productBaseUnit = String(product?.base_unit || 'kg').trim().toLowerCase();
+    if (productBaseUnit === 'box') {
+      stockReductionKg = quantity;
     } else {
-      const standardBoxWeight = Number(product?.standard_box_weight || 0);
-      if (!Number.isFinite(standardBoxWeight) || standardBoxWeight <= 0) {
-        throw new HttpError(
-          400,
-          'Box/carton sale requires product standard box weight or box_weight_kg in request',
-        );
+      const explicitBoxWeight = Number(payload?.box_weight ?? payload?.box_weight_kg);
+      if (Number.isFinite(explicitBoxWeight) && explicitBoxWeight > 0) {
+        boxWeight = explicitBoxWeight;
+        stockReductionKg = quantity * explicitBoxWeight;
+      } else {
+        const standardBoxWeight = Number(product?.standard_box_weight || 0);
+        if (!Number.isFinite(standardBoxWeight) || standardBoxWeight <= 0) {
+          throw new HttpError(
+            400,
+            'Box/carton sale requires product standard units-per-box or explicit box_weight in request',
+          );
+        }
+        boxWeight = standardBoxWeight;
+        stockReductionKg = quantity * standardBoxWeight;
       }
-      boxWeight = standardBoxWeight;
-      stockReductionKg = quantity * standardBoxWeight;
     }
   }
 
@@ -399,6 +435,24 @@ const normalizeSalePayload = ({ payload, product }) => {
     stockReductionKg,
     boxWeight,
     customerType: payload?.customer_type || null,
+  };
+};
+
+const normalizeStaffStockPayload = ({ payload, product }) => {
+  const quantity = Number(payload?.quantity);
+  if (!Number.isFinite(quantity) || quantity <= 0) {
+    throw new HttpError(400, 'quantity must be a positive number');
+  }
+
+  const normalizedUnitType = validateUnitTypeForProduct({
+    product,
+    unitType: payload?.unit_type || product?.base_unit || 'kg',
+  });
+
+  return {
+    ...payload,
+    quantity,
+    unit_type: normalizedUnitType,
   };
 };
 
@@ -583,19 +637,21 @@ const addStaffStockEntry = async ({ actor, payload }) => {
   if (!payload?.product_id) {
     throw new HttpError(400, 'product_id is required');
   }
-  if (!Number.isFinite(Number(payload?.quantity)) || Number(payload.quantity) <= 0) {
-    throw new HttpError(400, 'quantity must be a positive number');
-  }
 
   const organizationId = resolveOrganizationId(actor, payload.organization_id);
+  const product = await findProductById(payload.product_id, organizationId);
+  const normalizedPayload = normalizeStaffStockPayload({
+    payload,
+    product,
+  });
   const deliverySession = await ensureStaffDeliverySession({
     actor,
     organizationId,
-    payload,
+    payload: normalizedPayload,
   });
 
   const record = await insertStaffStockIn({
-    ...stripSessionOnlyFields(payload),
+    ...stripSessionOnlyFields(normalizedPayload),
     organization_id: organizationId,
     recorded_by: actor.id,
     delivery_session_id: deliverySession.id,

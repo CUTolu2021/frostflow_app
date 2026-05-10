@@ -30,10 +30,10 @@ export class InventoryComponent implements OnInit, OnDestroy {
   isAddModalOpen = false;
 
 
-  selectedProduct: Product | null = null;
+  selectedProductId: string | null = null;
   entry = {
     inputQty: 0,
-    unitType: 'kg',
+    unitType: '',
     manualTotalWeight: 0,
     referenceNote: '',
     unitCost: 0,
@@ -100,10 +100,11 @@ export class InventoryComponent implements OnInit, OnDestroy {
   }
 
   resetForm() {
-    this.selectedProduct = null;
+    this.selectedProductId = null;
+    this.product = null;
     this.entry = {
       inputQty: 0,
-      unitType: 'kg',
+      unitType: '',
       manualTotalWeight: 0,
       referenceNote: '',
       unitCost: 0,
@@ -116,15 +117,55 @@ export class InventoryComponent implements OnInit, OnDestroy {
 
 
   onProductSelect() {
-    if (!this.selectedProduct) return;
-    this.product = this.products.find(p => p.id === this.selectedProduct!.id) || null;
-    this.entry.unitType = 'kg';
+    this.product = this.selectedProduct;
+    if (!this.product) return;
+    this.entry.unitType = this.getInventoryUnitOptions()[0] || this.getBaseUnit(this.product);
     this.entry.inputQty = 0;
     this.entry.manualTotalWeight = 0;
   }
 
   trackByProductId(_: number, product: Product): string {
     return product.id;
+  }
+
+  get selectedProduct(): Product | null {
+    if (!this.selectedProductId) return null;
+    return this.products.find((p) => p.id === this.selectedProductId) || null;
+  }
+
+  private getBaseUnit(product: Product | null): string {
+    return String(product?.base_unit || 'kg').trim().toLowerCase();
+  }
+
+  private supportsBoxUnit(product: Product | null): boolean {
+    if (!product) return false;
+    return Boolean(
+      product.is_variable_weight
+      || Number(product.standard_box_weight || 0) > 0
+      || Number(product.box_price || 0) > 0
+      || this.getBaseUnit(product) === 'box'
+    );
+  }
+
+  getInventoryUnitOptions(): string[] {
+    const product = this.selectedProduct;
+    if (!product) return [];
+
+    const base = this.getBaseUnit(product);
+    const options = [base];
+    if (this.supportsBoxUnit(product) && base !== 'box') {
+      options.push('box');
+    }
+    return options;
+  }
+
+  getUnitDisplay(unit: string | null | undefined): string {
+    const normalized = String(unit || '').trim().toLowerCase();
+    if (normalized === 'kg') return 'KG';
+    if (normalized === 'pcs') return 'Pieces';
+    if (normalized === 'liters') return 'Liters';
+    if (normalized === 'box') return 'Boxes';
+    return normalized || 'Units';
   }
 
   private getStandardBoxWeight(product: Product | null): number {
@@ -135,23 +176,27 @@ export class InventoryComponent implements OnInit, OnDestroy {
 
   requiresManualWeightForBox(): boolean {
     if (this.entry.unitType !== 'box' || !this.selectedProduct) return false;
+    if (this.getBaseUnit(this.selectedProduct) === 'box') return false;
     if (this.selectedProduct.is_variable_weight) return true;
     return this.getStandardBoxWeight(this.selectedProduct) <= 0;
   }
 
   get boxWeightGuidance(): string {
     if (!this.selectedProduct || this.entry.unitType !== 'box') return '';
+    if (this.getBaseUnit(this.selectedProduct) === 'box') return '';
+    const baseUnit = this.getUnitDisplay(this.getBaseUnit(this.selectedProduct));
     if (this.selectedProduct.is_variable_weight) {
-      return 'This product uses variable box weights. Enter the invoice total KG for this entry.';
+      return `This product uses variable box size. Enter total ${baseUnit} from invoice for this entry.`;
     }
     if (this.getStandardBoxWeight(this.selectedProduct) <= 0) {
-      return 'No standard box weight is configured for this product. Enter invoice total KG now or set standard box weight in Product setup.';
+      return `No standard units-per-box configured. Enter invoice total ${baseUnit} now or set standard box units in Product setup.`;
     }
     return '';
   }
 
   hasConfiguredStandardBoxWeight(): boolean {
     if (!this.selectedProduct || this.entry.unitType !== 'box') return false;
+    if (this.getBaseUnit(this.selectedProduct) === 'box') return false;
     return this.getStandardBoxWeight(this.selectedProduct) > 0;
   }
 
@@ -159,9 +204,12 @@ export class InventoryComponent implements OnInit, OnDestroy {
     if (!this.selectedProduct) return 0;
     const qty = Number(this.entry.inputQty || 0);
 
-    if (this.entry.unitType === 'kg') return qty;
+    if (this.entry.unitType !== 'box') return qty;
 
     if (this.entry.unitType === 'box') {
+      if (this.getBaseUnit(this.selectedProduct) === 'box') {
+        return qty;
+      }
       if (this.requiresManualWeightForBox()) {
         return Number(this.entry.manualTotalWeight || 0);
       }
@@ -184,15 +232,23 @@ export class InventoryComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (!this.entry.unitType) {
+      this.toast.show('Please select a unit type', 'error');
+      return;
+    }
+
     if (this.entry.unitType === 'box' && this.requiresManualWeightForBox() && Number(this.entry.manualTotalWeight) <= 0) {
-      this.toast.show('Enter the total invoice weight in KG for this box/carton entry.', 'error');
+      this.toast.show(`Enter total ${this.getUnitDisplay(this.getBaseUnit(this.selectedProduct))} from invoice for this box/carton entry.`, 'error');
       return;
     }
 
     const calculatedWeight = this.calculateFinalWeight();
 
     if (calculatedWeight <= 0) {
-      this.toast.show('Unable to calculate total KG. Check quantity and box weight settings.', 'error');
+      this.toast.show(
+        `Unable to calculate total ${this.getUnitDisplay(this.getBaseUnit(this.selectedProduct))}. Check quantity and box settings.`,
+        'error',
+      );
       return;
     }
 
