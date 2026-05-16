@@ -23,7 +23,7 @@
     overflow: hidden;
 }
 
-/* Left side - Branding + Test Accounts */
+/* Left side - Branding */
 .branding-section {
     background: linear-gradient(to bottom, #3a7bd5, #00d2ff);
     color: white;
@@ -52,53 +52,14 @@
     font-size: 0.98rem;
 }
 
-.test-panel {
+.login-help {
     border: 1px solid rgba(228, 241, 255, 0.35);
-    background: rgba(5, 24, 58, 0.33);
+    background: rgba(5, 24, 58, 0.25);
     border-radius: 12px;
-    padding: 0.95rem 1rem;
+    padding: 0.9rem 1rem;
     backdrop-filter: blur(4px);
-}
-
-.test-panel h3 {
-    margin: 0 0 0.3rem 0;
-    font-size: 1rem;
-    color: #ffffff;
-}
-
-.test-panel p {
-    margin: 0 0 0.7rem 0;
-    color: #e4f1ff;
-    font-size: 0.84rem;
-}
-
-.test-user-row {
-    display: grid;
-    grid-template-columns: 74px 1fr auto;
-    gap: 0.45rem;
-    padding: 0.34rem 0;
-    border-top: 1px solid rgba(226, 239, 255, 0.28);
-    font-size: 0.82rem;
-    align-items: center;
-}
-
-.test-user-row:first-of-type {
-    border-top: none;
-}
-
-.test-user-row .role {
-    color: #ffffff;
-    font-weight: 700;
-}
-
-.test-user-row .email {
     color: #eaf4ff;
-    word-break: break-all;
-}
-
-.test-user-row .password {
-    color: #d6ebff;
-    font-family: Consolas, 'Courier New', monospace;
+    font-size: 0.9rem;
 }
 
 /* Right side - Login Form */

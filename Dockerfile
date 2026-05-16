@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM node:18-alpine as build
+FROM node:20-alpine AS build
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
@@ -11,6 +11,7 @@ COPY . .
 ARG SUPABASE_URL
 ARG SUPABASE_KEY
 ARG N8N_WEBHOOK_URL
+ARG API_URL
 
 # ---------------------------------------------
 # 2. Create the file using the Arguments
@@ -22,8 +23,9 @@ RUN printf "export const environment = {\n\
   production: true,\n\
   supabase_URL: '%s',\n\
   supabase_anon_key: '%s',\n\
-  n8n_webhook: '%s'\n\
-};\n" "$SUPABASE_URL" "$SUPABASE_KEY" "$N8N_WEBHOOK_URL" > src/environments/environment.ts
+  n8n_webhook: '%s',\n\
+  api_url: '%s'\n\
+};\n" "$SUPABASE_URL" "$SUPABASE_KEY" "$N8N_WEBHOOK_URL" "$API_URL" > src/environments/environment.ts
 
 # Copy to prod just in case
 RUN cp src/environments/environment.ts src/environments/environment.prod.ts

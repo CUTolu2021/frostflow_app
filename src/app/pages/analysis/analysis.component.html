@@ -155,7 +155,7 @@
                 <!-- Actions & Mismatches -->
                 <div class="report-columns">
                     <!-- Recommendations -->
-                    <div class="col" *ngIf="aiReport.recommendations?.length">
+                    <div class="col" *ngIf="aiReport.recommendations.length">
                         <h4>💡 Strategic Recommendations</h4>
                         <ul class="styled-list check-list">
                             <li *ngFor="let tip of aiReport.recommendations">{{ tip }}</li>
@@ -163,7 +163,7 @@
                     </div>
 
                     <!-- Mismatches -->
-                    <div class="col" *ngIf="aiReport.mismatch_records?.length">
+                    <div class="col" *ngIf="aiReport.mismatch_records.length">
                         <h4>⚠️ Discrepancy Alerts</h4>
                         <ul class="styled-list alert-list">
                             <li *ngFor="let m of aiReport.mismatch_records">
@@ -490,7 +490,7 @@
                 </div>
                 <div class="r-row" *ngFor="let item of selectedInvoice.items">
                     <span>{{ item.products?.name || 'Unknown Product' }}</span>
-                    <span>{{ item.quantity }} {{ getUnitLabel(item.unit_type) }}</span>
+                    <span>{{ item.quantity }} {{ item.unit_type }} {{ item.products?.name || 'Unknown Product' }}</span>
                     <span class="text-right">{{ item.total_price | currency:'NGN':'symbol-narrow' }}</span>
                 </div>
             </div>

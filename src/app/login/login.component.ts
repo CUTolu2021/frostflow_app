@@ -23,14 +23,6 @@ export class LoginComponent {
     email = new FormControl('')
     password = new FormControl('')
     passwordVisible: boolean = false
-    readonly testUsers = [
-        { role: 'admin', email: 'admin1@frostflow.test', password: 'Admin@2026' },
-        { role: 'admin', email: 'admin2@frostflow.test', password: 'Admin@2026' },
-        { role: 'manager', email: 'manager1@frostflow.test', password: 'Manager@2026' },
-        { role: 'manager', email: 'manager2@frostflow.test', password: 'Manager@2026' },
-        { role: 'sales', email: 'sales1@frostflow.test', password: 'Sales@2026' },
-        { role: 'sales', email: 'sales2@frostflow.test', password: 'Sales@2026' },
-    ]
 
     async handleLogin() {
         const { data, error } = await this.supabase.signInWithPassword(

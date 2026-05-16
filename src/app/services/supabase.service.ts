@@ -32,7 +32,7 @@ interface PollingSubscription {
     providedIn: 'root',
 })
 export class SupabaseService {
-    private readonly apiBase = environment.api_url || 'http://localhost:3001'
+    private readonly apiBase = this.resolveApiBase()
     private authCallbacks = new Set<(event: string, session: AuthSessionLike) => void>()
     staffStock = signal<StaffStockEntry[]>([])
 
@@ -44,6 +44,19 @@ export class SupabaseService {
             const currentStock = this.staffStock();
             console.log(`[SupabaseService] staffStock signal updated. Count: ${currentStock.length}`);
         });
+    }
+
+    private resolveApiBase(): string {
+        const envWithApi = environment as typeof environment & { api_url?: string };
+        const configured = String(envWithApi.api_url || '').trim();
+        if (configured) return configured;
+
+        // In production deployments, use the same host and rely on reverse proxy /api routing.
+        if (typeof window !== 'undefined' && window.location?.origin) {
+            return window.location.origin;
+        }
+
+        return 'http://localhost:3001';
     }
 
     private emitAuthStateChange(event: string, user: AuthUser | null) {
