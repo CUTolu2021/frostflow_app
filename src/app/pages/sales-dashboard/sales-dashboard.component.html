@@ -2,12 +2,14 @@
     <!-- Header -->
     <div class="page-header">
         <div>
-            <div class="breadcrumb">Overview / Sales</div>
-            <h1 class="page-title">Sales Dashboard</h1>
-            <p class="page-subtitle">Welcome back, {{ name }}! Ready to record some sales?</p>
+            <div class="breadcrumb">{{ isAdminView ? 'Overview / Sales Entry' : 'Overview / Sales' }}</div>
+            <h1 class="page-title">{{ isAdminView ? 'Sales Entry' : 'Sales Dashboard' }}</h1>
+            <p class="page-subtitle">
+                Welcome back, {{ name }}! {{ isAdminView ? 'Record sales directly for your organization.' : 'Ready to record some sales?' }}
+            </p>
         </div>
 
-        <div class="header-actions">
+        <div class="header-actions" *ngIf="!isAdminView">
             <!-- Basic Logout for Sales Person -->
             <button class="btn btn-outline" (click)="handleLogout()">
                 <span class="material-symbols-outlined">logout</span>

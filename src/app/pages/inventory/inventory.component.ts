@@ -122,6 +122,8 @@ export class InventoryComponent implements OnInit, OnDestroy {
     this.entry.unitType = this.getInventoryUnitOptions()[0] || this.getBaseUnit(this.product);
     this.entry.inputQty = 0;
     this.entry.manualTotalWeight = 0;
+    this.entry.unitPrice = Number(this.product.unit_price || 0);
+    this.entry.boxPrice = Number(this.product.box_price || 0);
   }
 
   trackByProductId(_: number, product: Product): string {

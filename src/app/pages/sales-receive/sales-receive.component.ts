@@ -26,7 +26,9 @@ export class SalesReceiveComponent implements OnInit {
     qty: null as number | null,
     unit: '',
     hasDamages: false,
-    damagedQty: null as number | null
+    damagedQty: null as number | null,
+    measuredTotalWeight: null as number | null,
+    measuredBoxWeightsText: '',
   };
 
   currentUser: AuthUser | null = null;
@@ -113,6 +115,8 @@ export class SalesReceiveComponent implements OnInit {
     this.receiveForm.qty = null;
     this.receiveForm.hasDamages = false;
     this.receiveForm.damagedQty = null;
+    this.receiveForm.measuredTotalWeight = null;
+    this.receiveForm.measuredBoxWeightsText = '';
   }
 
   trackByProductId(_: number, product: Product): string {
@@ -121,6 +125,38 @@ export class SalesReceiveComponent implements OnInit {
 
   trackByEntryId(_: number, entry: StaffStockEntry): string {
     return String(entry.id);
+  }
+
+  requiresMeasuredBoxWeight(): boolean {
+    return Boolean(
+      this.selectedProduct
+      && this.receiveForm.unit === 'box'
+      && this.getBaseUnit(this.selectedProduct) !== 'box'
+    );
+  }
+
+  getMeasuredWeightLabel(): string {
+    return this.getUnitDisplay(this.selectedProduct?.base_unit);
+  }
+
+  private parseMeasuredBoxWeights(raw: string): number[] {
+    const values = String(raw || '')
+      .split(/[,\s]+/)
+      .map((value) => Number(value))
+      .filter((value) => Number.isFinite(value) && value > 0);
+
+    return values;
+  }
+
+  private resolveMeasuredTotalWeight(): { totalWeight: number; boxWeights: number[] } {
+    const manualTotal = Number(this.receiveForm.measuredTotalWeight || 0);
+    const boxWeights = this.parseMeasuredBoxWeights(this.receiveForm.measuredBoxWeightsText);
+    const summedBoxes = boxWeights.reduce((sum, value) => sum + value, 0);
+
+    return {
+      totalWeight: manualTotal > 0 ? manualTotal : summedBoxes,
+      boxWeights,
+    };
   }
 
   async submitReceive() {
@@ -136,6 +172,12 @@ export class SalesReceiveComponent implements OnInit {
       return;
     }
 
+    const { totalWeight, boxWeights } = this.resolveMeasuredTotalWeight();
+    if (this.requiresMeasuredBoxWeight() && totalWeight <= 0) {
+      this.toast.show(`Enter measured total ${this.getMeasuredWeightLabel()} for this box delivery.`, 'error');
+      return;
+    }
+
     this.isLoading = true;
 
     const payload = {
@@ -144,7 +186,9 @@ export class SalesReceiveComponent implements OnInit {
       unit_type: this.receiveForm.unit,
       metadata: {
         damaged_qty: this.receiveForm.damagedQty || 0,
-        notes: 'Received from truck (Mobile Entry)'
+        notes: 'Received from truck (Mobile Entry)',
+        total_weight: totalWeight > 0 ? totalWeight : undefined,
+        measured_box_weights: boxWeights.length > 0 ? boxWeights : undefined,
       }
     };
 
@@ -154,7 +198,15 @@ export class SalesReceiveComponent implements OnInit {
       await this.productService.loadProducts(true, true);
       this.toast.show('Stock recorded successfully!', 'success');
 
-      this.receiveForm = { productId: null, qty: null, unit: '', hasDamages: false, damagedQty: null };
+      this.receiveForm = {
+        productId: null,
+        qty: null,
+        unit: '',
+        hasDamages: false,
+        damagedQty: null,
+        measuredTotalWeight: null,
+        measuredBoxWeightsText: '',
+      };
     } catch (error) {
       console.error(error);
       this.toast.show('Failed to save entry. Try again.', 'error');
@@ -167,4 +219,3 @@ export class SalesReceiveComponent implements OnInit {
     await this.supabase.getRecentStaffEntries();
   }
 }
-

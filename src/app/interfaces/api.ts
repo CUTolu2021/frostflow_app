@@ -4,12 +4,22 @@ import { Product } from './product';
 import { Sale } from './sales';
 import { StockEntry, StaffStockEntry } from './stock';
 
+export type InventoryMode = 'dual_control' | 'single_operator';
+
 export interface OrganizationSummary {
   id: string;
   name: string;
   is_active: boolean;
   deleted_at?: string | null;
   created_at: string;
+  inventory_mode?: InventoryMode;
+}
+
+export interface OrganizationSettings {
+  id: string;
+  name: string;
+  is_active: boolean;
+  inventory_mode: InventoryMode;
 }
 
 export interface AdminUser {

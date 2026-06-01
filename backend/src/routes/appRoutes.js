@@ -11,6 +11,7 @@ const {
   getProfileHandler,
   getSalesDashboardMetricsHandler,
   getTodaySalesMetricsHandler,
+  getOrganizationSettingsHandler,
   listAiReportsHandler,
   listExpensesHandler,
   listInventoryLogsHandler,
@@ -23,6 +24,7 @@ const {
   listStaffHandler,
   markNotificationReadHandler,
   updateProductHandler,
+  updateOrganizationSettingsHandler,
   updateStaffStatusHandler,
 } = require('../controllers/appController');
 
@@ -33,6 +35,9 @@ router.use(requireAuth);
 router.get('/users/staff', listStaffHandler);
 router.get('/users/:userId', getProfileHandler);
 router.patch('/users/:userId/active', updateStaffStatusHandler);
+
+router.get('/organization/settings', getOrganizationSettingsHandler);
+router.patch('/organization/settings', updateOrganizationSettingsHandler);
 
 router.get('/products', listProductsHandler);
 router.post('/products', createProductHandler);

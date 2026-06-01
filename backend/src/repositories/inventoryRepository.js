@@ -1,3 +1,4 @@
+const { randomUUID } = require('crypto');
 const { supabase } = require('../config/supabase');
 const { env } = require('../config/env');
 const { HttpError } = require('../utils/httpError');
@@ -27,6 +28,12 @@ const isMissingDeliverySessionSchemaError = (error) => {
 
 const throwDeliverySessionSchemaError = () => {
   throw new HttpError(400, 'delivery session columns are missing. Run backend/sql/011_delivery_sessions.sql');
+};
+
+const formatDbError = (error) => {
+  const message = String(error?.message || 'unknown database error');
+  const code = String(error?.code || '').trim();
+  return code ? `${message} (code: ${code})` : message;
 };
 
 const insertStockIn = async (payload) => {
@@ -126,7 +133,7 @@ const listActiveDeliverySessionsUpToWindow = async ({ organizationId, windowDate
   endExclusive.setUTCDate(endExclusive.getUTCDate() + 1);
 
   const { data, error } = await table('delivery_sessions')
-    .select('id,product_id,expected_arrival_at,grace_until,status,inventory_applied_quantity,inventory_applied_at')
+    .select('id,product_id,created_by,expected_arrival_at,grace_until,status,inventory_applied_quantity,inventory_applied_at')
     .eq('organization_id', organizationId)
     .in('status', ['in_transit', 'partially_received', 'exception'])
     .lt('expected_arrival_at', endExclusive.toISOString())
@@ -235,7 +242,7 @@ const findReconciliationById = async (reconciliationId, organizationId) => {
 
 const findLatestOwnerStockEntryForSession = async ({ organizationId, deliverySessionId, productId }) => {
   const { data, error } = await table('stock_in')
-    .select('id,quantity,total_weight,unit_price,box_price,unit_cost,total_cost,logistics_fee,reference_note,created_at,updated_at')
+    .select('id,quantity,total_weight,unit_price,box_price,unit_cost,total_cost,logistics_fee,reference_note,recorded_by,created_at,updated_at')
     .eq('organization_id', organizationId)
     .eq('delivery_session_id', deliverySessionId)
     .eq('product_id', productId)
@@ -586,13 +593,18 @@ const saveReconciliationWindow = async ({
       if (isMissingDeliverySessionSchemaError(error)) {
         throwDeliverySessionSchemaError();
       }
+      console.error('[reconciliation] Failed to update reconciliation window', {
+        payload,
+        existingId: existing.id,
+        error,
+      });
       throw new HttpError(500, 'Unable to update reconciliation window');
     }
     return data;
   }
 
   const { data, error } = await table('reconciliation')
-    .insert(payload)
+    .insert({ id: randomUUID(), ...payload })
     .select('*')
     .single();
 
@@ -603,7 +615,12 @@ const saveReconciliationWindow = async ({
     if (isMissingDeliverySessionSchemaError(error)) {
       throwDeliverySessionSchemaError();
     }
-    throw new HttpError(500, 'Unable to create reconciliation window');
+    const details = formatDbError(error);
+    console.error('[reconciliation] Failed to create reconciliation window', {
+      payload,
+      error,
+    });
+    throw new HttpError(500, `Unable to create reconciliation window: ${details}`);
   }
 
   return data;

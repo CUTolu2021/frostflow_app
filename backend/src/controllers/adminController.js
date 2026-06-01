@@ -3,6 +3,7 @@ const {
   createOrganizationWithOwner,
   listAllOrganizations,
   setOrganizationStatus,
+  setOrganizationInventoryMode,
   removeOrganization,
   softRemoveOrganization,
   listAllUsers,
@@ -34,6 +35,24 @@ const updateOrganizationStatusHandler = asyncHandler(async (req, res) => {
     actor: req.user,
     organizationId: req.params.orgId,
     isActive: req.body?.is_active,
+  });
+  res.json({ organization });
+});
+
+const updateOrganizationInventoryModeHandler = asyncHandler(async (req, res) => {
+  const inventoryMode = String(req.body?.inventory_mode || '').trim().toLowerCase();
+  if (!inventoryMode) {
+    return res.status(400).json({ message: 'inventory_mode is required' });
+  }
+
+  if (!['dual_control', 'single_operator'].includes(inventoryMode)) {
+    return res.status(400).json({ message: 'inventory_mode must be dual_control or single_operator' });
+  }
+
+  const organization = await setOrganizationInventoryMode({
+    actor: req.user,
+    organizationId: req.params.orgId,
+    inventoryMode,
   });
   res.json({ organization });
 });
@@ -80,6 +99,7 @@ module.exports = {
   createOrganizationHandler,
   listOrganizationsHandler,
   updateOrganizationStatusHandler,
+  updateOrganizationInventoryModeHandler,
   deleteOrganizationHandler,
   softDeleteOrganizationHandler,
   listUsersHandler,

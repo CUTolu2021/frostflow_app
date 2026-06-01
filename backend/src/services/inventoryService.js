@@ -20,6 +20,10 @@ const {
   updateProductUnit,
   updateReconciliationStatus,
 } = require('../repositories/inventoryRepository');
+const {
+  getOrganizationById,
+  normalizeInventoryMode,
+} = require('../repositories/organizationsRepository');
 const { createSale, markSaleVoided } = require('../repositories/salesRepository');
 const { insertAuditLog } = require('../repositories/auditRepository');
 const { env } = require('../config/env');
@@ -30,6 +34,9 @@ const RECON_CUTOFF_HOUR_UTC = Number.isFinite(Number(env.reconciliationCutoffHou
 const DEFAULT_GRACE_HOURS = Number.isFinite(Number(env.reconciliationDefaultGraceHours))
   ? Math.max(1, Number(env.reconciliationDefaultGraceHours))
   : 24;
+const AUTO_ACCEPT_TOLERANCE_KG = Number.isFinite(Number(env.reconciliationAutoAcceptToleranceKg))
+  ? Math.max(0, Number(env.reconciliationAutoAcceptToleranceKg))
+  : 0.5;
 
 const assertRole = (user, roles) => {
   if (user.role === 'superadmin') return;
@@ -115,6 +122,13 @@ const deriveReconciliationStatus = ({ ownerQuantity, staffQuantity }) => {
   return 'mismatch';
 };
 
+const isWithinAutoAcceptTolerance = ({ ownerQuantity, staffQuantity }) => {
+  const owner = Number(ownerQuantity || 0);
+  const staff = Number(staffQuantity || 0);
+  if (owner <= 0 || staff <= 0) return false;
+  return Math.abs(owner - staff) <= AUTO_ACCEPT_TOLERANCE_KG;
+};
+
 const deriveDeliverySessionStatus = ({ ownerQuantity, staffQuantity }) => {
   if (ownerQuantity === 0 && staffQuantity === 0) return 'in_transit';
   if (ownerQuantity > 0 && ownerQuantity === staffQuantity) return 'received';
@@ -178,6 +192,11 @@ const assertSessionProduct = (session, productId) => {
   if (!session || String(session.product_id || '') !== String(productId || '')) {
     throw new HttpError(400, 'delivery_session_id does not match product_id');
   }
+};
+
+const resolveOrganizationInventoryMode = async (organizationId) => {
+  const organization = await getOrganizationById({ organizationId });
+  return normalizeInventoryMode(organization?.inventory_mode);
 };
 
 const normalizeBaseUnit = (value) => String(value || 'kg').trim().toLowerCase();
@@ -268,13 +287,13 @@ const ensureStaffDeliverySession = async ({ actor, organizationId, payload }) =>
   });
 };
 
-const applyReconciledSessionToProduct = async ({
+const applySessionQuantityToProduct = async ({
   organizationId,
   deliverySession,
-  ownerQuantity,
+  targetQuantity,
 }) => {
   const currentlyApplied = Number(deliverySession?.inventory_applied_quantity || 0);
-  const targetApplied = Number(ownerQuantity || 0);
+  const targetApplied = Number(targetQuantity || 0);
   const deltaToApply = targetApplied - currentlyApplied;
 
   if (!Number.isFinite(deltaToApply) || Math.abs(deltaToApply) < 1e-9) {
@@ -287,12 +306,29 @@ const applyReconciledSessionToProduct = async ({
 
   const product = await findProductById(deliverySession.product_id, organizationId);
   const previousUnit = Number(product.unit || 0);
-  const nextUnit = Math.max(0, previousUnit + deltaToApply);
+  const nextUnit = previousUnit + deltaToApply;
+  if (nextUnit < 0) {
+    throw new HttpError(
+      400,
+      'Cannot apply reconciliation quantity because resulting stock would be negative.',
+    );
+  }
   const latestOwnerEntry = await findLatestOwnerStockEntryForSession({
     organizationId,
     deliverySessionId: deliverySession.id,
     productId: deliverySession.product_id,
   });
+
+  const hasUnitPriceUpdate = Number.isFinite(Number(latestOwnerEntry?.unit_price))
+    && Number(latestOwnerEntry.unit_price) >= 0;
+  const hasBoxPriceUpdate = Number.isFinite(Number(latestOwnerEntry?.box_price))
+    && Number(latestOwnerEntry.box_price) >= 0;
+  const nextUnitPrice = hasUnitPriceUpdate ? Number(latestOwnerEntry.unit_price) : Number(product.unit_price || 0);
+  const nextBoxPrice = hasBoxPriceUpdate ? Number(latestOwnerEntry.box_price) : Number(product.box_price || 0);
+  const prevUnitPrice = Number(product.unit_price || 0);
+  const prevBoxPrice = Number(product.box_price || 0);
+  const unitPriceChanged = hasUnitPriceUpdate && nextUnitPrice !== prevUnitPrice;
+  const boxPriceChanged = hasBoxPriceUpdate && nextBoxPrice !== prevBoxPrice;
 
   await updateProductUnit({
     productId: deliverySession.product_id,
@@ -307,6 +343,36 @@ const applyReconciledSessionToProduct = async ({
     deliverySessionId: deliverySession.id,
     appliedQuantity: targetApplied,
   });
+
+  if (unitPriceChanged || boxPriceChanged) {
+    const changedFields = [
+      unitPriceChanged ? 'unit_price' : null,
+      boxPriceChanged ? 'box_price' : null,
+    ].filter(Boolean).join(', ');
+    const changedBy = latestOwnerEntry?.recorded_by || deliverySession?.created_by || null;
+
+    await insertAuditLog({
+      tableName: 'products',
+      recordId: deliverySession.product_id,
+      action: `Price updated from stock reconciliation (${changedFields})`,
+      changedBy,
+      organizationId,
+      beforeData: {
+        product_id: deliverySession.product_id,
+        delivery_session_id: deliverySession.id,
+        source_stock_in_id: latestOwnerEntry?.id || null,
+        unit_price: prevUnitPrice,
+        box_price: prevBoxPrice,
+      },
+      afterData: {
+        product_id: deliverySession.product_id,
+        delivery_session_id: deliverySession.id,
+        source_stock_in_id: latestOwnerEntry?.id || null,
+        unit_price: nextUnitPrice,
+        box_price: nextBoxPrice,
+      },
+    });
+  }
 
   return {
     applied: true,
@@ -449,11 +515,148 @@ const normalizeStaffStockPayload = ({ payload, product }) => {
     unitType: payload?.unit_type || product?.base_unit || 'kg',
   });
 
+  const metadata = payload?.metadata && typeof payload.metadata === 'object'
+    ? { ...payload.metadata }
+    : {};
+
+  if (normalizedUnitType === 'box' || normalizedUnitType === 'carton') {
+    const productBaseUnit = normalizeBaseUnit(product?.base_unit || 'kg');
+    if (productBaseUnit !== 'box') {
+      const measuredTotal = Number(
+        metadata.total_weight
+        ?? metadata.totalWeight
+        ?? payload?.total_weight,
+      );
+
+      if (!Number.isFinite(measuredTotal) || measuredTotal <= 0) {
+        throw new HttpError(
+          400,
+          `Box receipt requires measured total ${productBaseUnit} from sales receiving`,
+        );
+      }
+
+      metadata.total_weight = measuredTotal;
+    }
+  }
+
+  if (Array.isArray(metadata.measured_box_weights)) {
+    metadata.measured_box_weights = metadata.measured_box_weights
+      .map((value) => Number(value))
+      .filter((value) => Number.isFinite(value) && value > 0);
+  }
+
   return {
     ...payload,
     quantity,
     unit_type: normalizedUnitType,
+    metadata,
   };
+};
+
+const calculateStockImpactFromEntry = ({
+  quantity,
+  unitType,
+  product,
+  totalWeight,
+  metadata,
+}) => {
+  const qty = Number(quantity || 0);
+  if (!Number.isFinite(qty) || qty <= 0) {
+    throw new HttpError(400, 'quantity must be a positive number');
+  }
+
+  const normalizedUnitType = normalizeBaseUnit(unitType);
+  if (normalizedUnitType === 'box' || normalizedUnitType === 'carton') {
+    if (normalizeBaseUnit(product?.base_unit) === 'box') {
+      return qty;
+    }
+
+    const explicitWeight = Number(totalWeight);
+    if (Number.isFinite(explicitWeight) && explicitWeight > 0) {
+      return explicitWeight;
+    }
+
+    const metadataWeight = Number(metadata?.total_weight ?? metadata?.totalWeight);
+    if (Number.isFinite(metadataWeight) && metadataWeight > 0) {
+      return metadataWeight;
+    }
+
+    const standardBoxWeight = Number(product?.standard_box_weight || 0);
+    if (Number.isFinite(standardBoxWeight) && standardBoxWeight > 0) {
+      return qty * standardBoxWeight;
+    }
+
+    throw new HttpError(400, 'Unable to derive stock impact for box/carton entry');
+  }
+
+  return qty;
+};
+
+const applySingleOperatorStockEntry = async ({
+  organizationId,
+  actor,
+  product,
+  stockImpactQuantity,
+  source,
+  sourceRecordId,
+  unitType,
+  quantity,
+  totalWeight,
+  unitPrice,
+  boxPrice,
+  deliverySessionId,
+}) => {
+  const previousUnit = Number(product.unit || 0);
+  const nextUnit = previousUnit + stockImpactQuantity;
+
+  if (!Number.isFinite(nextUnit) || nextUnit < 0) {
+    throw new HttpError(400, 'Unable to apply stock entry in single-operator mode');
+  }
+
+  await updateProductUnit({
+    productId: product.id,
+    nextUnit,
+    organizationId,
+    unitPrice,
+    boxPrice,
+  });
+
+  if (deliverySessionId) {
+    await updateDeliverySessionState({
+      organizationId,
+      deliverySessionId,
+      status: 'received',
+      isEscalated: false,
+    });
+    await updateDeliverySessionInventoryApplied({
+      organizationId,
+      deliverySessionId,
+      appliedQuantity: Math.max(0, Number(stockImpactQuantity || 0)),
+    });
+  }
+
+  await insertAuditLog({
+    tableName: 'products',
+    recordId: product.id,
+    action: `DIRECT_STOCK_APPLY_SINGLE_OPERATOR (${source})`,
+    changedBy: actor.id,
+    organizationId,
+    beforeData: {
+      product_id: product.id,
+      previous_unit: previousUnit,
+    },
+    afterData: {
+      product_id: product.id,
+      next_unit: nextUnit,
+      source_record_id: sourceRecordId,
+      delivery_session_id: deliverySessionId || null,
+      source,
+      quantity,
+      unit_type: unitType,
+      total_weight: totalWeight ?? null,
+      stock_impact_quantity: stockImpactQuantity,
+    },
+  });
 };
 
 const runLegacyReconciliationForProductWindow = async ({ organizationId, productId, windowDate }) => {
@@ -503,8 +706,10 @@ const runReconciliationForDeliverySession = async ({ organizationId, deliverySes
   const windowDate = toWindowDate(deliverySession.expected_arrival_at);
   const difference = ownerQuantity - staffQuantity;
   const status = deriveReconciliationStatus({ ownerQuantity, staffQuantity });
+  const withinTolerance = isWithinAutoAcceptTolerance({ ownerQuantity, staffQuantity });
+  const effectiveStatus = withinTolerance ? 'match' : status;
   const isEscalated = shouldEscalate({
-    status,
+    status: effectiveStatus,
     windowDate,
     graceUntil: deliverySession.grace_until,
   });
@@ -517,11 +722,13 @@ const runReconciliationForDeliverySession = async ({ organizationId, deliverySes
     ownerQuantity,
     staffQuantity,
     difference,
-    status,
+    status: effectiveStatus,
     isEscalated,
   });
 
-  const sessionStatus = deriveDeliverySessionStatus({ ownerQuantity, staffQuantity });
+  const sessionStatus = withinTolerance
+    ? 'received'
+    : deriveDeliverySessionStatus({ ownerQuantity, staffQuantity });
   await updateDeliverySessionState({
     organizationId,
     deliverySessionId: deliverySession.id,
@@ -529,12 +736,35 @@ const runReconciliationForDeliverySession = async ({ organizationId, deliverySes
     isEscalated,
   });
 
-  if (record.status === 'match') {
-    await applyReconciledSessionToProduct({
+  // Inventory source of truth:
+  // Auto-apply only when the owner/staff variance is within tolerance.
+  if (withinTolerance) {
+    await applySessionQuantityToProduct({
       organizationId,
       deliverySession,
-      ownerQuantity,
+      targetQuantity: staffQuantity,
     });
+
+    if (Math.abs(difference) > 1e-9) {
+      await insertAuditLog({
+        tableName: 'reconciliation',
+        recordId: record.id,
+        action: `AUTO_ACCEPTED_WITHIN_TOLERANCE (${AUTO_ACCEPT_TOLERANCE_KG}kg)`,
+        changedBy: deliverySession.created_by || null,
+        organizationId,
+        beforeData: {
+          owner_quantity: ownerQuantity,
+          staff_quantity: staffQuantity,
+          difference,
+          status,
+        },
+        afterData: {
+          status: effectiveStatus,
+          tolerance_kg: AUTO_ACCEPT_TOLERANCE_KG,
+          inventory_applied_quantity: staffQuantity,
+        },
+      });
+    }
   }
 
   return record;
@@ -601,6 +831,7 @@ const addStockEntry = async ({ actor, payload }) => {
   }
 
   const organizationId = resolveOrganizationId(actor, payload.organization_id);
+  const inventoryMode = await resolveOrganizationInventoryMode(organizationId);
   const product = await findProductById(payload.product_id, organizationId);
   const normalizedPayload = normalizeOwnerStockPayload({
     payload,
@@ -619,6 +850,32 @@ const addStockEntry = async ({ actor, payload }) => {
     recorded_by: actor.id,
     delivery_session_id: deliverySession.id,
   });
+
+  if (inventoryMode === 'single_operator') {
+    const stockImpactQuantity = calculateStockImpactFromEntry({
+      quantity: normalizedPayload.quantity,
+      unitType: normalizedPayload.unit_type,
+      product,
+      totalWeight: normalizedPayload.total_weight,
+    });
+
+    await applySingleOperatorStockEntry({
+      organizationId,
+      actor,
+      product,
+      stockImpactQuantity,
+      source: 'owner_stock_in',
+      sourceRecordId: record.id,
+      unitType: normalizedPayload.unit_type,
+      quantity: normalizedPayload.quantity,
+      totalWeight: normalizedPayload.total_weight,
+      unitPrice: normalizedPayload.unit_price,
+      boxPrice: normalizedPayload.box_price,
+      deliverySessionId: deliverySession.id,
+    });
+
+    return record;
+  }
 
   try {
     await runReconciliationForDeliverySession({
@@ -639,6 +896,7 @@ const addStaffStockEntry = async ({ actor, payload }) => {
   }
 
   const organizationId = resolveOrganizationId(actor, payload.organization_id);
+  const inventoryMode = await resolveOrganizationInventoryMode(organizationId);
   const product = await findProductById(payload.product_id, organizationId);
   const normalizedPayload = normalizeStaffStockPayload({
     payload,
@@ -656,6 +914,31 @@ const addStaffStockEntry = async ({ actor, payload }) => {
     recorded_by: actor.id,
     delivery_session_id: deliverySession.id,
   });
+
+  if (inventoryMode === 'single_operator') {
+    const stockImpactQuantity = calculateStockImpactFromEntry({
+      quantity: normalizedPayload.quantity,
+      unitType: normalizedPayload.unit_type,
+      product,
+      totalWeight: normalizedPayload.total_weight,
+      metadata: normalizedPayload.metadata,
+    });
+
+    await applySingleOperatorStockEntry({
+      organizationId,
+      actor,
+      product,
+      stockImpactQuantity,
+      source: 'staff_stock_in',
+      sourceRecordId: record.id,
+      unitType: normalizedPayload.unit_type,
+      quantity: normalizedPayload.quantity,
+      totalWeight: normalizedPayload.total_weight ?? normalizedPayload.metadata?.total_weight,
+      deliverySessionId: deliverySession.id,
+    });
+
+    return record;
+  }
 
   try {
     await runReconciliationForDeliverySession({
@@ -808,22 +1091,43 @@ const resolveMismatch = async ({
     })
     : null;
   const previousUnit = Number(product.unit || 0);
-  const nextUnit = previousUnit + quantity;
-
-  await updateProductUnit({
-    productId: targetProductId,
-    nextUnit,
-    organizationId,
-    unitPrice: latestOwnerEntry?.unit_price,
-    boxPrice: latestOwnerEntry?.box_price,
-  });
-  await updateReconciliationStatus({ reconciliationId, status: 'resolved', organizationId });
+  let nextUnit = previousUnit + quantity;
+  let targetAppliedForSession = null;
+  const previousUnitPrice = Number(product.unit_price || 0);
+  const previousBoxPrice = Number(product.box_price || 0);
+  const nextUnitPrice = Number.isFinite(Number(latestOwnerEntry?.unit_price))
+    ? Number(latestOwnerEntry.unit_price)
+    : previousUnitPrice;
+  const nextBoxPrice = Number.isFinite(Number(latestOwnerEntry?.box_price))
+    ? Number(latestOwnerEntry.box_price)
+    : previousBoxPrice;
 
   if (reconciliation.delivery_session_id) {
     const session = await findDeliverySessionById({
       organizationId,
       deliverySessionId: reconciliation.delivery_session_id,
     });
+
+    const currentApplied = Number(session.inventory_applied_quantity || 0);
+    targetAppliedForSession = Math.max(0, quantity);
+    const deltaToApply = targetAppliedForSession - currentApplied;
+    nextUnit = previousUnit + deltaToApply;
+    if (nextUnit < 0) {
+      throw new HttpError(
+        400,
+        'Cannot resolve mismatch with this quantity because resulting stock would be negative.',
+      );
+    }
+
+    await updateProductUnit({
+      productId: targetProductId,
+      nextUnit,
+      organizationId,
+      unitPrice: latestOwnerEntry?.unit_price,
+      boxPrice: latestOwnerEntry?.box_price,
+    });
+    await updateReconciliationStatus({ reconciliationId, status: 'resolved', organizationId });
+
     await updateDeliverySessionState({
       organizationId,
       deliverySessionId: reconciliation.delivery_session_id,
@@ -833,8 +1137,17 @@ const resolveMismatch = async ({
     await updateDeliverySessionInventoryApplied({
       organizationId,
       deliverySessionId: reconciliation.delivery_session_id,
-      appliedQuantity: Math.max(0, Number(session.inventory_applied_quantity || 0) + quantity),
+      appliedQuantity: targetAppliedForSession,
     });
+  } else {
+    await updateProductUnit({
+      productId: targetProductId,
+      nextUnit,
+      organizationId,
+      unitPrice: latestOwnerEntry?.unit_price,
+      boxPrice: latestOwnerEntry?.box_price,
+    });
+    await updateReconciliationStatus({ reconciliationId, status: 'resolved', organizationId });
   }
 
   await insertAuditLog({
@@ -854,6 +1167,37 @@ const resolveMismatch = async ({
       status: 'resolved',
     },
   });
+
+  const unitPriceChanged = nextUnitPrice !== previousUnitPrice;
+  const boxPriceChanged = nextBoxPrice !== previousBoxPrice;
+  if (unitPriceChanged || boxPriceChanged) {
+    const changedFields = [
+      unitPriceChanged ? 'unit_price' : null,
+      boxPriceChanged ? 'box_price' : null,
+    ].filter(Boolean).join(', ');
+
+    await insertAuditLog({
+      tableName: 'products',
+      recordId: targetProductId,
+      action: `Applied price from mismatch resolution (${changedFields})`,
+      changedBy: actor.id,
+      organizationId,
+      beforeData: {
+        product_id: targetProductId,
+        reconciliation_id: reconciliationId,
+        source_stock_in_id: latestOwnerEntry?.id || null,
+        unit_price: previousUnitPrice,
+        box_price: previousBoxPrice,
+      },
+      afterData: {
+        product_id: targetProductId,
+        reconciliation_id: reconciliationId,
+        source_stock_in_id: latestOwnerEntry?.id || null,
+        unit_price: nextUnitPrice,
+        box_price: nextBoxPrice,
+      },
+    });
+  }
 };
 
 module.exports = {

@@ -105,6 +105,11 @@ export const routes: Routes = [
                     ),
                 title: 'Analytics',
             },
+            {
+                path: 'sales',
+                component: SalesDashboardComponent,
+                title: 'Sales Entry',
+            },
 
 
 

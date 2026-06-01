@@ -33,6 +33,8 @@ export interface StaffStockEntry {
     metadata?: {
         damaged_qty?: number;
         notes?: string;
+        total_weight?: number;
+        measured_box_weights?: number[];
     };
 
 

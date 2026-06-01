@@ -47,6 +47,7 @@ const env = {
   smtpSecure: String(process.env.SMTP_SECURE || '').toLowerCase() === 'true',
   reconciliationCutoffHourUtc: Number(process.env.RECONCILIATION_CUTOFF_HOUR_UTC || 20),
   reconciliationDefaultGraceHours: Number(process.env.RECONCILIATION_DEFAULT_GRACE_HOURS || 24),
+  reconciliationAutoAcceptToleranceKg: Number(process.env.RECONCILIATION_AUTO_ACCEPT_TOLERANCE_KG || 0.5),
 };
 
 module.exports = { env };

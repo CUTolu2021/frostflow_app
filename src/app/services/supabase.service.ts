@@ -17,6 +17,7 @@ import {
     CreateOrganizationResponse,
     InventoryLog,
     NotificationRecord,
+    OrganizationSettings,
     OrganizationSummary,
     PollingPayload,
     RecentStaffEntry,
@@ -35,6 +36,7 @@ export class SupabaseService {
     private readonly apiBase = this.resolveApiBase()
     private authCallbacks = new Set<(event: string, session: AuthSessionLike) => void>()
     staffStock = signal<StaffStockEntry[]>([])
+    pendingMismatchCount = signal<number>(0)
 
     constructor(
         private loadingService: LoadingService,
@@ -455,7 +457,19 @@ export class SupabaseService {
 
     async getPendingMismatches(): Promise<ReconciliationMismatch[]> {
         const res = await this.requestWithAuth<{ mismatches: ReconciliationMismatch[] }>('get', '/api/app/reconciliation/pending');
-        return res.mismatches || [];
+        const mismatches = res.mismatches || [];
+        this.pendingMismatchCount.set(mismatches.length);
+        return mismatches;
+    }
+
+    async refreshPendingMismatchCount(): Promise<number> {
+        try {
+            const mismatches = await this.getPendingMismatches();
+            return mismatches.length;
+        } catch {
+            this.pendingMismatchCount.set(0);
+            return 0;
+        }
     }
 
     async resolveMismatch(
@@ -605,6 +619,23 @@ export class SupabaseService {
         return res.organizations || [];
     }
 
+    async getOrganizationSettings(): Promise<OrganizationSettings> {
+        const res = await this.requestWithAuth<{ settings: OrganizationSettings }>(
+            'get',
+            '/api/app/organization/settings'
+        );
+        return res.settings;
+    }
+
+    async updateOrganizationSettings(payload: { inventory_mode: 'dual_control' | 'single_operator' }): Promise<OrganizationSettings> {
+        const res = await this.requestWithAuth<{ settings: OrganizationSettings }>(
+            'patch',
+            '/api/app/organization/settings',
+            payload
+        );
+        return res.settings;
+    }
+
     async createOrganizationWithOwner(payload: {
         organizationName: string;
         ownerName: string;
@@ -646,6 +677,18 @@ export class SupabaseService {
             'patch',
             `/api/admin/organizations/${orgId}/active`,
             { is_active: isActive }
+        );
+        return res.organization;
+    }
+
+    async updateOrganizationInventoryMode(
+        orgId: string,
+        inventoryMode: 'dual_control' | 'single_operator'
+    ): Promise<OrganizationSummary> {
+        const res = await this.requestWithAuth<{ organization: OrganizationSummary }>(
+            'patch',
+            `/api/admin/organizations/${orgId}/inventory-mode`,
+            { inventory_mode: inventoryMode }
         );
         return res.organization;
     }

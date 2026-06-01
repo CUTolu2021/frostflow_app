@@ -7,7 +7,9 @@ const {
   listOrganizations,
   softDeleteOrganization,
   updateOrganizationStatus,
+  updateOrganizationInventoryMode,
   countUsersByOrg,
+  normalizeInventoryMode,
 } = require('../repositories/organizationsRepository');
 const { createUser } = require('../repositories/usersRepository');
 const { listUsers, updateUserStatus, updateUserPassword } = require('../repositories/adminRepository');
@@ -89,6 +91,12 @@ const setOrganizationStatus = async ({ actor, organizationId, isActive }) => {
   return updateOrganizationStatus({ organizationId, isActive });
 };
 
+const setOrganizationInventoryMode = async ({ actor, organizationId, inventoryMode }) => {
+  assertSuperadmin(actor);
+  const normalizedMode = normalizeInventoryMode(inventoryMode);
+  return updateOrganizationInventoryMode({ organizationId, inventoryMode: normalizedMode });
+};
+
 const removeOrganization = async ({ actor, organizationId }) => {
   assertSuperadmin(actor);
   await deleteOrganizationCascade({ organizationId });
@@ -157,6 +165,7 @@ module.exports = {
   createOrganizationWithOwner,
   listAllOrganizations,
   setOrganizationStatus,
+  setOrganizationInventoryMode,
   removeOrganization,
   softRemoveOrganization,
   listAllUsers,

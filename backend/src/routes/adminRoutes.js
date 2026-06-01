@@ -7,6 +7,7 @@ const {
   listUsersHandler,
   resetUserPasswordHandler,
   softDeleteOrganizationHandler,
+  updateOrganizationInventoryModeHandler,
   updateOrganizationStatusHandler,
   updateUserStatusHandler,
 } = require('../controllers/adminController');
@@ -17,6 +18,7 @@ router.use(requireAuth);
 router.get('/organizations', listOrganizationsHandler);
 router.post('/organizations', createOrganizationHandler);
 router.patch('/organizations/:orgId/active', updateOrganizationStatusHandler);
+router.patch('/organizations/:orgId/inventory-mode', updateOrganizationInventoryModeHandler);
 router.post('/organizations/:orgId/soft-delete', softDeleteOrganizationHandler);
 router.delete('/organizations/:orgId', deleteOrganizationHandler);
 

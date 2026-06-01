@@ -3,6 +3,7 @@
     display: flex;
     flex-direction: column;
     gap: 20px;
+    min-width: 0;
 }
 
 .page-header {
@@ -27,6 +28,7 @@
     border: 1px solid #e6e6e6;
     border-radius: 12px;
     padding: 20px;
+    min-width: 0;
 }
 
 .temp-password {
@@ -47,11 +49,13 @@
 
 .temp-password input {
     width: 100%;
+    max-width: 100%;
     padding: 8px 10px;
     border: 1px solid #f0c36a;
     border-radius: 6px;
     font-family: monospace;
     background: #fffdf6;
+    box-sizing: border-box;
 }
 
 .temp-password small {
@@ -65,6 +69,7 @@
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 16px;
     margin: 16px 0;
+    min-width: 0;
 }
 
 .field label {
@@ -73,12 +78,18 @@
     margin-bottom: 6px;
 }
 
+.field {
+    min-width: 0;
+}
+
 .field input {
     width: 100%;
+    max-width: 100%;
     padding: 10px 12px;
     border: 1px solid #d5d5d5;
     border-radius: 8px;
     outline: none;
+    box-sizing: border-box;
 }
 
 .password-row {
@@ -93,6 +104,7 @@
     border-radius: 8px;
     padding: 10px 14px;
     cursor: pointer;
+    box-sizing: border-box;
 }
 
 .primary-btn {
@@ -149,6 +161,34 @@
     gap: 8px;
 }
 
+.org-mode-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.org-mode-row label {
+    font-weight: 600;
+    font-size: 12px;
+    color: #374151;
+}
+
+.org-mode-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.org-mode-actions select {
+    flex: 1;
+    min-width: 0;
+    padding: 10px 12px;
+    border: 1px solid #d5d5d5;
+    border-radius: 8px;
+    background: #fff;
+    box-sizing: border-box;
+}
+
 .danger-btn {
     background: #b42318;
     color: #fff;
@@ -156,6 +196,7 @@
     border-radius: 8px;
     padding: 10px 14px;
     cursor: pointer;
+    box-sizing: border-box;
 }
 
 .empty-state {
@@ -171,5 +212,23 @@
 
     .header-actions {
         width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+
+    .header-actions button,
+    .org-actions button {
+        width: 100%;
+    }
+
+    .org-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+
+    .org-mode-actions {
+        flex-direction: column;
+        align-items: stretch;
     }
 }

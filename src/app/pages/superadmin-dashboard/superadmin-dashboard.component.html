@@ -54,6 +54,27 @@
                     <span>Status: {{ org.deleted_at ? 'Soft Deleted' : (org.is_active ? 'Active' : 'Disabled') }}</span>
                     <span>Created: {{ org.created_at | date: 'medium' }}</span>
                 </div>
+                <div class="org-mode-row">
+                    <label for="org-mode-{{ org.id }}">Inventory Mode</label>
+                    <div class="org-mode-actions">
+                        <select
+                            id="org-mode-{{ org.id }}"
+                            [ngModel]="getOrgMode(org)"
+                            (ngModelChange)="orgModeDraft[org.id] = $event"
+                            [disabled]="activeOrgActionId !== null || isSubmitting"
+                        >
+                            <option value="dual_control">Dual Control (with reconciliation)</option>
+                            <option value="single_operator">Single Operator (skip reconciliation)</option>
+                        </select>
+                        <button
+                            class="ghost-btn"
+                            (click)="saveOrganizationMode(org)"
+                            [disabled]="activeOrgActionId !== null || isSubmitting"
+                        >
+                            Save Mode
+                        </button>
+                    </div>
+                </div>
                 <div class="org-actions">
                     <button class="ghost-btn" (click)="toggleOrganization(org)" [disabled]="activeOrgActionId !== null || isSubmitting">
                         {{ org.is_active ? 'Disable' : 'Enable' }}

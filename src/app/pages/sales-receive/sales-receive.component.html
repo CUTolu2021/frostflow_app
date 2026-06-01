@@ -34,6 +34,29 @@
                 <input type="number" [(ngModel)]="receiveForm.qty" class="input-giant" placeholder="0" min="0" [disabled]="isLoading">
             </div>
 
+            <div class="form-section" *ngIf="requiresMeasuredBoxWeight()">
+                <label class="section-label">Measured Total {{ getMeasuredWeightLabel() }} <span class="required">*</span></label>
+                <input
+                    type="number"
+                    [(ngModel)]="receiveForm.measuredTotalWeight"
+                    class="input-lg"
+                    placeholder="e.g. 39.5"
+                    min="0"
+                    [disabled]="isLoading"
+                >
+                <small class="hint">
+                    If each box weighs differently, enter the combined measured total.
+                </small>
+                <label class="label-tiny mt-2">Optional: Individual box weights (comma-separated)</label>
+                <input
+                    type="text"
+                    [(ngModel)]="receiveForm.measuredBoxWeightsText"
+                    class="input-md"
+                    placeholder="10, 10, 9.5, 10"
+                    [disabled]="isLoading"
+                >
+            </div>
+
             <div class="damages-section">
                 <div class="checkbox-row">
                     <input type="checkbox" [(ngModel)]="receiveForm.hasDamages" id="damages" class="checkbox-lg" [disabled]="isLoading">
@@ -75,4 +98,3 @@
 
     </div>
 </div>
-

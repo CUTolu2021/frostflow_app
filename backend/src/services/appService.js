@@ -23,6 +23,12 @@ const {
   updateProduct,
   updateStaffStatus,
 } = require('../repositories/appRepository');
+const {
+  getOrganizationById,
+  updateOrganizationInventoryMode,
+  normalizeInventoryMode,
+  INVENTORY_MODE_DEFAULT,
+} = require('../repositories/organizationsRepository');
 const { insertAuditLog } = require('../repositories/auditRepository');
 
 const resolveOrganizationId = (actor, requestedOrgId) => {
@@ -77,17 +83,53 @@ const createProduct = async ({ actor, organizationId, payload }) => {
 };
 
 const editProduct = async ({ actor, organizationId, productId, updates }) => {
-  if (!['admin', 'manager', 'superadmin'].includes(actor.role)) {
-    throw new HttpError(403, 'Only admin or manager can update products');
+  const canEditAllFields = ['admin', 'manager', 'superadmin'].includes(actor.role);
+  const canEditPriceOnly = actor.role === 'sales';
+  if (!canEditAllFields && !canEditPriceOnly) {
+    throw new HttpError(403, 'Only admin, manager, or sales can update products');
   }
+
   const orgId = resolveOrganizationId(actor, organizationId);
   const before = await getProduct({ organizationId: orgId, productId });
-  const { organization_id: _ignored, ...safeUpdates } = updates || {};
+  const { organization_id: _ignored, ...rawUpdates } = updates || {};
+
+  let safeUpdates = rawUpdates;
+  if (canEditPriceOnly) {
+    const priceUpdates = {};
+    const hasUnitPrice = Object.prototype.hasOwnProperty.call(rawUpdates, 'unit_price');
+    const hasBoxPrice = Object.prototype.hasOwnProperty.call(rawUpdates, 'box_price');
+
+    if (hasUnitPrice) {
+      priceUpdates.unit_price = rawUpdates.unit_price;
+    }
+
+    if (hasBoxPrice) {
+      priceUpdates.box_price = rawUpdates.box_price;
+    }
+
+    if (!hasUnitPrice && !hasBoxPrice) {
+      throw new HttpError(403, 'Sales users can only update selling prices');
+    }
+
+    safeUpdates = priceUpdates;
+  }
+
   const record = await updateProduct({ organizationId: orgId, productId, updates: safeUpdates });
+
+  const isUnitPriceChanged = Number(before.unit_price || 0) !== Number(record.unit_price || 0);
+  const isBoxPriceChanged = Number(before.box_price || 0) !== Number(record.box_price || 0);
+  const changedPriceFields = [isUnitPriceChanged ? 'unit_price' : null, isBoxPriceChanged ? 'box_price' : null]
+    .filter(Boolean)
+    .join(', ');
+
+  const action = changedPriceFields
+    ? `Updated Product Price (${changedPriceFields}): ${before.name}`
+    : `Edited Product: ${before.name}`;
+
   await insertAuditLog({
     tableName: 'products',
     recordId: record.id,
-    action: `Edited Product: ${before.name}`,
+    action,
     changedBy: actor.id,
     organizationId: orgId,
     beforeData: before,
@@ -122,7 +164,35 @@ const getAiReports = async ({ actor, organizationId, limit }) => {
 
 const getPendingReconciliations = async ({ actor, organizationId }) => {
   const orgId = resolveOrganizationId(actor, organizationId);
+  const organization = await getOrganizationById({ organizationId: orgId });
+  if (normalizeInventoryMode(organization?.inventory_mode) === 'single_operator') {
+    return [];
+  }
   return listPendingMismatches({ organizationId: orgId });
+};
+
+const getOrganizationSettings = async ({ actor, organizationId }) => {
+  const orgId = resolveOrganizationId(actor, organizationId);
+  const organization = await getOrganizationById({ organizationId: orgId });
+  return {
+    id: organization.id,
+    name: organization.name,
+    is_active: organization.is_active,
+    inventory_mode: normalizeInventoryMode(organization.inventory_mode || INVENTORY_MODE_DEFAULT),
+  };
+};
+
+const updateOrganizationSettings = async ({ actor, organizationId, inventoryMode }) => {
+  if (!['admin', 'superadmin'].includes(actor.role)) {
+    throw new HttpError(403, 'Only superadmin or organization admin can update organization settings');
+  }
+
+  const orgId = resolveOrganizationId(actor, organizationId);
+  const normalizedMode = normalizeInventoryMode(inventoryMode);
+  return updateOrganizationInventoryMode({
+    organizationId: orgId,
+    inventoryMode: normalizedMode,
+  });
 };
 
 const getDashboardMetrics = async ({ actor, organizationId }) => {
@@ -275,6 +345,7 @@ module.exports = {
   getExpenses,
   getInventoryLogs,
   getPendingReconciliations,
+  getOrganizationSettings,
   getProductHistory,
   getRecentSales,
   getRecentStaffEntries,
@@ -284,6 +355,7 @@ module.exports = {
   getStaffList,
   getTodaySalesMetrics,
   getUnreadNotifications,
+  updateOrganizationSettings,
   getProfile,
   markNotificationRead,
   setStaffStatus,

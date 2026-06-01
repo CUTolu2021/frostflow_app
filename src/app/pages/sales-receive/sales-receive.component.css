@@ -58,6 +58,7 @@
     font-size: 16px;
     background: white;
     color: #0f172a;
+    box-sizing: border-box;
 }
 
 .input-giant {
@@ -76,6 +77,7 @@
     font-weight: 700;
     color: #0f172a;
     background: white;
+    box-sizing: border-box;
 }
 
 .input-giant:focus {
@@ -190,6 +192,24 @@
     padding: 8px 12px;
     border-radius: 6px;
     border: 1px solid #cbd5e1;
+    box-sizing: border-box;
+}
+
+.required {
+    color: #dc2626;
+}
+
+.hint {
+    color: #64748b;
+    font-size: 12px;
+}
+
+.mt-2 {
+    margin-top: 8px;
+}
+
+.form-section .input-md {
+    max-width: 100%;
 }
 
 .border-red {

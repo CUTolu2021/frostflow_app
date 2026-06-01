@@ -47,7 +47,22 @@
                 <span class="nav-text">Analytics</span>
             </a>
 
-            <a routerLink="/admin/mismatch" routerLinkActive="active" class="nav-item nav-item-with-badge">
+            <a
+                *ngIf="organizationInventoryMode === 'single_operator'"
+                routerLink="/admin/sales"
+                routerLinkActive="active"
+                class="nav-item"
+            >
+                <span class="material-symbols-outlined nav-icon">point_of_sale</span>
+                <span class="nav-text">Record Sales</span>
+            </a>
+
+            <a
+                *ngIf="organizationInventoryMode !== 'single_operator'"
+                routerLink="/admin/mismatch"
+                routerLinkActive="active"
+                class="nav-item nav-item-with-badge"
+            >
                 <span class="nav-label">
                     <span class="material-symbols-outlined nav-icon">warning</span>
                     <span class="nav-text">Mismatch</span>

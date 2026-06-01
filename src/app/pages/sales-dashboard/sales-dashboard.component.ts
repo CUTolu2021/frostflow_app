@@ -38,6 +38,8 @@ export class SalesDashboardComponent {
     public name: string = localStorage.getItem('user_name') || ''
     email: string = localStorage.getItem('user_email') || ''
     id: string = localStorage.getItem('user_id') || ''
+    userRole: string = localStorage.getItem('user_role') || ''
+    isAdminView = false
 
     constructor(
         private supabase: SupabaseService,
@@ -72,6 +74,7 @@ export class SalesDashboardComponent {
     }
 
     async ngOnInit(): Promise<void> {
+        this.isAdminView = this.userRole === 'admin' || this.userRole === 'manager'
         this.salesMetrics = await this.supabase.getSalesDashboardMetrics()
         this.todaySalesMetrics = await this.supabase.getTodaySalesMetrics()
 

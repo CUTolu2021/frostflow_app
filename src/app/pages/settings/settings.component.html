@@ -16,6 +16,35 @@
             <span class="value">{{ userRole }}</span>
         </div>
 
+        <div class="mode-card" *ngIf="canManageInventoryMode">
+            <h3>Inventory Control Mode</h3>
+            <p class="mode-help">
+                Choose how stock intake is handled for your organization.
+            </p>
+            <div class="mode-options" *ngIf="!isLoadingMode; else modeLoading">
+                <label class="mode-option">
+                    <input type="radio" name="inventoryMode" value="dual_control" [(ngModel)]="organizationMode">
+                    <div>
+                        <span class="mode-title">Dual Control</span>
+                        <small>Owner and staff entries are reconciled. Variance can trigger mismatch resolution.</small>
+                    </div>
+                </label>
+                <label class="mode-option">
+                    <input type="radio" name="inventoryMode" value="single_operator" [(ngModel)]="organizationMode">
+                    <div>
+                        <span class="mode-title">Single Operator</span>
+                        <small>Stock is applied immediately from one entry flow. Reconciliation is bypassed.</small>
+                    </div>
+                </label>
+                <button class="btn primary" (click)="saveInventoryMode()" [disabled]="isSavingMode">
+                    {{ isSavingMode ? 'Saving...' : 'Save Inventory Mode' }}
+                </button>
+            </div>
+            <ng-template #modeLoading>
+                <p class="mode-loading">Loading mode settings...</p>
+            </ng-template>
+        </div>
+
         <div class="actions">
             <a class="btn ghost" routerLink="/force-password">Change Password</a>
             <button class="btn danger" (click)="signOut()" [disabled]="isSigningOut">

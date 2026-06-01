@@ -17,6 +17,7 @@ import { Router } from '@angular/router';
 })
 export class SuperadminDashboardComponent implements OnInit {
   organizations: OrganizationSummary[] = [];
+  orgModeDraft: Record<string, 'dual_control' | 'single_operator'> = {};
   isLoading = false;
   isSubmitting = false;
   lastTempPassword = '';
@@ -52,11 +53,22 @@ export class SuperadminDashboardComponent implements OnInit {
     this.isLoading = true;
     try {
       this.organizations = await this.supabase.listOrganizations();
+      this.syncOrgModeDrafts();
     } catch (error: unknown) {
       this.toast.show(getErrorMessage(error, 'Failed to load organizations'), 'error');
     } finally {
       this.isLoading = false;
     }
+  }
+
+  private syncOrgModeDrafts() {
+    const nextDrafts: Record<string, 'dual_control' | 'single_operator'> = {};
+    for (const org of this.organizations) {
+      const mode = org.inventory_mode === 'single_operator' ? 'single_operator' : 'dual_control';
+      nextDrafts[org.id] = mode;
+      org.inventory_mode = mode;
+    }
+    this.orgModeDraft = nextDrafts;
   }
 
   async createOrganization() {
@@ -77,6 +89,7 @@ export class SuperadminDashboardComponent implements OnInit {
 
       if (result?.organization) {
         this.organizations = [result.organization, ...this.organizations];
+        this.syncOrgModeDrafts();
       }
       this.lastTempPassword = result?.tempPassword || '';
       this.lastOwnerEmail = ownerEmail.trim();
@@ -158,6 +171,38 @@ export class SuperadminDashboardComponent implements OnInit {
       this.toast.show('Organization deleted', 'success');
     } catch (error: unknown) {
       this.toast.show(getErrorMessage(error, 'Failed to delete organization'), 'error');
+    } finally {
+      this.activeOrgActionId = null;
+    }
+  }
+
+  getOrgMode(org: OrganizationSummary): 'dual_control' | 'single_operator' {
+    return this.orgModeDraft[org.id] || (org.inventory_mode === 'single_operator' ? 'single_operator' : 'dual_control');
+  }
+
+  async saveOrganizationMode(org: OrganizationSummary) {
+    if (this.activeOrgActionId) return;
+
+    const nextMode = this.getOrgMode(org);
+    if ((org.inventory_mode || 'dual_control') === nextMode) {
+      this.toast.show('No mode change to save', 'info');
+      return;
+    }
+
+    this.activeOrgActionId = org.id;
+    try {
+      const updated = await this.supabase.updateOrganizationInventoryMode(org.id, nextMode);
+      org.inventory_mode = updated.inventory_mode || nextMode;
+      this.orgModeDraft[org.id] = org.inventory_mode as 'dual_control' | 'single_operator';
+      this.toast.show(
+        org.inventory_mode === 'single_operator'
+          ? 'Single-operator mode enabled'
+          : 'Dual-control mode enabled',
+        'success'
+      );
+    } catch (error: unknown) {
+      this.orgModeDraft[org.id] = (org.inventory_mode === 'single_operator' ? 'single_operator' : 'dual_control');
+      this.toast.show(getErrorMessage(error, 'Failed to update inventory mode'), 'error');
     } finally {
       this.activeOrgActionId = null;
     }

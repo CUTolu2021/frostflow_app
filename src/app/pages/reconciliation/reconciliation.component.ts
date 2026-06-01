@@ -176,7 +176,7 @@ export class ReconciliationComponent implements OnInit {
             await this.productService.loadProducts(true, true);
             this.toast.show('Mismatch resolved successfully', 'success');
 
-            this.loadData()
+            await this.loadData();
         } catch (error) {
             console.error(error)
             this.toast.show('Failed to resolve mismatch', 'error');

@@ -11,6 +11,7 @@ const {
   getExpenses,
   getInventoryLogs,
   getPendingReconciliations,
+  getOrganizationSettings,
   getProductHistory,
   getRecentSales,
   getRecentStaffEntries,
@@ -23,6 +24,7 @@ const {
   getProfile,
   markNotificationRead,
   setStaffStatus,
+  updateOrganizationSettings,
 } = require('../services/appService');
 
 const getProfileHandler = asyncHandler(async (req, res) => {
@@ -203,6 +205,32 @@ const listExpensesHandler = asyncHandler(async (req, res) => {
   res.json({ expenses });
 });
 
+const getOrganizationSettingsHandler = asyncHandler(async (req, res) => {
+  const settings = await getOrganizationSettings({
+    actor: req.user,
+    organizationId: req.query.organizationId,
+  });
+  res.json({ settings });
+});
+
+const updateOrganizationSettingsHandler = asyncHandler(async (req, res) => {
+  const inventoryMode = String(req.body?.inventory_mode || '').trim().toLowerCase();
+  if (!inventoryMode) {
+    return res.status(400).json({ message: 'inventory_mode is required' });
+  }
+
+  if (!['dual_control', 'single_operator'].includes(inventoryMode)) {
+    return res.status(400).json({ message: 'inventory_mode must be dual_control or single_operator' });
+  }
+
+  const settings = await updateOrganizationSettings({
+    actor: req.user,
+    organizationId: req.body?.organizationId || req.query.organizationId,
+    inventoryMode,
+  });
+  res.json({ settings });
+});
+
 module.exports = {
   archiveProductHandler,
   createProductHandler,
@@ -218,6 +246,7 @@ module.exports = {
   listExpensesHandler,
   listInventoryLogsHandler,
   listNotificationsHandler,
+  getOrganizationSettingsHandler,
   listPendingMismatchesHandler,
   listProductsHandler,
   listRecentSalesHandler,
@@ -226,5 +255,6 @@ module.exports = {
   listStaffHandler,
   markNotificationReadHandler,
   updateProductHandler,
+  updateOrganizationSettingsHandler,
   updateStaffStatusHandler,
 };
