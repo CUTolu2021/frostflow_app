@@ -11,32 +11,70 @@
 .mobile-header {
     display: none;
     align-items: center;
-    gap: 16px;
-    padding: 16px;
-    background-color: white;
+    gap: 12px;
+    padding: 10px 16px;
+    background: rgba(255, 255, 255, 0.94);
     border-bottom: 1px solid #e2e8f0;
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     z-index: 40;
-    height: 60px;
+    height: 64px;
+    box-shadow: 0 8px 30px rgba(15, 23, 42, 0.06);
+    backdrop-filter: blur(18px);
 }
 
 .hamburger-btn {
-    background: none;
-    border: none;
+    width: 40px;
+    height: 40px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #ffffff;
     cursor: pointer;
-    padding: 4px;
+    padding: 0;
     display: flex;
     align-items: center;
+    justify-content: center;
     color: #0f172a;
 }
 
+.mobile-brand-lockup {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.mobile-brand-mark {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 10px;
+    background: linear-gradient(145deg, #137fec, #1d4ed8);
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 800;
+    box-shadow: 0 8px 18px rgba(19, 127, 236, 0.24);
+}
+
 .mobile-brand {
-    font-weight: 700;
-    font-size: 1.1rem;
+    font-weight: 800;
+    font-size: 1rem;
+    letter-spacing: -0.03em;
     color: #0f172a;
+}
+
+.mobile-role {
+    margin-left: auto;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
 }
 
 /* Sidebar - Default Desktop Styles */
@@ -61,7 +99,7 @@
 @media (max-width: 768px) {
     .layout-container {
         flex-direction: column;
-        padding-top: 60px;
+        padding-top: 64px;
         /* Space for mobile header */
     }
 

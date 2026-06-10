@@ -1,10 +1,14 @@
 <div class="layout-container">
     <!-- Mobile Header -->
     <header class="mobile-header">
-        <button class="hamburger-btn" (click)="toggleMobileMenu()">
+        <button class="hamburger-btn" type="button" aria-label="Open navigation" (click)="toggleMobileMenu()">
             <span class="material-symbols-outlined">menu</span>
         </button>
-        <span class="mobile-brand">{{ userRole === 'superadmin' ? 'Frostflow' : (organizationName || 'Organization') }}</span>
+        <div class="mobile-brand-lockup">
+            <span class="mobile-brand-mark">F</span>
+            <span class="mobile-brand">FrostFlow</span>
+        </div>
+        <span class="mobile-role">{{ userRole === 'superadmin' ? 'Superadmin' : (userRole === 'sales' ? 'Sales' : 'Admin') }}</span>
     </header>
 
     <!-- Sidebar with dynamic class for mobile -->

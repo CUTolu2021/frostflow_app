@@ -366,7 +366,8 @@
 .modal-overlay {
     position: fixed;
     inset: 0;
-    background-color: rgba(0, 0, 0, 0.5);
+    background: rgba(15, 23, 42, 0.42);
+    backdrop-filter: blur(14px) saturate(0.8);
     z-index: 50;
     display: flex;
     justify-content: center;
@@ -431,11 +432,25 @@
     /* Fix width issues */
 }
 
+.form-select {
+    appearance: none;
+    background:
+        #ffffff
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
+        no-repeat right 14px center / 18px;
+    padding-right: 44px;
+}
+
 .form-input:focus,
 .form-select:focus {
     outline: none;
     border-color: #3b82f6;
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.form-input::-webkit-calendar-picker-indicator {
+    display: none !important;
+    opacity: 0;
 }
 
 .divider {
@@ -518,6 +533,10 @@
 }
 
 @media (max-width: 768px) {
+    .products-page {
+        padding: 18px 16px 32px;
+    }
+
     .desktop-view {
         display: none;
     }
@@ -550,19 +569,57 @@
     .page-header {
         flex-direction: column;
         align-items: flex-start;
-        gap: 12px;
-        margin-bottom: 24px;
+        gap: 16px;
+        margin-bottom: 20px;
     }
 
     .page-title {
-        font-size: 20px;
-        /* Reduced from 24px */
+        font-size: 24px;
+        letter-spacing: -0.04em;
     }
 
     .page-subtitle {
         font-size: 13px;
         display: none;
-        /* Hide subtitle on very small screens to save space, or just keep it small */
+    }
+
+    .breadcrumb {
+        display: none;
+    }
+
+    .page-header > .btn {
+        width: 100%;
+        min-height: 48px;
+        justify-content: center;
+        border-radius: 14px;
+        font-weight: 700;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin-bottom: 18px;
+    }
+
+    .stat-card {
+        min-width: 0;
+        padding: 14px;
+        border-radius: 16px;
+    }
+
+    .stat-icon {
+        display: none;
+    }
+
+    .stat-value {
+        font-size: 22px;
+    }
+
+    .stat-badge {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     /* Fix Search Bar Overflow */
@@ -583,8 +640,8 @@
     .product-card {
         background: white;
         border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        border-radius: 18px;
+        box-shadow: 0 12px 32px rgba(15, 23, 42, 0.06);
         overflow: hidden;
     }
 
@@ -634,7 +691,87 @@
     }
 
     .btn-sm {
-        padding: 6px 12px;
-        font-size: 12px;
+        min-height: 40px;
+        padding: 8px 14px;
+        font-size: 13px;
+        border-radius: 12px;
+    }
+
+    .modal-overlay {
+        align-items: flex-end;
+        padding: 0;
+        background: rgba(15, 23, 42, 0.36);
+        backdrop-filter: blur(18px) saturate(0.72);
+    }
+
+    .modal-container {
+        max-width: 100%;
+        max-height: 91vh;
+        border-radius: 28px 28px 0 0;
+        box-shadow: 0 -24px 70px rgba(15, 23, 42, 0.2);
+    }
+
+    .modal-header {
+        padding: 24px 20px 18px;
+    }
+
+    .modal-title {
+        font-size: 22px;
+        letter-spacing: -0.035em;
+    }
+
+    .modal-body {
+        padding: 20px;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+        gap: 18px;
+    }
+
+    .form-group,
+    .full-width {
+        grid-column: 1;
+        min-width: 0;
+    }
+
+    .form-input,
+    .form-select {
+        min-height: 50px;
+        padding: 13px 14px;
+        border-radius: 13px;
+        font-size: 16px;
+        background-color: #f8fafc;
+    }
+
+    .form-select {
+        padding-right: 46px;
+    }
+
+    .checkbox-group {
+        min-height: 48px;
+        padding: 12px 14px;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        background: #f8fafc;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        accent-color: #2563eb;
+    }
+
+    .modal-footer {
+        padding: 14px 20px 28px;
+        gap: 10px;
+    }
+
+    .modal-footer .btn {
+        min-height: 48px;
+        flex: 1;
+        justify-content: center;
+        border-radius: 14px;
+        font-weight: 700;
     }
 }

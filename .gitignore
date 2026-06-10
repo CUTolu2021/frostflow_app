@@ -5,6 +5,9 @@
 /tmp
 /out-tsc
 /bazel-out
+/frostflow-mobile-explainer
+/hf-temp-scaffold
+/video-assets
 
 # Node
 /node_modules
@@ -14,6 +17,7 @@ build_error.log
 build_error_*.log
 .env
 .env.*
+*.log
 backend/.env
 !backend/.env.example
 

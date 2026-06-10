@@ -5,14 +5,13 @@
             <span class="material-symbols-outlined logo-icon">storefront</span>
         </div>
         <div class="brand-text">
-            <h1>{{ userRole === 'superadmin' ? 'Frostflow' : (organizationName || 'Organization') }}</h1>
+            <h1>FrostFlow</h1>
             <p>
                 {{
                     userRole === 'superadmin'
                         ? 'Superadmin Console'
-                        : userRole === 'admin' || userRole === 'manager'
-                        ? 'Admin Console'
-                        : 'Sales Console'
+                        : (organizationName || 'Organization') + ' · ' +
+                          (userRole === 'admin' || userRole === 'manager' ? 'Admin' : 'Sales')
                 }}
             </p>
         </div>

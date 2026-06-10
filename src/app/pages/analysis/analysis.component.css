@@ -940,6 +940,10 @@
 }
 
 @media (max-width: 768px) {
+    .dashboard-page {
+        padding: 18px 16px 32px;
+    }
+
     .desktop-view {
         display: none;
     }
@@ -953,7 +957,17 @@
     .page-header {
         flex-direction: column;
         align-items: flex-start;
-        gap: 16px;
+        gap: 14px;
+        margin-bottom: 20px;
+    }
+
+    .page-title {
+        font-size: 24px;
+        letter-spacing: -0.04em;
+    }
+
+    .page-subtitle {
+        display: none;
     }
 
     .header-actions {
@@ -963,6 +977,9 @@
 
     .header-actions .btn {
         flex: 1;
+        min-height: 46px;
+        border-radius: 13px;
+        font-weight: 700;
     }
 
     /* Tabs scrollable */
@@ -973,8 +990,24 @@
 
     /* KPI Grid Mobile */
     .kpi-grid {
-        grid-template-columns: 1fr;
-        gap: 16px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .kpi-card {
+        min-width: 0;
+        padding: 16px;
+        border-radius: 18px;
+        box-shadow: 0 12px 32px rgba(15, 23, 42, 0.06);
+    }
+
+    .kpi-value {
+        font-size: 22px;
+        overflow-wrap: anywhere;
+    }
+
+    .tabs-header {
+        gap: 20px;
     }
 
     /* Sales Data Card */

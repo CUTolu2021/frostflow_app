@@ -566,6 +566,15 @@
     transition: all 0.2s;
 }
 
+.form-select {
+    appearance: none;
+    background:
+        #ffffff
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
+        no-repeat right 14px center / 18px;
+    padding-right: 44px;
+}
+
 .form-input:focus,
 .form-select:focus {
     outline: none;
@@ -686,13 +695,24 @@
     }
 
     .dashboard-page {
-        padding: 16px;
+        padding: 18px 16px 32px;
     }
 
     .page-header {
         flex-direction: column;
         align-items: flex-start;
-        gap: 16px;
+        gap: 14px;
+        margin-bottom: 20px;
+    }
+
+    .breadcrumb,
+    .page-subtitle {
+        display: none;
+    }
+
+    .page-title {
+        font-size: 24px;
+        letter-spacing: -0.04em;
     }
 
     .header-actions {
@@ -701,6 +721,23 @@
 
     .header-actions .btn {
         width: 100%;
+        min-height: 48px;
+        border-radius: 14px;
+        font-weight: 700;
+    }
+
+    .inventory-card {
+        padding: 18px;
+        border-radius: 18px;
+        box-shadow: 0 12px 32px rgba(15, 23, 42, 0.06);
+    }
+
+    .card-title {
+        font-size: 16px;
+    }
+
+    .weight-highlight {
+        font-size: 18px;
     }
 
     .side-panel {
@@ -710,15 +747,16 @@
     /* Mobile Modal Overhaul - Bottom Sheet Style */
     .modal-overlay {
         align-items: flex-end;
-        /* Align to bottom for sheet feel */
         padding: 0;
+        background: rgba(15, 23, 42, 0.36);
+        backdrop-filter: blur(18px) saturate(0.72);
     }
 
     .modal-content {
         max-width: 100%;
         border-radius: 24px 24px 0 0;
-        /* Rounded top corners only */
         max-height: 90vh;
+        box-shadow: 0 -24px 70px rgba(15, 23, 42, 0.2);
         animation: slideUpMob 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
@@ -742,7 +780,10 @@
     .form-select,
     .large-input {
         font-size: 16px !important;
-        padding: 12px;
+        min-height: 50px;
+        padding: 13px 14px;
+        border-radius: 13px;
+        background-color: #f8fafc;
     }
 
     .radio-group {
