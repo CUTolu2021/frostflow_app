@@ -303,7 +303,7 @@ const updateStaffStatus = async ({ organizationId, userId, isActive }) => {
 
 const listRecentSales = async ({ organizationId, limit = 50 }) => {
   const { data, error } = await table('sales')
-    .select('*, products!product_id(name)')
+    .select('*, products!product_id(name), sale_payments(*)')
     .eq('organization_id', organizationId)
     .order('created_at', { ascending: false })
     .limit(limit);
@@ -327,7 +327,7 @@ const listRecentStaffEntries = async ({ organizationId, limit = 5 }) => {
 
 const listSalesHistory = async ({ organizationId, startDate, endDate }) => {
   const { data, error } = await table('sales')
-    .select('*, products!product_id(name), users!recorded_by(name)')
+    .select('*, products!product_id(name), users!recorded_by(name), sale_payments(*)')
     .eq('organization_id', organizationId)
     .gte('created_at', startDate)
     .lte('created_at', endDate)

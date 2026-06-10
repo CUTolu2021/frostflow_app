@@ -69,18 +69,25 @@ export class SalesHistoryComponent implements OnInit {
           payment_method: row.payment_method,
           status: row.status || 'completed',
           items: [],
-          item_summary: ''
+          item_summary: '',
+          payment_summary: '',
+          payments: [],
         };
       }
       grouped[id].items.push(row);
       if (row.status !== 'voided' && row.status !== 'rejected') {
-        grouped[id].total += row.total_price;
+        grouped[id].total += Number(row.total_price || 0);
       }
     });
 
     this.groupedSales = Object.values(grouped).sort((a: GroupedSale, b: GroupedSale) =>
       new Date(b.raw_date).getTime() - new Date(a.raw_date).getTime()
     );
+
+    this.groupedSales.forEach((sale) => {
+      sale.payments = sale.items.flatMap((item) => item.sale_payments || []);
+      sale.payment_summary = this.buildPaymentSummary(sale);
+    });
 
     this.calculateFinancials();
   }
@@ -90,10 +97,33 @@ export class SalesHistoryComponent implements OnInit {
     this.groupedSales.forEach(inv => {
       if (inv.status === 'voided' || inv.status === 'rejected') return;
 
-      this.financials.myTotal += inv.total;
-      if (inv.payment_method.toLowerCase() === 'cash') this.financials.myCash += inv.total;
-      else this.financials.myTransfers += inv.total;
+      this.financials.myTotal += Number(inv.total || 0);
+      if (inv.payments && inv.payments.length > 0) {
+        inv.payments.forEach((payment) => {
+          if (String(payment.method).toLowerCase() === 'cash') this.financials.myCash += Number(payment.amount || 0);
+          else this.financials.myTransfers += Number(payment.amount || 0);
+        });
+        return;
+      }
+
+      if (String(inv.payment_method || '').toLowerCase() === 'cash') this.financials.myCash += Number(inv.total || 0);
+      else this.financials.myTransfers += Number(inv.total || 0);
     });
+  }
+
+  private buildPaymentSummary(sale: GroupedSale): string {
+    const payments = sale.payments || [];
+    if (!payments.length) return sale.payment_method.toUpperCase();
+
+    const totals = new Map<string, number>();
+    payments.forEach((payment) => {
+      const method = String(payment.method || '').toLowerCase();
+      totals.set(method, (totals.get(method) || 0) + Number(payment.amount || 0));
+    });
+
+    return Array.from(totals.entries())
+      .map(([method, amount]) => `${method.toUpperCase()}: ${amount.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
+      .join(' | ');
   }
 
   viewReceipt(invoice: GroupedSale) {

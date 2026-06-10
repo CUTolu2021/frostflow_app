@@ -207,6 +207,7 @@ const resolveOrganizationInventoryMode = async (organizationId) => {
 };
 
 const normalizeBaseUnit = (value) => String(value || 'kg').trim().toLowerCase();
+const PAYMENT_METHODS = ['cash', 'card', 'transfer', 'credit'];
 
 const hasValue = (value) => value !== null && value !== undefined && String(value).trim() !== '';
 
@@ -218,6 +219,73 @@ const toOptionalMoneyValue = (value, fieldName) => {
 const toOptionalQuantityValue = (value, fieldName) => {
   if (!hasValue(value)) return undefined;
   return toNumber(toPositiveQuantityDecimal(value, fieldName));
+};
+
+const normalizePaymentMethod = (value, fieldName = 'payment_method') => {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (!normalized) {
+    throw new HttpError(400, `${fieldName} is required`);
+  }
+  if (!PAYMENT_METHODS.includes(normalized) && normalized !== 'mixed') {
+    throw new HttpError(400, `${fieldName} must be one of: ${PAYMENT_METHODS.join(', ')}, mixed`);
+  }
+  return normalized;
+};
+
+const normalizeSalePayments = ({ payload, totalPriceDecimal, paymentMethod }) => {
+  const rawPayments = Array.isArray(payload?.payments) ? payload.payments : [];
+
+  if (paymentMethod !== 'mixed' && rawPayments.length === 0) {
+    return [
+      {
+        method: paymentMethod,
+        amount: toNumber(totalPriceDecimal),
+        reference_note: null,
+      },
+    ];
+  }
+
+  if (rawPayments.length === 0) {
+    throw new HttpError(400, 'Add at least one payment line for a mixed payment sale');
+  }
+
+  const normalizedPayments = rawPayments.map((entry, index) => {
+    const method = normalizePaymentMethod(entry?.method, `payments[${index}].method`);
+    if (method === 'mixed') {
+      throw new HttpError(400, 'Payment line method cannot be mixed');
+    }
+
+    const amount = toNonNegativeMoneyDecimal(entry?.amount, `payments[${index}].amount`);
+    if (amount.lte(0)) {
+      throw new HttpError(400, `payments[${index}].amount must be greater than zero`);
+    }
+
+    return {
+      method,
+      amount: toNumber(amount),
+      reference_note: hasValue(entry?.reference_note) ? String(entry.reference_note).trim() : null,
+      amountDecimal: amount,
+    };
+  });
+
+  const sum = normalizedPayments.reduce(
+    (acc, item) => acc.plus(item.amountDecimal),
+    new Decimal(0),
+  ).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+
+  if (!sum.equals(totalPriceDecimal)) {
+    throw new HttpError(400, 'Payment breakdown must add up exactly to the sale total');
+  }
+
+  if (paymentMethod !== 'mixed' && normalizedPayments.length === 1 && normalizedPayments[0].method !== paymentMethod) {
+    throw new HttpError(400, 'Single payment line must match the selected payment method');
+  }
+
+  if (paymentMethod === 'mixed' && normalizedPayments.length < 2) {
+    throw new HttpError(400, 'Mixed payments require at least two payment lines');
+  }
+
+  return normalizedPayments.map(({ amountDecimal: _ignored, ...item }) => item);
 };
 
 const supportsBoxUnit = (product) => {
@@ -478,10 +546,7 @@ const normalizeSalePayload = ({ payload, product }) => {
   );
   const unitPrice = toNumber(unitPriceDecimal);
 
-  const paymentMethod = String(payload?.payment_method || '').trim();
-  if (!paymentMethod) {
-    throw new HttpError(400, 'payment_method is required');
-  }
+  const paymentMethod = normalizePaymentMethod(payload?.payment_method);
 
   const normalizedUnitType = validateUnitTypeForProduct({
     product,
@@ -524,23 +589,29 @@ const normalizeSalePayload = ({ payload, product }) => {
     throw new HttpError(400, 'Unable to calculate stock reduction');
   }
 
-  const totalPrice = hasValue(payload?.total_price)
-    ? toNumber(toNonNegativeMoneyDecimal(payload.total_price, 'total_price'))
-    : toNumber(
-      quantityDecimal
-        .mul(unitPriceDecimal)
-        .toDecimalPlaces(2, Decimal.ROUND_HALF_UP),
-    );
+  const totalPriceDecimal = hasValue(payload?.total_price)
+    ? toNonNegativeMoneyDecimal(payload.total_price, 'total_price')
+    : quantityDecimal
+      .mul(unitPriceDecimal)
+      .toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+  const totalPrice = toNumber(totalPriceDecimal);
+  const payments = normalizeSalePayments({
+    payload,
+    totalPriceDecimal,
+    paymentMethod,
+  });
 
   return {
     quantity,
     unitPrice,
     totalPrice,
     paymentMethod,
+    payments,
     unitType: normalizedUnitType,
     stockReductionKg: toNumber(stockReductionKgDecimal),
     boxWeight,
     customerType: payload?.customer_type || null,
+    invoiceId: hasValue(payload?.invoice_id) ? String(payload.invoice_id).trim() : null,
   };
 };
 
@@ -1028,11 +1099,13 @@ const recordDailySale = async ({ actor, payload }) => {
     sellingPrice: normalized.unitPrice,
     totalPrice: normalized.totalPrice,
     paymentMethod: normalized.paymentMethod,
+    payments: normalized.payments,
     recordedBy: actor.id,
     customerType: normalized.customerType,
     unitType: normalized.unitType,
     boxWeight: normalized.boxWeight,
     status: 'completed',
+    invoiceId: normalized.invoiceId,
   });
 
   await insertAuditLog({
@@ -1053,6 +1126,8 @@ const recordDailySale = async ({ actor, payload }) => {
       stock_reduction_kg: normalized.stockReductionKg,
       product_unit_after: toNumber(nextUnit),
       total_price: normalized.totalPrice,
+      payment_method: normalized.paymentMethod,
+      payments: normalized.payments,
     },
   });
 

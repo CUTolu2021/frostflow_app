@@ -235,6 +235,8 @@
                                 <option value="cash">Cash</option>
                                 <option value="transfer">Transfer</option>
                                 <option value="card">POS/Card</option>
+                                <option value="credit">Credit</option>
+                                <option value="mixed">Mixed</option>
                             </select>
                         </div>
                     </div>
@@ -274,8 +276,8 @@
                                 </td>
                                 <td class="text-center">
                                     <span class="badge" [class.badge-green]="sale.payment_method === 'cash'"
-                                        [class.badge-blue]="sale.payment_method === 'transfer' || sale.payment_method === 'card'">
-                                        {{ sale.payment_method | uppercase }}
+                                        [class.badge-blue]="sale.payment_method === 'transfer' || sale.payment_method === 'card' || sale.payment_method === 'mixed'">
+                                        {{ sale.payment_summary || (sale.payment_method | uppercase) }}
                                     </span>
                                 </td>
                                 <td class="text-center">
@@ -312,7 +314,7 @@
                             </div>
                             <span class="badge text-xs" [class.badge-green]="sale.payment_method === 'cash'"
                                 [class.badge-blue]="sale.payment_method !== 'cash'">
-                                {{ sale.payment_method | uppercase }}
+                                {{ sale.payment_summary || (sale.payment_method | uppercase) }}
                             </span>
                         </div>
                         <div class="s-card-mid">
@@ -478,7 +480,14 @@
                 </div>
                 <div class="meta-row">
                     <span>Payment</span>
-                    <span>{{ selectedInvoice.payment_method | uppercase }}</span>
+                    <span>{{ selectedInvoice.payment_summary || (selectedInvoice.payment_method | uppercase) }}</span>
+                </div>
+            </div>
+
+            <div class="receipt-meta" *ngIf="selectedInvoice.payments?.length">
+                <div class="meta-row" *ngFor="let payment of selectedInvoice.payments">
+                    <span>{{ payment.method | uppercase }}</span>
+                    <span>{{ payment.amount | currency:'NGN':'symbol-narrow' }}</span>
                 </div>
             </div>
 

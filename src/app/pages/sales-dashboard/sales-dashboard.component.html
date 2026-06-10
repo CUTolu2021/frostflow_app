@@ -103,8 +103,50 @@
                             <label>Payment Method</label>
                             <select formControlName="payment_method" class="form-select">
                                 <option value="">-- Select Method --</option>
-                                <option *ngFor="let m of paymentMethods" [value]="m">{{ m }}</option>
+                                <option *ngFor="let m of paymentMethods" [value]="m">{{ getPaymentMethodLabel(m) }}</option>
                             </select>
+                        </div>
+
+                        <div class="form-group" *ngIf="isMixedPayment">
+                            <label>Payment Breakdown</label>
+                            <div class="mixed-payments">
+                                <div class="mixed-payment-row" *ngFor="let row of paymentRows; let i = index; trackBy: trackByPaymentRow">
+                                    <select [(ngModel)]="row.method" [ngModelOptions]="{ standalone: true }" class="form-select payment-select">
+                                        <option value="cash">Cash</option>
+                                        <option value="card">Card</option>
+                                        <option value="transfer">Transfer</option>
+                                        <option value="credit">Credit</option>
+                                    </select>
+                                    <input
+                                        type="number"
+                                        [(ngModel)]="row.amount"
+                                        [ngModelOptions]="{ standalone: true }"
+                                        (ngModelChange)="onPaymentAmountInput(row.clientId, $event)"
+                                        class="form-input payment-amount"
+                                        min="0"
+                                        step="0.01"
+                                        inputmode="decimal"
+                                        placeholder="0.00"
+                                        [readonly]="isAutoBalancedRow(i)"
+                                    >
+                                    <span class="payment-hint" *ngIf="isAutoBalancedRow(i)">Auto balance</span>
+                                    <button
+                                        type="button"
+                                        class="btn btn-outline payment-remove"
+                                        (click)="removePaymentRow(row.clientId)"
+                                        [disabled]="paymentRows.length <= 2"
+                                    >
+                                        Remove
+                                    </button>
+                                </div>
+                                <button type="button" class="btn btn-outline" (click)="addPaymentRow()" [disabled]="paymentRows.length >= 4">
+                                    Add payment line
+                                </button>
+                                <div class="mixed-payment-summary">
+                                    <span>Allocated: {{ mixedPaymentTotal | currency:'NGN':'symbol-narrow' }}</span>
+                                    <span [class.text-red-600]="paymentDelta !== 0">Remaining: {{ paymentDelta | currency:'NGN':'symbol-narrow' }}</span>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Hidden Recorded By -->

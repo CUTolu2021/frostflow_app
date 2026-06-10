@@ -127,7 +127,7 @@ export class AnalysisComponent implements OnInit {
 
         const filtered = rawSales.filter((s: Sale) => {
             if (this.filters.staff !== 'all' && s.recorded_by !== this.filters.staff) return false;
-            if (this.filters.payment !== 'all' && s.payment_method !== this.filters.payment) return false;
+            if (this.filters.payment !== 'all' && !this.matchesPaymentFilter(s, this.filters.payment)) return false;
             return true;
         });
 
@@ -148,7 +148,9 @@ export class AnalysisComponent implements OnInit {
                     payment_method: row.payment_method,
                     status: row.status || 'completed',
                     items: [],
-                    item_summary: ''
+                    item_summary: '',
+                    payment_summary: '',
+                    payments: [],
                 };
             }
 
@@ -156,7 +158,7 @@ export class AnalysisComponent implements OnInit {
             grouped[id].items.push(row);
 
             if (row.status !== 'voided' && row.status !== 'rejected') {
-                grouped[id].total += (row.total_price || 0);
+                grouped[id].total += Number(row.total_price || 0);
             }
         });
 
@@ -172,6 +174,8 @@ export class AnalysisComponent implements OnInit {
                 .join(' | ');
             const remaining = g.items.length > 3 ? ` +${g.items.length - 3} more` : '';
             g.item_summary = `${preview}${remaining}`;
+            g.payments = this.flattenPayments(g.items);
+            g.payment_summary = this.buildPaymentSummary(g.payments);
         });
 
 
@@ -185,12 +189,44 @@ export class AnalysisComponent implements OnInit {
         this.groupedSales.forEach(inv => {
             if (inv.status === 'voided' || inv.status === 'rejected') return;
 
-            this.financials.totalRevenue += inv.total;
+            this.financials.totalRevenue += Number(inv.total || 0);
+            const payments = inv.payments || [];
+            if (!payments.length) {
+                const method = String(inv.payment_method || '').toLowerCase();
+                if (method === 'cash') this.financials.cashAtHand += Number(inv.total || 0);
+                else if (method === 'transfer' || method === 'card' || method === 'mixed') this.financials.bankTransfer += Number(inv.total || 0);
+                else if (method === 'credit') this.financials.credit += Number(inv.total || 0);
+                return;
+            }
 
-            if (inv.payment_method === 'cash') this.financials.cashAtHand += inv.total;
-            else if (inv.payment_method === 'transfer' || inv.payment_method === 'card') this.financials.bankTransfer += inv.total;
-            else if (inv.payment_method === 'credit') this.financials.credit += inv.total;
+            payments.forEach((payment) => {
+                if (payment.method === 'cash') this.financials.cashAtHand += Number(payment.amount || 0);
+                else if (payment.method === 'transfer' || payment.method === 'card') this.financials.bankTransfer += Number(payment.amount || 0);
+                else if (payment.method === 'credit') this.financials.credit += Number(payment.amount || 0);
+            });
         });
+    }
+
+    private flattenPayments(items: Sale[]) {
+        return items.flatMap((item) => item.sale_payments || []);
+    }
+
+    private buildPaymentSummary(payments: Sale['sale_payments'] = []): string {
+        if (!payments || payments.length === 0) return 'N/A';
+        const totals = new Map<string, number>();
+        payments.forEach((payment) => {
+            const method = String(payment.method || '').toLowerCase();
+            totals.set(method, (totals.get(method) || 0) + Number(payment.amount || 0));
+        });
+        return Array.from(totals.entries())
+            .map(([method, amount]) => `${method}: ${amount.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
+            .join(' | ');
+    }
+
+    private matchesPaymentFilter(sale: Sale, filter: string): boolean {
+        const normalizedFilter = String(filter || '').toLowerCase();
+        if (String(sale.payment_method || '').toLowerCase() === normalizedFilter) return true;
+        return (sale.sale_payments || []).some((payment) => String(payment.method || '').toLowerCase() === normalizedFilter);
     }
 
     getUnitLabel(unitType: string | null | undefined): string {

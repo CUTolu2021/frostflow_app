@@ -50,7 +50,7 @@
                 <span class="t-amount">{{ sale.total | currency:'NGN':'symbol-narrow' }}</span>
                 <span class="badge" [class.cash]="sale.payment_method === 'cash'"
                     [class.transfer]="sale.payment_method !== 'cash'">
-                    {{ sale.payment_method | uppercase }}
+                    {{ sale.payment_summary || (sale.payment_method | uppercase) }}
                 </span>
             </div>
         </div>
@@ -72,6 +72,19 @@
             <div class="r-meta">
                 <span>{{ selectedInvoice.raw_date | date:'medium' }}</span>
                 <span class="badge-status">{{ selectedInvoice.status | uppercase }}</span>
+            </div>
+
+            <div class="r-meta" *ngIf="selectedInvoice.payment_summary">
+                <span>Payments</span>
+                <span>{{ selectedInvoice.payment_summary }}</span>
+            </div>
+
+            <div class="r-table" *ngIf="selectedInvoice.payments?.length">
+                <div *ngFor="let payment of selectedInvoice.payments" class="r-row">
+                    <span class="r-name">{{ payment.method | uppercase }}</span>
+                    <span class="r-qty">{{ payment.reference_note || 'Payment line' }}</span>
+                    <span class="r-price">{{ payment.amount | currency:'NGN':'symbol-narrow' }}</span>
+                </div>
             </div>
 
             <div class="r-table">

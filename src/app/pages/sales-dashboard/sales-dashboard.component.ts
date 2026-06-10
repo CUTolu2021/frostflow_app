@@ -4,6 +4,7 @@ import {
     FormGroup,
     FormBuilder,
     Validators,
+    FormsModule,
     ReactiveFormsModule,
 } from '@angular/forms'
 import { Router } from '@angular/router'
@@ -14,11 +15,16 @@ import { ProductService } from '../../services/product.service'
 import { Product } from '../../interfaces/product'
 import { getErrorMessage } from '../../utils/error-message'
 import Decimal from 'decimal.js'
+import { DailySales, SalePayment } from '../../interfaces/sales'
+
+interface EditableSalePayment extends SalePayment {
+    clientId: string;
+}
 
 @Component({
     selector: 'app-sales-dashboard',
     standalone: true,
-    imports: [CommonModule, ReactiveFormsModule],
+    imports: [CommonModule, FormsModule, ReactiveFormsModule],
     templateUrl: './sales-dashboard.component.html',
     styleUrl: './sales-dashboard.component.css',
 })
@@ -35,7 +41,8 @@ export class SalesDashboardComponent {
         todayUnitsSold: 0,
     }
     isSubmittingSale = false
-    paymentMethods: string[] = ['Cash', 'Card', 'Transfer']
+    paymentMethods: string[] = ['cash', 'card', 'transfer', 'credit', 'mixed']
+    paymentRows: EditableSalePayment[] = []
     public name: string = localStorage.getItem('user_name') || ''
     email: string = localStorage.getItem('user_email') || ''
     id: string = localStorage.getItem('user_id') || ''
@@ -68,6 +75,7 @@ export class SalesDashboardComponent {
         })
         this.setupFormListeners()
         this.setupDailySalesFormListeners()
+        this.resetPaymentRows()
 
         effect(() => {
             this.products = this.productService.products();
@@ -120,6 +128,10 @@ export class SalesDashboardComponent {
 
     trackByProductId(_: number, product: Product): string {
         return product.id;
+    }
+
+    trackByPaymentRow(_: number, row: EditableSalePayment): string {
+        return row.clientId
     }
 
     private normalizeUnit(unit: string | null | undefined): string {
@@ -228,6 +240,32 @@ export class SalesDashboardComponent {
             unitPriceSignal()
             this.syncDailySalesTotal()
         })
+
+        const paymentMethodSignal = toSignal(
+            this.dailySalesForm.get('payment_method')!.valueChanges,
+            { initialValue: this.dailySalesForm.get('payment_method')?.value }
+        )
+
+        effect(() => {
+            const method = String(paymentMethodSignal() || '').toLowerCase()
+            if (method === 'mixed') {
+                if (this.paymentRows.length < 2) {
+                    this.paymentRows = [
+                        this.createPaymentRow('cash'),
+                        this.createPaymentRow('transfer'),
+                    ]
+                }
+                this.syncMixedPaymentAmounts()
+                return
+            }
+
+            if (!method) {
+                this.resetPaymentRows()
+                return
+            }
+
+            this.paymentRows = [this.createPaymentRow(method, this.dailySalesForm.get('total_price')?.value || 0)]
+        })
     }
 
     private syncDailySalesTotal() {
@@ -246,6 +284,109 @@ export class SalesDashboardComponent {
         }
 
         this.dailySalesForm.patchValue({ total_price: total }, { emitEvent: false })
+        this.syncMixedPaymentAmounts()
+    }
+
+    private createPaymentRow(method = 'cash', amount = 0): EditableSalePayment {
+        return {
+            clientId: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+            method,
+            amount: Number(amount) || 0,
+            reference_note: '',
+        }
+    }
+
+    private resetPaymentRows() {
+        this.paymentRows = [this.createPaymentRow('cash', 0)]
+    }
+
+    get isMixedPayment(): boolean {
+        return String(this.dailySalesForm.get('payment_method')?.value || '').toLowerCase() === 'mixed'
+    }
+
+    get mixedPaymentTotal(): number {
+        return this.paymentRows.reduce((sum, row) => sum + (Number(row.amount) || 0), 0)
+    }
+
+    get paymentDelta(): number {
+        const total = Number(this.dailySalesForm.get('total_price')?.value || 0)
+        return new Decimal(total).minus(this.mixedPaymentTotal).toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toNumber()
+    }
+
+    addPaymentRow() {
+        if (this.paymentRows.length >= 4) return
+        this.paymentRows = [...this.paymentRows, this.createPaymentRow('card', 0)]
+        this.syncMixedPaymentAmounts()
+    }
+
+    removePaymentRow(clientId: string) {
+        if (this.paymentRows.length <= 2) return
+        this.paymentRows = this.paymentRows.filter((row) => row.clientId !== clientId)
+        this.syncMixedPaymentAmounts()
+    }
+
+    onPaymentAmountInput(clientId: string, value: string | number) {
+        const target = this.paymentRows.find((row) => row.clientId === clientId)
+        if (!target) return
+        target.amount = Number(value) || 0
+        this.syncMixedPaymentAmounts()
+    }
+
+    isAutoBalancedRow(index: number): boolean {
+        return this.isMixedPayment && index === this.paymentRows.length - 1
+    }
+
+    private syncMixedPaymentAmounts() {
+        const total = new Decimal(String(this.dailySalesForm.get('total_price')?.value || 0))
+        if (total.lte(0)) {
+            this.paymentRows.forEach((row) => {
+                row.amount = 0
+            })
+            return
+        }
+
+        if (!this.isMixedPayment) {
+            const method = String(this.dailySalesForm.get('payment_method')?.value || 'cash').toLowerCase()
+            if (this.paymentRows.length !== 1 || this.paymentRows[0]?.method !== method) {
+                this.paymentRows = [this.createPaymentRow(method || 'cash', total.toNumber())]
+            } else {
+                this.paymentRows[0].amount = total.toNumber()
+            }
+            return
+        }
+
+        if (this.paymentRows.length === 0) {
+            this.paymentRows = [
+                this.createPaymentRow('cash', 0),
+                this.createPaymentRow('transfer', total.toNumber()),
+            ]
+            return
+        }
+
+        const lockedRows = this.paymentRows.slice(0, -1)
+        const lockedTotal = lockedRows.reduce((sum, row) => sum.plus(row.amount || 0), new Decimal(0))
+        const remaining = Decimal.max(total.minus(lockedTotal), 0).toDecimalPlaces(2, Decimal.ROUND_HALF_UP)
+        const lastRow = this.paymentRows[this.paymentRows.length - 1]
+        lastRow.amount = remaining.toNumber()
+    }
+
+    private buildSalePayload(): Partial<DailySales> {
+        const raw = this.dailySalesForm.getRawValue()
+        const paymentMethod = String(raw.payment_method || '').toLowerCase()
+        const payments = this.isMixedPayment
+            ? this.paymentRows.map(({ clientId: _ignored, ...row }) => ({
+                ...row,
+                method: String(row.method || '').toLowerCase(),
+                amount: Number(row.amount) || 0,
+                reference_note: row.reference_note || '',
+            }))
+            : undefined
+
+        return {
+            ...raw,
+            payment_method: paymentMethod,
+            payments,
+        }
     }
 
     async onSalesRecordSubmit() {
@@ -254,9 +395,21 @@ export class SalesDashboardComponent {
             return
         }
 
+        if (this.isMixedPayment) {
+            if (this.paymentRows.length < 2) {
+                this.toast.show('Add at least two payment lines for a mixed payment sale.', 'error')
+                return
+            }
+
+            if (Math.abs(this.paymentDelta) > 0.009) {
+                this.toast.show('Payment breakdown must add up exactly to the sale total.', 'error')
+                return
+            }
+        }
+
         this.isSubmittingSale = true
         try {
-            await this.supabase.recordDailySale(this.dailySalesForm.getRawValue())
+            await this.supabase.recordDailySale(this.buildSalePayload())
             this.toast.show('Daily Sales recorded successfully', 'success')
             this.salesMetrics = await this.supabase.getSalesDashboardMetrics()
             this.todaySalesMetrics = await this.supabase.getTodaySalesMetrics()
@@ -267,11 +420,18 @@ export class SalesDashboardComponent {
                 unit_type: '',
                 total_price: 0,
             })
+            this.resetPaymentRows()
         } catch (error: unknown) {
             this.toast.show(getErrorMessage(error, 'Failed to record daily sale'), 'error')
         } finally {
             this.isSubmittingSale = false
         }
+    }
+
+    getPaymentMethodLabel(method: string): string {
+        const normalized = String(method || '').toLowerCase()
+        if (normalized === 'pos') return 'POS'
+        return normalized ? normalized.charAt(0).toUpperCase() + normalized.slice(1) : 'Method'
     }
 
     ngOnDestroy() {

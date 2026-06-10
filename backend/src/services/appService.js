@@ -198,8 +198,8 @@ const updateOrganizationSettings = async ({ actor, organizationId, inventoryMode
 const getDashboardMetrics = async ({ actor, organizationId }) => {
   const orgId = resolveOrganizationId(actor, organizationId);
   const products = await listProductUnits({ organizationId: orgId });
-  const totalValue = products.reduce((sum, item) => sum + item.unit * item.unit_price, 0);
-  const lowStock = products.filter((item) => item.unit < 10).length;
+  const totalValue = products.reduce((sum, item) => sum + (Number(item.unit || 0) * Number(item.unit_price || 0)), 0);
+  const lowStock = products.filter((item) => Number(item.unit || 0) < 10).length;
   return {
     totalValue,
     lowStock,
@@ -210,8 +210,8 @@ const getDashboardMetrics = async ({ actor, organizationId }) => {
 const getSalesDashboardMetrics = async ({ actor, organizationId }) => {
   const orgId = resolveOrganizationId(actor, organizationId);
   const sales = await listSalesMetrics({ organizationId: orgId });
-  const totalSalesValue = sales.reduce((sum, item) => sum + item.total_price, 0);
-  const totalUnitsSold = sales.reduce((sum, item) => sum + item.quantity, 0);
+  const totalSalesValue = sales.reduce((sum, item) => sum + Number(item.total_price || 0), 0);
+  const totalUnitsSold = sales.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
   return { totalSalesValue, totalUnitsSold };
 };
 
@@ -223,8 +223,8 @@ const getTodaySalesMetrics = async ({ actor, organizationId }) => {
     startDate: todayStartISO,
     endDate: new Date().toISOString(),
   });
-  const todaySalesValue = sales.reduce((sum, item) => sum + item.total_price, 0);
-  const todayUnitsSold = sales.reduce((sum, item) => sum + item.quantity, 0);
+  const todaySalesValue = sales.reduce((sum, item) => sum + Number(item.total_price || 0), 0);
+  const todayUnitsSold = sales.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
   return { todaySalesValue, todayUnitsSold };
 };
 
@@ -233,8 +233,8 @@ const getChartData = async ({ actor, organizationId }) => {
   const data = await listChartProducts({ organizationId: orgId, limit: 10 });
   return data.map((product) => ({
     name: product.name,
-    current_balance: product.unit,
-    total_sold: (product.sales || []).reduce((sum, sale) => sum + (sale.quantity || 0), 0),
+    current_balance: Number(product.unit || 0),
+    total_sold: (product.sales || []).reduce((sum, sale) => sum + Number(sale.quantity || 0), 0),
   }));
 };
 
