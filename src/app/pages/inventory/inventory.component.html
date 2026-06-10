@@ -161,7 +161,7 @@
 
                 <div class="form-group mt-4">
                     <label>Quantity ({{ getUnitDisplay(entry.unitType) }})</label>
-                    <input type="number" [(ngModel)]="entry.inputQty" class="form-input large-input" placeholder="0" [disabled]="isSubmitting">
+                    <input type="number" [(ngModel)]="entry.inputQty" class="form-input large-input" placeholder="0" [disabled]="isSubmitting" min="0.001" step="0.001" inputmode="decimal">
                 </div>
 
                 <!-- Manual Weight Input for Variable or Unconfigured Box Weights -->
@@ -173,7 +173,7 @@
                     </label>
                     <input type="number" [(ngModel)]="entry.manualTotalWeight" class="form-input mt-2"
                         [disabled]="isSubmitting"
-                        placeholder="e.g. 25.5">
+                        placeholder="e.g. 25.5" min="0.001" step="0.001" inputmode="decimal">
                     <small class="hint">{{ boxWeightGuidance }}</small>
                 </div>
 
@@ -190,7 +190,7 @@
                     <div class="form-group">
                         <label>Unit Cost (₦)</label>
                         <div class="input-prefix">
-                            <input type="number" [(ngModel)]="entry.unitCost" class="form-input" placeholder="0.00" [disabled]="isSubmitting">
+                            <input type="number" [(ngModel)]="entry.unitCost" class="form-input" placeholder="0.00" [disabled]="isSubmitting" min="0" step="0.01" inputmode="decimal">
                         </div>
                     </div>
                 </div>
@@ -199,20 +199,20 @@
                     <div class="form-group">
                         <label>Logistics Fee (₦)</label>
                         <div class="input-prefix">
-                            <input type="number" [(ngModel)]="entry.logisticsFee" class="form-input" placeholder="0.00" [disabled]="isSubmitting">
+                            <input type="number" [(ngModel)]="entry.logisticsFee" class="form-input" placeholder="0.00" [disabled]="isSubmitting" min="0" step="0.01" inputmode="decimal">
                         </div>
                     </div>
                     <div class="form-group">
                         <label>Selling Price per {{ getUnitDisplay(selectedProduct.base_unit) }} (₦)</label>
                         <div class="input-prefix">
-                            <input type="number" [(ngModel)]="entry.unitPrice" class="form-input" placeholder="0.00" [disabled]="isSubmitting">
+                            <input type="number" [(ngModel)]="entry.unitPrice" class="form-input" placeholder="0.00" [disabled]="isSubmitting" min="0" step="0.01" inputmode="decimal">
                         </div>
                     </div>
                 </div>
 
                 <div class="form-group mt-2" *ngIf="entry.unitType === 'box'">
                     <label>Selling Price per Box (₦)</label>
-                    <input type="number" [(ngModel)]="entry.boxPrice" class="form-input" placeholder="0.00" [disabled]="isSubmitting">
+                    <input type="number" [(ngModel)]="entry.boxPrice" class="form-input" placeholder="0.00" [disabled]="isSubmitting" min="0" step="0.01" inputmode="decimal">
                 </div>
 
                 <div class="form-group mt-4">

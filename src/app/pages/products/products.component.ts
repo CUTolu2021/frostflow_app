@@ -60,7 +60,7 @@ export class ProductsComponent implements OnInit, OnDestroy {
       base_unit: ['kg', Validators.required],
       is_box_sold: [false],
       is_variable_weight: [false],
-      standard_box_weight: [null, Validators.min(0)],
+      standard_box_weight: [null, Validators.min(0.001)],
     });
 
     const isBoxSoldSignal = toSignal(this.productForm.get('is_box_sold')!.valueChanges, {
@@ -266,9 +266,9 @@ export class ProductsComponent implements OnInit, OnDestroy {
     if (!control) return;
 
     if (isBoxSold && !isVariableWeight) {
-      control.setValidators([Validators.required, Validators.min(0.01)]);
+      control.setValidators([Validators.required, Validators.min(0.001)]);
     } else {
-      control.setValidators([Validators.min(0)]);
+      control.setValidators([Validators.min(0.001)]);
     }
 
     control.updateValueAndValidity({ emitEvent: false });

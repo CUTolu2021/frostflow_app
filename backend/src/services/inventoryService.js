@@ -27,6 +27,13 @@ const {
 const { createSale, markSaleVoided } = require('../repositories/salesRepository');
 const { insertAuditLog } = require('../repositories/auditRepository');
 const { env } = require('../config/env');
+const {
+  Decimal,
+  toPositiveQuantityDecimal,
+  toNonNegativeQuantityDecimal,
+  toNonNegativeMoneyDecimal,
+  toNumber,
+} = require('../utils/decimal');
 
 const RECON_CUTOFF_HOUR_UTC = Number.isFinite(Number(env.reconciliationCutoffHourUtc))
   ? Number(env.reconciliationCutoffHourUtc)
@@ -201,6 +208,18 @@ const resolveOrganizationInventoryMode = async (organizationId) => {
 
 const normalizeBaseUnit = (value) => String(value || 'kg').trim().toLowerCase();
 
+const hasValue = (value) => value !== null && value !== undefined && String(value).trim() !== '';
+
+const toOptionalMoneyValue = (value, fieldName) => {
+  if (!hasValue(value)) return undefined;
+  return toNumber(toNonNegativeMoneyDecimal(value, fieldName));
+};
+
+const toOptionalQuantityValue = (value, fieldName) => {
+  if (!hasValue(value)) return undefined;
+  return toNumber(toPositiveQuantityDecimal(value, fieldName));
+};
+
 const supportsBoxUnit = (product) => {
   if (!product) return false;
   return (
@@ -292,22 +311,22 @@ const applySessionQuantityToProduct = async ({
   deliverySession,
   targetQuantity,
 }) => {
-  const currentlyApplied = Number(deliverySession?.inventory_applied_quantity || 0);
-  const targetApplied = Number(targetQuantity || 0);
-  const deltaToApply = targetApplied - currentlyApplied;
+  const currentlyApplied = new Decimal(String(deliverySession?.inventory_applied_quantity || 0));
+  const targetApplied = toPositiveQuantityDecimal(targetQuantity, 'targetQuantity');
+  const deltaToApply = targetApplied.minus(currentlyApplied).toDecimalPlaces(3, Decimal.ROUND_HALF_UP);
 
-  if (!Number.isFinite(deltaToApply) || Math.abs(deltaToApply) < 1e-9) {
+  if (deltaToApply.isZero()) {
     return {
       applied: false,
       deltaToApply: 0,
-      totalApplied: currentlyApplied,
+      totalApplied: toNumber(currentlyApplied),
     };
   }
 
   const product = await findProductById(deliverySession.product_id, organizationId);
-  const previousUnit = Number(product.unit || 0);
-  const nextUnit = previousUnit + deltaToApply;
-  if (nextUnit < 0) {
+  const previousUnit = new Decimal(String(product.unit || 0));
+  const nextUnit = previousUnit.plus(deltaToApply).toDecimalPlaces(3, Decimal.ROUND_HALF_UP);
+  if (nextUnit.isNegative()) {
     throw new HttpError(
       400,
       'Cannot apply reconciliation quantity because resulting stock would be negative.',
@@ -332,7 +351,7 @@ const applySessionQuantityToProduct = async ({
 
   await updateProductUnit({
     productId: deliverySession.product_id,
-    nextUnit,
+    nextUnit: toNumber(nextUnit),
     organizationId,
     unitPrice: latestOwnerEntry?.unit_price,
     boxPrice: latestOwnerEntry?.box_price,
@@ -341,7 +360,7 @@ const applySessionQuantityToProduct = async ({
   await updateDeliverySessionInventoryApplied({
     organizationId,
     deliverySessionId: deliverySession.id,
-    appliedQuantity: targetApplied,
+    appliedQuantity: toNumber(targetApplied),
   });
 
   if (unitPriceChanged || boxPriceChanged) {
@@ -376,18 +395,16 @@ const applySessionQuantityToProduct = async ({
 
   return {
     applied: true,
-    deltaToApply,
-    totalApplied: targetApplied,
-    previousUnit,
-    nextUnit,
+    deltaToApply: toNumber(deltaToApply),
+    totalApplied: toNumber(targetApplied),
+    previousUnit: toNumber(previousUnit),
+    nextUnit: toNumber(nextUnit),
   };
 };
 
 const normalizeOwnerStockPayload = ({ payload, product }) => {
-  const quantity = Number(payload?.quantity);
-  if (!Number.isFinite(quantity) || quantity <= 0) {
-    throw new HttpError(400, 'quantity must be a positive number');
-  }
+  const quantityDecimal = toPositiveQuantityDecimal(payload?.quantity, 'quantity');
+  const quantity = toNumber(quantityDecimal);
 
   const normalizedUnitType = validateUnitTypeForProduct({
     product,
@@ -404,48 +421,62 @@ const normalizeOwnerStockPayload = ({ payload, product }) => {
     const productBaseUnit = String(product?.base_unit || 'kg').trim().toLowerCase();
     if (productBaseUnit === 'box') {
       normalized.total_weight = quantity;
-      return normalized;
+    } else {
+      const manualTotalWeight = toOptionalQuantityValue(payload?.total_weight, 'total_weight');
+      if (manualTotalWeight !== undefined) {
+        normalized.total_weight = manualTotalWeight;
+      } else {
+        const standardBoxWeight = Number(product?.standard_box_weight || 0);
+        const isVariableWeight = product?.is_variable_weight === true;
+        if (!isVariableWeight && Number.isFinite(standardBoxWeight) && standardBoxWeight > 0) {
+          normalized.total_weight = toNumber(
+            quantityDecimal.mul(standardBoxWeight).toDecimalPlaces(3, Decimal.ROUND_HALF_UP),
+          );
+        } else {
+          throw new HttpError(
+            400,
+            'Box/carton stock entry requires invoice total in base unit or a configured standard units-per-box value',
+          );
+        }
+      }
     }
-
-    const manualTotalWeight = Number(payload?.total_weight);
-    if (Number.isFinite(manualTotalWeight) && manualTotalWeight > 0) {
-      normalized.total_weight = manualTotalWeight;
-      return normalized;
-    }
-
-    const standardBoxWeight = Number(product?.standard_box_weight || 0);
-    const isVariableWeight = product?.is_variable_weight === true;
-    if (!isVariableWeight && Number.isFinite(standardBoxWeight) && standardBoxWeight > 0) {
-      normalized.total_weight = quantity * standardBoxWeight;
-      return normalized;
-    }
-
-    throw new HttpError(
-      400,
-      'Box/carton stock entry requires invoice total in base unit or a configured standard units-per-box value',
-    );
   }
 
-  const totalWeight = Number(payload?.total_weight);
+  const totalWeight = toOptionalQuantityValue(payload?.total_weight, 'total_weight');
   if (normalizedUnitType === 'kg') {
-    normalized.total_weight = Number.isFinite(totalWeight) && totalWeight > 0 ? totalWeight : quantity;
-  } else if (Number.isFinite(totalWeight) && totalWeight > 0) {
+    normalized.total_weight = totalWeight !== undefined ? totalWeight : quantity;
+  } else if (totalWeight !== undefined) {
     normalized.total_weight = totalWeight;
+  }
+
+  normalized.unit_cost = toOptionalMoneyValue(payload?.unit_cost, 'unit_cost');
+  normalized.unit_price = toOptionalMoneyValue(payload?.unit_price, 'unit_price');
+  normalized.box_price = toOptionalMoneyValue(payload?.box_price, 'box_price');
+  normalized.logistics_fee = toOptionalMoneyValue(payload?.logistics_fee, 'logistics_fee');
+
+  if (normalized.unit_cost !== undefined) {
+    normalized.total_cost = toNumber(
+      quantityDecimal
+        .mul(normalized.unit_cost)
+        .plus(normalized.logistics_fee || 0)
+        .toDecimalPlaces(2, Decimal.ROUND_HALF_UP),
+    );
+  } else if (hasValue(payload?.total_cost)) {
+    normalized.total_cost = toNumber(toNonNegativeMoneyDecimal(payload.total_cost, 'total_cost'));
   }
 
   return normalized;
 };
 
 const normalizeSalePayload = ({ payload, product }) => {
-  const quantity = Number(payload?.quantity);
-  if (!Number.isFinite(quantity) || quantity <= 0) {
-    throw new HttpError(400, 'quantity must be a positive number');
-  }
+  const quantityDecimal = toPositiveQuantityDecimal(payload?.quantity, 'quantity');
+  const quantity = toNumber(quantityDecimal);
 
-  const unitPrice = Number(payload?.unit_price ?? payload?.selling_price);
-  if (!Number.isFinite(unitPrice) || unitPrice < 0) {
-    throw new HttpError(400, 'unit_price must be a non-negative number');
-  }
+  const unitPriceDecimal = toNonNegativeMoneyDecimal(
+    payload?.unit_price ?? payload?.selling_price,
+    'unit_price',
+  );
+  const unitPrice = toNumber(unitPriceDecimal);
 
   const paymentMethod = String(payload?.payment_method || '').trim();
   if (!paymentMethod) {
@@ -457,18 +488,21 @@ const normalizeSalePayload = ({ payload, product }) => {
     unitType: payload?.unit_type || product?.base_unit || 'kg',
   });
 
-  let stockReductionKg = quantity;
+  let stockReductionKgDecimal = quantityDecimal;
   let boxWeight = null;
 
   if (normalizedUnitType === 'box' || normalizedUnitType === 'carton') {
     const productBaseUnit = String(product?.base_unit || 'kg').trim().toLowerCase();
     if (productBaseUnit === 'box') {
-      stockReductionKg = quantity;
+      stockReductionKgDecimal = quantityDecimal;
     } else {
-      const explicitBoxWeight = Number(payload?.box_weight ?? payload?.box_weight_kg);
-      if (Number.isFinite(explicitBoxWeight) && explicitBoxWeight > 0) {
-        boxWeight = explicitBoxWeight;
-        stockReductionKg = quantity * explicitBoxWeight;
+      const rawBoxWeight = payload?.box_weight ?? payload?.box_weight_kg;
+      if (hasValue(rawBoxWeight)) {
+        const explicitBoxWeightDecimal = toPositiveQuantityDecimal(rawBoxWeight, 'box_weight');
+        boxWeight = toNumber(explicitBoxWeightDecimal);
+        stockReductionKgDecimal = quantityDecimal
+          .mul(explicitBoxWeightDecimal)
+          .toDecimalPlaces(3, Decimal.ROUND_HALF_UP);
       } else {
         const standardBoxWeight = Number(product?.standard_box_weight || 0);
         if (!Number.isFinite(standardBoxWeight) || standardBoxWeight <= 0) {
@@ -477,20 +511,26 @@ const normalizeSalePayload = ({ payload, product }) => {
             'Box/carton sale requires product standard units-per-box or explicit box_weight in request',
           );
         }
-        boxWeight = standardBoxWeight;
-        stockReductionKg = quantity * standardBoxWeight;
+        const standardBoxWeightDecimal = toPositiveQuantityDecimal(standardBoxWeight, 'standard_box_weight');
+        boxWeight = toNumber(standardBoxWeightDecimal);
+        stockReductionKgDecimal = quantityDecimal
+          .mul(standardBoxWeightDecimal)
+          .toDecimalPlaces(3, Decimal.ROUND_HALF_UP);
       }
     }
   }
 
-  if (!Number.isFinite(stockReductionKg) || stockReductionKg <= 0) {
+  if (stockReductionKgDecimal.lte(0)) {
     throw new HttpError(400, 'Unable to calculate stock reduction');
   }
 
-  const totalPriceInput = Number(payload?.total_price);
-  const totalPrice = Number.isFinite(totalPriceInput) && totalPriceInput >= 0
-    ? totalPriceInput
-    : quantity * unitPrice;
+  const totalPrice = hasValue(payload?.total_price)
+    ? toNumber(toNonNegativeMoneyDecimal(payload.total_price, 'total_price'))
+    : toNumber(
+      quantityDecimal
+        .mul(unitPriceDecimal)
+        .toDecimalPlaces(2, Decimal.ROUND_HALF_UP),
+    );
 
   return {
     quantity,
@@ -498,17 +538,14 @@ const normalizeSalePayload = ({ payload, product }) => {
     totalPrice,
     paymentMethod,
     unitType: normalizedUnitType,
-    stockReductionKg,
+    stockReductionKg: toNumber(stockReductionKgDecimal),
     boxWeight,
     customerType: payload?.customer_type || null,
   };
 };
 
 const normalizeStaffStockPayload = ({ payload, product }) => {
-  const quantity = Number(payload?.quantity);
-  if (!Number.isFinite(quantity) || quantity <= 0) {
-    throw new HttpError(400, 'quantity must be a positive number');
-  }
+  const quantity = toNumber(toPositiveQuantityDecimal(payload?.quantity, 'quantity'));
 
   const normalizedUnitType = validateUnitTypeForProduct({
     product,
@@ -522,27 +559,33 @@ const normalizeStaffStockPayload = ({ payload, product }) => {
   if (normalizedUnitType === 'box' || normalizedUnitType === 'carton') {
     const productBaseUnit = normalizeBaseUnit(product?.base_unit || 'kg');
     if (productBaseUnit !== 'box') {
-      const measuredTotal = Number(
+      const measuredTotal = (
         metadata.total_weight
         ?? metadata.totalWeight
-        ?? payload?.total_weight,
+        ?? payload?.total_weight
       );
 
-      if (!Number.isFinite(measuredTotal) || measuredTotal <= 0) {
+      if (!hasValue(measuredTotal)) {
         throw new HttpError(
           400,
           `Box receipt requires measured total ${productBaseUnit} from sales receiving`,
         );
       }
 
-      metadata.total_weight = measuredTotal;
+      metadata.total_weight = toNumber(toPositiveQuantityDecimal(measuredTotal, 'total_weight'));
     }
   }
 
   if (Array.isArray(metadata.measured_box_weights)) {
     metadata.measured_box_weights = metadata.measured_box_weights
-      .map((value) => Number(value))
-      .filter((value) => Number.isFinite(value) && value > 0);
+      .map((value) => {
+        try {
+          return toNumber(toPositiveQuantityDecimal(value, 'measured_box_weights'));
+        } catch (error) {
+          return null;
+        }
+      })
+      .filter((value) => value !== null);
   }
 
   return {
@@ -560,36 +603,34 @@ const calculateStockImpactFromEntry = ({
   totalWeight,
   metadata,
 }) => {
-  const qty = Number(quantity || 0);
-  if (!Number.isFinite(qty) || qty <= 0) {
-    throw new HttpError(400, 'quantity must be a positive number');
-  }
+  const qtyDecimal = toPositiveQuantityDecimal(quantity, 'quantity');
 
   const normalizedUnitType = normalizeBaseUnit(unitType);
   if (normalizedUnitType === 'box' || normalizedUnitType === 'carton') {
     if (normalizeBaseUnit(product?.base_unit) === 'box') {
-      return qty;
+      return toNumber(qtyDecimal);
     }
 
-    const explicitWeight = Number(totalWeight);
-    if (Number.isFinite(explicitWeight) && explicitWeight > 0) {
-      return explicitWeight;
+    if (hasValue(totalWeight)) {
+      return toNumber(toPositiveQuantityDecimal(totalWeight, 'total_weight'));
     }
 
-    const metadataWeight = Number(metadata?.total_weight ?? metadata?.totalWeight);
-    if (Number.isFinite(metadataWeight) && metadataWeight > 0) {
-      return metadataWeight;
+    const metadataWeight = metadata?.total_weight ?? metadata?.totalWeight;
+    if (hasValue(metadataWeight)) {
+      return toNumber(toPositiveQuantityDecimal(metadataWeight, 'metadata.total_weight'));
     }
 
     const standardBoxWeight = Number(product?.standard_box_weight || 0);
     if (Number.isFinite(standardBoxWeight) && standardBoxWeight > 0) {
-      return qty * standardBoxWeight;
+      return toNumber(
+        qtyDecimal.mul(standardBoxWeight).toDecimalPlaces(3, Decimal.ROUND_HALF_UP),
+      );
     }
 
     throw new HttpError(400, 'Unable to derive stock impact for box/carton entry');
   }
 
-  return qty;
+  return toNumber(qtyDecimal);
 };
 
 const applySingleOperatorStockEntry = async ({
@@ -606,16 +647,16 @@ const applySingleOperatorStockEntry = async ({
   boxPrice,
   deliverySessionId,
 }) => {
-  const previousUnit = Number(product.unit || 0);
-  const nextUnit = previousUnit + stockImpactQuantity;
+  const previousUnit = new Decimal(String(product.unit || 0));
+  const nextUnit = previousUnit.plus(stockImpactQuantity).toDecimalPlaces(3, Decimal.ROUND_HALF_UP);
 
-  if (!Number.isFinite(nextUnit) || nextUnit < 0) {
+  if (nextUnit.isNegative()) {
     throw new HttpError(400, 'Unable to apply stock entry in single-operator mode');
   }
 
   await updateProductUnit({
     productId: product.id,
-    nextUnit,
+    nextUnit: toNumber(nextUnit),
     organizationId,
     unitPrice,
     boxPrice,
@@ -631,7 +672,9 @@ const applySingleOperatorStockEntry = async ({
     await updateDeliverySessionInventoryApplied({
       organizationId,
       deliverySessionId,
-      appliedQuantity: Math.max(0, Number(stockImpactQuantity || 0)),
+      appliedQuantity: toNumber(
+        new Decimal(String(stockImpactQuantity || 0)).max(0).toDecimalPlaces(3, Decimal.ROUND_HALF_UP),
+      ),
     });
   }
 
@@ -643,11 +686,11 @@ const applySingleOperatorStockEntry = async ({
     organizationId,
     beforeData: {
       product_id: product.id,
-      previous_unit: previousUnit,
+      previous_unit: toNumber(previousUnit),
     },
     afterData: {
       product_id: product.id,
-      next_unit: nextUnit,
+      next_unit: toNumber(nextUnit),
       source_record_id: sourceRecordId,
       delivery_session_id: deliverySessionId || null,
       source,
@@ -965,24 +1008,25 @@ const recordDailySale = async ({ actor, payload }) => {
     product,
   });
 
-  const previousUnit = Number(product.unit || 0);
-  if (previousUnit < normalized.stockReductionKg) {
+  const previousUnit = new Decimal(String(product.unit || 0));
+  const stockReductionKg = toPositiveQuantityDecimal(normalized.stockReductionKg, 'stockReductionKg');
+  if (previousUnit.lt(stockReductionKg)) {
     throw new HttpError(400, 'Insufficient stock for this sale');
   }
 
-  const nextUnit = previousUnit - normalized.stockReductionKg;
+  const nextUnit = previousUnit.minus(stockReductionKg).toDecimalPlaces(3, Decimal.ROUND_HALF_UP);
   await updateProductUnit({
     productId: product.id,
     organizationId,
-    nextUnit,
+    nextUnit: toNumber(nextUnit),
   });
 
   const sale = await createSale({
     organizationId,
     productId: product.id,
     quantity: normalized.quantity,
-    sellingPrice: Math.round(normalized.unitPrice),
-    totalPrice: Math.round(normalized.totalPrice),
+    sellingPrice: normalized.unitPrice,
+    totalPrice: normalized.totalPrice,
     paymentMethod: normalized.paymentMethod,
     recordedBy: actor.id,
     customerType: normalized.customerType,
@@ -1000,15 +1044,15 @@ const recordDailySale = async ({ actor, payload }) => {
     beforeData: {
       product_id: product.id,
       product_name: product.name,
-      product_unit_before: previousUnit,
+      product_unit_before: toNumber(previousUnit),
     },
     afterData: {
       sale_id: sale.id,
       quantity: normalized.quantity,
       unit_type: normalized.unitType,
       stock_reduction_kg: normalized.stockReductionKg,
-      product_unit_after: nextUnit,
-      total_price: Math.round(normalized.totalPrice),
+      product_unit_after: toNumber(nextUnit),
+      total_price: normalized.totalPrice,
     },
   });
 
@@ -1023,18 +1067,15 @@ const voidSale = async ({ actor, saleId, productId, quantityToReturn, reason }) 
     throw new HttpError(400, 'Void reason must be at least 5 characters');
   }
 
-  const returnQuantity = Number(quantityToReturn);
-  if (!Number.isFinite(returnQuantity) || returnQuantity <= 0) {
-    throw new HttpError(400, 'quantityToReturn must be a positive number');
-  }
+  const returnQuantity = toNumber(toPositiveQuantityDecimal(quantityToReturn, 'quantityToReturn'));
 
   const organizationId = resolveOrganizationId(actor);
   const product = await findProductById(productId, organizationId);
-  const previousUnit = Number(product.unit || 0);
-  const nextUnit = previousUnit + returnQuantity;
+  const previousUnit = new Decimal(String(product.unit || 0));
+  const nextUnit = previousUnit.plus(returnQuantity).toDecimalPlaces(3, Decimal.ROUND_HALF_UP);
 
   await markSaleVoided({ saleId, organizationId });
-  await updateProductUnit({ productId, nextUnit, organizationId });
+  await updateProductUnit({ productId, nextUnit: toNumber(nextUnit), organizationId });
 
   await insertAuditLog({
     tableName: 'sales',
@@ -1048,12 +1089,12 @@ const voidSale = async ({ actor, saleId, productId, quantityToReturn, reason }) 
       quantity: returnQuantity,
       productName: product.name,
       previousStatus: 'completed',
-      previousUnit,
+      previousUnit: toNumber(previousUnit),
     },
     afterData: {
       status: 'voided',
       reason: normalizedReason,
-      unit: nextUnit,
+      unit: toNumber(nextUnit),
       returned_to_stock_at: new Date().toISOString(),
     },
   });
@@ -1073,10 +1114,7 @@ const resolveMismatch = async ({
     throw new HttpError(400, 'resolutionNote must be at least 3 characters');
   }
 
-  const quantity = Number(finalQuantity);
-  if (!Number.isFinite(quantity)) {
-    throw new HttpError(400, 'finalQuantity must be a number');
-  }
+  const quantity = toNumber(toNonNegativeQuantityDecimal(finalQuantity, 'finalQuantity'));
 
   const organizationId = resolveOrganizationId(actor);
   const reconciliation = await findReconciliationById(reconciliationId, organizationId);
@@ -1090,8 +1128,8 @@ const resolveMismatch = async ({
       productId: targetProductId,
     })
     : null;
-  const previousUnit = Number(product.unit || 0);
-  let nextUnit = previousUnit + quantity;
+  const previousUnit = new Decimal(String(product.unit || 0));
+  let nextUnit = previousUnit.plus(quantity).toDecimalPlaces(3, Decimal.ROUND_HALF_UP);
   let targetAppliedForSession = null;
   const previousUnitPrice = Number(product.unit_price || 0);
   const previousBoxPrice = Number(product.box_price || 0);
@@ -1108,11 +1146,15 @@ const resolveMismatch = async ({
       deliverySessionId: reconciliation.delivery_session_id,
     });
 
-    const currentApplied = Number(session.inventory_applied_quantity || 0);
-    targetAppliedForSession = Math.max(0, quantity);
-    const deltaToApply = targetAppliedForSession - currentApplied;
-    nextUnit = previousUnit + deltaToApply;
-    if (nextUnit < 0) {
+    const currentApplied = new Decimal(String(session.inventory_applied_quantity || 0));
+    targetAppliedForSession = toNumber(
+      new Decimal(quantity).max(0).toDecimalPlaces(3, Decimal.ROUND_HALF_UP),
+    );
+    const deltaToApply = new Decimal(targetAppliedForSession)
+      .minus(currentApplied)
+      .toDecimalPlaces(3, Decimal.ROUND_HALF_UP);
+    nextUnit = previousUnit.plus(deltaToApply).toDecimalPlaces(3, Decimal.ROUND_HALF_UP);
+    if (nextUnit.isNegative()) {
       throw new HttpError(
         400,
         'Cannot resolve mismatch with this quantity because resulting stock would be negative.',
@@ -1121,7 +1163,7 @@ const resolveMismatch = async ({
 
     await updateProductUnit({
       productId: targetProductId,
-      nextUnit,
+      nextUnit: toNumber(nextUnit),
       organizationId,
       unitPrice: latestOwnerEntry?.unit_price,
       boxPrice: latestOwnerEntry?.box_price,
@@ -1142,7 +1184,7 @@ const resolveMismatch = async ({
   } else {
     await updateProductUnit({
       productId: targetProductId,
-      nextUnit,
+      nextUnit: toNumber(nextUnit),
       organizationId,
       unitPrice: latestOwnerEntry?.unit_price,
       boxPrice: latestOwnerEntry?.box_price,
@@ -1158,12 +1200,12 @@ const resolveMismatch = async ({
     organizationId,
     beforeData: {
       product: product.name,
-      quantity: previousUnit,
+      quantity: toNumber(previousUnit),
       status: reconciliation.status,
     },
     afterData: {
       product: product.name,
-      quantity: nextUnit,
+      quantity: toNumber(nextUnit),
       status: 'resolved',
     },
   });

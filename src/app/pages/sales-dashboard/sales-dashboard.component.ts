@@ -13,6 +13,7 @@ import { ToastService } from '../../services/toast.service'
 import { ProductService } from '../../services/product.service'
 import { Product } from '../../interfaces/product'
 import { getErrorMessage } from '../../utils/error-message'
+import Decimal from 'decimal.js'
 
 @Component({
     selector: 'app-sales-dashboard',
@@ -51,14 +52,14 @@ export class SalesDashboardComponent {
         this.salesForm = this.fb.group({
             name: ['', Validators.minLength(1)],
             product_id: ['', Validators.required],
-            quantity: [null, [Validators.required, Validators.min(1)]],
+            quantity: [null, [Validators.required, Validators.min(0.001)]],
             recorded_by: [this.id, Validators.required],
             unit_type: ['kg', [Validators.required, Validators.min(0)]],
         })
 
         this.dailySalesForm = this.fb.group({
             product_id: ['', Validators.required],
-            quantity: [null, [Validators.required, Validators.min(1)]],
+            quantity: [null, [Validators.required, Validators.min(0.001)]],
             unit_price: [null, [Validators.required, Validators.min(0)]],
             unit_type: ['', Validators.required],
             total_price: [0, [Validators.required, Validators.min(0)]],
@@ -230,9 +231,20 @@ export class SalesDashboardComponent {
     }
 
     private syncDailySalesTotal() {
-        const quantity = Number(this.dailySalesForm.get('quantity')?.value || 0)
-        const unitPrice = Number(this.dailySalesForm.get('unit_price')?.value || 0)
-        const total = quantity > 0 && unitPrice >= 0 ? quantity * unitPrice : 0
+        const quantityValue = this.dailySalesForm.get('quantity')?.value
+        const unitPriceValue = this.dailySalesForm.get('unit_price')?.value
+
+        let total = 0
+        try {
+            const quantity = new Decimal(String(quantityValue || 0))
+            const unitPrice = new Decimal(String(unitPriceValue || 0))
+            total = quantity.gt(0) && unitPrice.gte(0)
+                ? quantity.mul(unitPrice).toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toNumber()
+                : 0
+        } catch {
+            total = 0
+        }
+
         this.dailySalesForm.patchValue({ total_price: total }, { emitEvent: false })
     }
 

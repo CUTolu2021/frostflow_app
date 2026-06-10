@@ -31,7 +31,7 @@
 
             <div class="form-section">
                 <label class="section-label">Quantity Counted</label>
-                <input type="number" [(ngModel)]="receiveForm.qty" class="input-giant" placeholder="0" min="0" [disabled]="isLoading">
+                <input type="number" [(ngModel)]="receiveForm.qty" class="input-giant" placeholder="0" min="0.001" step="0.001" inputmode="decimal" [disabled]="isLoading">
             </div>
 
             <div class="form-section" *ngIf="requiresMeasuredBoxWeight()">
@@ -41,7 +41,9 @@
                     [(ngModel)]="receiveForm.measuredTotalWeight"
                     class="input-lg"
                     placeholder="e.g. 39.5"
-                    min="0"
+                    min="0.001"
+                    step="0.001"
+                    inputmode="decimal"
                     [disabled]="isLoading"
                 >
                 <small class="hint">
@@ -66,7 +68,7 @@
                 <div *ngIf="receiveForm.hasDamages" class="damage-input-box animate-fade-in">
                     <label class="label-tiny text-red">Damaged Quantity</label>
                     <input type="number" [(ngModel)]="receiveForm.damagedQty" class="input-md border-red" [disabled]="isLoading"
-                        placeholder="How many?" min="0">
+                        placeholder="How many?" min="0.001" step="0.001" inputmode="decimal">
                 </div>
             </div>
 

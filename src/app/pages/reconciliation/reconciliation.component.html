@@ -186,8 +186,8 @@
                     <span>Or enter Manual Count</span>
                 </label>
                 <div class="manual-input-box" *ngIf="resolutionType === 'manual'">
-                    <input type="number" [(ngModel)]="manualQty" class="form-input" min="0">
-                    <span class="unit">units</span>
+                    <input type="number" [(ngModel)]="manualQty" class="form-input" min="0" step="0.001" inputmode="decimal">
+                    <span class="unit">{{ selectedMismatch ? getNormalizedUnitLabel(selectedMismatch) : 'units' }}</span>
                 </div>
             </div>
 
