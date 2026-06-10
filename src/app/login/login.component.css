@@ -36,14 +36,26 @@
 }
 
 .brand-block {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
     margin-bottom: 0.25rem;
 }
 
+.brand-mark {
+    width: min(220px, 72%);
+    height: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 16px 30px rgba(6, 25, 66, 0.22));
+}
+
 .logo {
-    font-size: 2.5rem;
-    font-weight: bold;
+    font-size: 2.35rem;
+    font-weight: 700;
     color: #f4f9ff;
+    margin-top: 0.9rem;
     margin-bottom: 0.45rem;
+    letter-spacing: -0.03em;
 }
 
 .brand-subtitle {
@@ -74,6 +86,15 @@
 .login-form-card {
     width: 100%;
     max-width: 380px;
+}
+
+.form-mark {
+    width: 56px;
+    height: 56px;
+    object-fit: contain;
+    margin-bottom: 1rem;
+    border-radius: 16px;
+    box-shadow: 0 12px 24px rgba(58, 123, 213, 0.16);
 }
 
 .login-form-card h2 {
@@ -193,6 +214,8 @@
     .branding-section {
         max-height: none;
         padding: 1.25rem;
+        align-items: center;
+        text-align: center;
     }
 
     .login-page {
@@ -203,5 +226,13 @@
 
     .login-section {
         padding-top: 1.25rem;
+    }
+
+    .brand-block {
+        align-items: center;
+    }
+
+    .brand-mark {
+        width: min(180px, 62%);
     }
 }

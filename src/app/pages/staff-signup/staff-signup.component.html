@@ -7,14 +7,28 @@
             <div class="meta">
                 <div><strong>Invited Email:</strong> {{ invitedEmail }}</div>
                 <div><strong>Role:</strong> {{ role | titlecase }}</div>
-                <div><strong>Expires:</strong> {{ expiresAt | date: 'medium' }}</div>
+                <div>
+                    <strong>Expires:</strong> {{ expiresAt | date: 'medium' }}
+                </div>
             </div>
 
             <label>Full Name</label>
-            <input [(ngModel)]="name" name="name" type="text" [disabled]="isSubmitting" required />
+            <input
+                [(ngModel)]="name"
+                name="name"
+                type="text"
+                [disabled]="isSubmitting"
+                required
+            />
 
             <label>Email</label>
-            <input [(ngModel)]="email" name="email" type="email" [disabled]="isSubmitting" required />
+            <input
+                [(ngModel)]="email"
+                name="email"
+                type="email"
+                [disabled]="isSubmitting"
+                required
+            />
 
             <label>Password</label>
             <div class="password-field">
@@ -25,7 +39,12 @@
                     [disabled]="isSubmitting"
                     required
                 />
-                <button type="button" class="eye-btn" (click)="togglePassword()" [disabled]="isSubmitting">
+                <button
+                    type="button"
+                    class="eye-btn"
+                    (click)="togglePassword()"
+                    [disabled]="isSubmitting"
+                >
                     <span class="material-symbols-outlined">
                         {{ showPassword ? 'visibility_off' : 'visibility' }}
                     </span>
@@ -41,7 +60,12 @@
                     [disabled]="isSubmitting"
                     required
                 />
-                <button type="button" class="eye-btn" (click)="toggleConfirm()" [disabled]="isSubmitting">
+                <button
+                    type="button"
+                    class="eye-btn"
+                    (click)="toggleConfirm()"
+                    [disabled]="isSubmitting"
+                >
                     <span class="material-symbols-outlined">
                         {{ showConfirm ? 'visibility_off' : 'visibility' }}
                     </span>
@@ -59,7 +83,9 @@
 
         <div class="submit-overlay" *ngIf="isSubmitting">
             <div class="submit-card">
-                <span class="material-symbols-outlined spin">progress_activity</span>
+                <span class="material-symbols-outlined spin"
+                    >progress_activity</span
+                >
                 <p>Creating your account...</p>
                 <small>Hang tight, we are finishing setup.</small>
             </div>
