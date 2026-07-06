@@ -21,32 +21,33 @@
     <nav class="sidebar-nav">
         <!-- Admin Section -->
         <ng-container *ngIf="userRole === 'admin' || userRole === 'manager'">
-            <a routerLink="/admin/dashboard" routerLinkActive="active" class="nav-item">
+            <a (click)="handleNavigationRequested()" routerLink="/admin/dashboard" routerLinkActive="active" class="nav-item">
                 <span class="material-symbols-outlined nav-icon">dashboard</span>
                 <span class="nav-text">Dashboard</span>
             </a>
 
-            <a routerLink="/admin/inventory" routerLinkActive="active" class="nav-item">
+            <a (click)="handleNavigationRequested()" routerLink="/admin/inventory" routerLinkActive="active" class="nav-item">
                 <span class="material-symbols-outlined nav-icon">shopping_bag</span>
                 <span class="nav-text">Inventory</span>
             </a>
 
-            <a routerLink="/admin/products" routerLinkActive="active" class="nav-item">
+            <a (click)="handleNavigationRequested()" routerLink="/admin/products" routerLinkActive="active" class="nav-item">
                 <span class="material-symbols-outlined nav-icon">inventory_2</span>
                 <span class="nav-text">Products</span>
             </a>
 
-            <a *ngIf="userRole === 'admin'" routerLink="/admin/staff" routerLinkActive="active" class="nav-item">
+            <a (click)="handleNavigationRequested()" *ngIf="userRole === 'admin'" routerLink="/admin/staff" routerLinkActive="active" class="nav-item">
                 <span class="material-symbols-outlined nav-icon">group</span>
                 <span class="nav-text">Staff</span>
             </a>
 
-            <a routerLink="/admin/analysis" routerLinkActive="active" class="nav-item">
+            <a (click)="handleNavigationRequested()" routerLink="/admin/analysis" routerLinkActive="active" class="nav-item">
                 <span class="material-symbols-outlined nav-icon">analytics</span>
                 <span class="nav-text">Analytics</span>
             </a>
 
             <a
+                (click)="handleNavigationRequested()"
                 *ngIf="organizationInventoryMode === 'single_operator'"
                 routerLink="/admin/sales"
                 routerLinkActive="active"
@@ -57,6 +58,7 @@
             </a>
 
             <a
+                (click)="handleNavigationRequested()"
                 *ngIf="organizationInventoryMode !== 'single_operator'"
                 routerLink="/admin/mismatch"
                 routerLinkActive="active"
@@ -74,11 +76,11 @@
 
         <!-- Superadmin Section -->
         <ng-container *ngIf="userRole === 'superadmin'">
-            <a routerLink="/superadmin/dashboard" routerLinkActive="active" class="nav-item">
+            <a (click)="handleNavigationRequested()" routerLink="/superadmin/dashboard" routerLinkActive="active" class="nav-item">
                 <span class="material-symbols-outlined nav-icon">admin_panel_settings</span>
                 <span class="nav-text">Organizations</span>
             </a>
-            <a routerLink="/superadmin/users" routerLinkActive="active" class="nav-item">
+            <a (click)="handleNavigationRequested()" routerLink="/superadmin/users" routerLinkActive="active" class="nav-item">
                 <span class="material-symbols-outlined nav-icon">manage_accounts</span>
                 <span class="nav-text">Manage Users</span>
             </a>
@@ -90,22 +92,22 @@
 
         <!-- Sales Section -->
         <ng-container *ngIf="userRole === 'sales'">
-            <a routerLink="/sales/dashboard" routerLinkActive="active" class="nav-item">
+            <a (click)="handleNavigationRequested()" routerLink="/sales/dashboard" routerLinkActive="active" class="nav-item">
                 <span class="material-symbols-outlined nav-icon">point_of_sale</span>
                 <span class="nav-text">Sell</span>
             </a>
 
-            <a routerLink="/sales/receive" routerLinkActive="active" class="nav-item">
+            <a (click)="handleNavigationRequested()" routerLink="/sales/receive" routerLinkActive="active" class="nav-item">
                 <span class="material-symbols-outlined nav-icon">input</span>
                 <span class="nav-text">Receive</span>
             </a>
 
-            <a routerLink="/sales/lookup" routerLinkActive="active" class="nav-item">
+            <a (click)="handleNavigationRequested()" routerLink="/sales/lookup" routerLinkActive="active" class="nav-item">
                 <span class="material-symbols-outlined nav-icon">search</span>
                 <span class="nav-text">Lookup</span>
             </a>
 
-            <a routerLink="/sales/history" routerLinkActive="active" class="nav-item">
+            <a (click)="handleNavigationRequested()" routerLink="/sales/history" routerLinkActive="active" class="nav-item">
                 <span class="material-symbols-outlined nav-icon">history</span>
                 <span class="nav-text">History</span>
             </a>
@@ -117,6 +119,7 @@
 
         <!-- Settings Section -->
         <a
+            (click)="handleNavigationRequested()"
             *ngIf="userRole === 'admin' || userRole === 'manager'"
             routerLink="/admin/settings"
             routerLinkActive="active"

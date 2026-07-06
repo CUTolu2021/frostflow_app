@@ -1,6 +1,7 @@
 const { asyncHandler } = require('../utils/asyncHandler');
 const {
   archiveProduct,
+  createExpense,
   createProduct,
   editProduct,
   getAiReports,
@@ -205,6 +206,15 @@ const listExpensesHandler = asyncHandler(async (req, res) => {
   res.json({ expenses });
 });
 
+const createExpenseHandler = asyncHandler(async (req, res) => {
+  const expense = await createExpense({
+    actor: req.user,
+    organizationId: req.body?.organizationId,
+    payload: req.body,
+  });
+  res.status(201).json({ expense });
+});
+
 const getOrganizationSettingsHandler = asyncHandler(async (req, res) => {
   const settings = await getOrganizationSettings({
     actor: req.user,
@@ -234,6 +244,7 @@ const updateOrganizationSettingsHandler = asyncHandler(async (req, res) => {
 module.exports = {
   archiveProductHandler,
   createProductHandler,
+  createExpenseHandler,
   getChartDataHandler,
   getDailyEntryStatusHandler,
   getDashboardMetricsHandler,

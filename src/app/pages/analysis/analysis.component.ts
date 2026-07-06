@@ -6,7 +6,7 @@ import { ToastService } from '../../services/toast.service';
 import { UserProfile } from '../../interfaces/profile';
 import { GroupedSale, Sale } from '../../interfaces/sales';
 import { AIStockReport } from '../../interfaces/ai-report';
-import { StockEntry } from '../../interfaces/stock';
+import { CreateExpensePayload, ExpenseRecord } from '../../interfaces/expense';
 import { AuthUser } from '../../interfaces/auth-user';
 import { getErrorMessage } from '../../utils/error-message';
 import { DialogService } from '../../services/dialog.service';
@@ -23,7 +23,7 @@ export class AnalysisComponent implements OnInit {
     currentMonth = new Date();
 
 
-    metrics = { totalValue: 0, lowStock: 0, totalItems: 0 };
+    metrics = { totalValue: 0, lowStock: 0, totalItems: 0, totalExpenses: 0 };
     salesMetrics = { totalSalesValue: 0, totalUnitsSold: 0 };
     aiReport: AIStockReport | null = null;
     isLoading = true;
@@ -38,10 +38,13 @@ export class AnalysisComponent implements OnInit {
     };
 
 
-    filters = {
+    historyFilters = {
         date: new Date().toISOString().slice(0, 7),
         staff: 'all',
         payment: 'all'
+    };
+    expenseFilters = {
+        date: new Date().toISOString().slice(0, 7),
     };
     staffList: UserProfile[] = [];
 
@@ -53,13 +56,25 @@ export class AnalysisComponent implements OnInit {
     voidReason = '';
 
 
-    expenses: StockEntry[] = [];
+    expenses: ExpenseRecord[] = [];
     expenseMetrics = {
         totalSpent: 0,
         goodsCost: 0,
         logisticsCost: 0,
+        miscCost: 0,
         netProfit: 0
-    }
+    };
+    expenseRevenueTotal = 0;
+
+    isExpenseModalOpen = false;
+    isSavingExpense = false;
+    expenseForm: CreateExpensePayload = {
+        description: '',
+        category: '',
+        amount: 0,
+        expenseDate: new Date().toISOString().slice(0, 10),
+        notes: '',
+    };
 
     currentUser: AuthUser | null = null;
 
@@ -85,11 +100,28 @@ export class AnalysisComponent implements OnInit {
             this.loadExpenses(),
             this.loadStaff()
         ]);
+        this.calculateExpenseMetrics();
         this.isLoading = false;
     }
 
     setActiveTab(tab: 'overview' | 'ai' | 'history' | 'expenses') {
         this.activeTab = tab;
+    }
+
+    openExpenseModal() {
+        this.expenseForm = {
+            description: '',
+            category: '',
+            amount: 0,
+            expenseDate: new Date().toISOString().slice(0, 10),
+            notes: '',
+        };
+        this.isExpenseModalOpen = true;
+    }
+
+    closeExpenseModal() {
+        if (this.isSavingExpense) return;
+        this.isExpenseModalOpen = false;
     }
 
     async loadMetrics() {
@@ -109,25 +141,33 @@ export class AnalysisComponent implements OnInit {
 
 
 
-    getDateRange() {
-        const [year, month] = this.filters.date.split('-').map(Number);
+    private getRangeForMonth(monthValue: string) {
+        const [year, month] = monthValue.split('-').map(Number);
         const start = `${year}-${String(month).padStart(2, '0')}-01T00:00:00`;
         const lastDay = new Date(year, month, 0).getDate();
         const end = `${year}-${String(month).padStart(2, '0')}-${lastDay}T23:59:59`;
         return { start, end };
     }
 
+    getHistoryDateRange() {
+        return this.getRangeForMonth(this.historyFilters.date);
+    }
+
+    getExpenseDateRange() {
+        return this.getRangeForMonth(this.expenseFilters.date);
+    }
+
     async loadHistory() {
 
-        const { start, end } = this.getDateRange();
+        const { start, end } = this.getHistoryDateRange();
 
 
         const rawSales = await this.supabase.getSalesHistory(start, end);
 
 
         const filtered = rawSales.filter((s: Sale) => {
-            if (this.filters.staff !== 'all' && s.recorded_by !== this.filters.staff) return false;
-            if (this.filters.payment !== 'all' && !this.matchesPaymentFilter(s, this.filters.payment)) return false;
+            if (this.historyFilters.staff !== 'all' && s.recorded_by !== this.historyFilters.staff) return false;
+            if (this.historyFilters.payment !== 'all' && !this.matchesPaymentFilter(s, this.historyFilters.payment)) return false;
             return true;
         });
 
@@ -180,6 +220,7 @@ export class AnalysisComponent implements OnInit {
 
 
         this.calculateFinancials();
+        this.calculateExpenseMetrics();
     }
 
     calculateFinancials() {
@@ -311,10 +352,16 @@ export class AnalysisComponent implements OnInit {
         if (!this.currentUser) return;
 
         try {
-            const { start, end } = this.getDateRange();
-
-            const data = await this.supabase.getExpenses(start, end);
+            const { start, end } = this.getExpenseDateRange();
+            const [data, sales] = await Promise.all([
+                this.supabase.getExpenses(start, end),
+                this.supabase.getSalesHistory(start, end),
+            ]);
             this.expenses = data;
+            this.expenseRevenueTotal = sales.reduce((sum, sale) => {
+                if (sale.status === 'voided' || sale.status === 'rejected') return sum;
+                return sum + Number(sale.total_price || 0);
+            }, 0);
 
             this.calculateExpenseMetrics();
 
@@ -327,21 +374,60 @@ export class AnalysisComponent implements OnInit {
         let total = 0;
         let goods = 0;
         let logistic = 0;
+        let misc = 0;
 
         this.expenses.forEach(e => {
-            const cost = e.total_cost || 0;
-            const fee = e.logistics_fee || 0;
+            const cost = Number(e.goods_cost || 0);
+            const fee = Number(e.logistics_fee || 0);
+            const amount = Number(e.amount || 0);
             goods += cost;
             logistic += fee;
-            total += (cost + fee);
+            total += amount;
+            if (e.expense_type === 'misc') {
+                misc += amount;
+            }
         });
 
         this.expenseMetrics = {
             totalSpent: total,
             goodsCost: goods,
             logisticsCost: logistic,
-            netProfit: this.financials.totalRevenue - total
+            miscCost: misc,
+            netProfit: this.expenseRevenueTotal - total
         };
+    }
+
+    async submitExpense() {
+        if (this.isSavingExpense) return;
+
+        const payload: CreateExpensePayload = {
+            description: this.expenseForm.description.trim(),
+            category: this.expenseForm.category.trim(),
+            amount: Number(this.expenseForm.amount),
+            expenseDate: this.expenseForm.expenseDate,
+            notes: this.expenseForm.notes?.trim() || '',
+        };
+
+        if (!payload.description || !payload.category || !payload.expenseDate || !Number.isFinite(payload.amount) || payload.amount <= 0) {
+            this.toast.show('Please enter a valid description, category, amount, and expense date.', 'error');
+            return;
+        }
+
+        this.isSavingExpense = true;
+        try {
+            await this.supabase.createExpense(payload);
+            this.toast.show('Expense recorded successfully.', 'success');
+            this.isExpenseModalOpen = false;
+            await this.loadExpenses();
+        } catch (error: unknown) {
+            this.toast.show(getErrorMessage(error, 'Failed to record expense'), 'error');
+        } finally {
+            this.isSavingExpense = false;
+        }
+    }
+
+    getExpenseTypeLabel(expense: ExpenseRecord): string {
+        return expense.expense_type === 'misc' ? 'Misc Expense' : 'Stock Purchase';
     }
 
     get formattedDate() {

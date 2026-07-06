@@ -2,7 +2,7 @@ const rateLimit = require('express-rate-limit');
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 25,
+  max: 10,
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: 'Too many authentication requests. Try again later.' },
@@ -24,4 +24,28 @@ const writeLimiter = rateLimit({
   message: { message: 'Too many write requests. Please slow down.' },
 });
 
-module.exports = { authLimiter, refreshLimiter, writeLimiter };
+const inviteLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 8,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => `${req.ip}:${req.user?.id || 'anonymous'}:invite`,
+  message: { message: 'Too many staff invites created. Please wait a bit and try again.' },
+});
+
+const passwordResetLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 6,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => `${req.ip}:${req.user?.id || 'anonymous'}:${req.params?.userId || 'self'}:password-reset`,
+  message: { message: 'Too many password reset attempts. Please wait and try again.' },
+});
+
+module.exports = {
+  authLimiter,
+  refreshLimiter,
+  writeLimiter,
+  inviteLimiter,
+  passwordResetLimiter,
+};

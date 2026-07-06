@@ -85,6 +85,14 @@
                     <h3 class="kpi-value">{{ metrics.lowStock }}</h3>
                     <p class="kpi-sub">Items with low stock</p>
                 </div>
+
+                <div class="kpi-card">
+                    <div class="kpi-top">
+                        <span class="kpi-label">Total Expenses</span>
+                    </div>
+                    <h3 class="kpi-value">{{ metrics.totalExpenses | currency:'NGN':'symbol-narrow' }}</h3>
+                    <p class="kpi-sub">All-time business spend</p>
+                </div>
             </div>
 
             <!-- Charts Section -->
@@ -216,13 +224,13 @@
                         <!-- Date -->
                         <div class="filter-item">
                             <label>Date:</label>
-                            <input type="month" [(ngModel)]="filters.date" (change)="loadHistory()"
+                            <input type="month" [(ngModel)]="historyFilters.date" (change)="loadHistory()"
                                 class="form-input-sm">
                         </div>
 
                         <!-- Staff -->
                         <div class="filter-item">
-                            <select [(ngModel)]="filters.staff" (change)="loadHistory()" class="form-select-sm">
+                            <select [(ngModel)]="historyFilters.staff" (change)="loadHistory()" class="form-select-sm">
                                 <option value="all">All Staff</option>
                                 <option *ngFor="let s of staffList" [value]="s.id">{{ s.name }}</option>
                             </select>
@@ -230,7 +238,7 @@
 
                         <!-- Method -->
                         <div class="filter-item">
-                            <select [(ngModel)]="filters.payment" (change)="loadHistory()" class="form-select-sm">
+                            <select [(ngModel)]="historyFilters.payment" (change)="loadHistory()" class="form-select-sm">
                                 <option value="all">All Methods</option>
                                 <option value="cash">Cash</option>
                                 <option value="transfer">Transfer</option>
@@ -358,6 +366,12 @@
                         }}</span>
                 </div>
 
+                <div class="fin-card bg-amber-50 border-amber-200">
+                    <span class="label text-amber-800">Misc Expenses</span>
+                    <span class="value text-amber-900">{{ expenseMetrics.miscCost | currency:'NGN':'symbol-narrow'
+                        }}</span>
+                </div>
+
                 <div class="fin-card bg-gray-50 border-gray-200">
                     <span class="label text-gray-800">Net Profit</span>
                     <span class="value" [class.text-green-600]="expenseMetrics.netProfit >= 0"
@@ -372,13 +386,16 @@
                 <div class="card-header-row toolbar-wrap">
                     <div class="filters-group">
                         <h3 class="mr-4">Expense Log</h3>
-                        <!-- Date -->
                         <div class="filter-item">
                             <label>Date:</label>
-                            <input type="month" [(ngModel)]="filters.date" (change)="loadExpenses()"
+                            <input type="month" [(ngModel)]="expenseFilters.date" (change)="loadExpenses()"
                                 class="form-input-sm">
                         </div>
                     </div>
+                    <button class="btn btn-primary" type="button" (click)="openExpenseModal()">
+                        <span class="material-symbols-outlined">add</span>
+                        Add Expense
+                    </button>
                 </div>
 
                 <!-- Expenses Table (Desktop) -->
@@ -387,41 +404,45 @@
                         <thead>
                             <tr>
                                 <th>Date</th>
-                                <th>Product</th>
-                                <th class="text-right">Qty Added</th>
-                                <th class="text-right">Unit Cost</th>
+                                <th>Type</th>
+                                <th>Description</th>
+                                <th>Category</th>
                                 <th class="text-right">Goods Cost</th>
                                 <th class="text-right">Logistics</th>
-                                <th class="text-right">Total Entry Cost</th>
+                                <th class="text-right">Total Amount</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr *ngFor="let exp of expenses" class="hover-bg">
-                                <td class="text-muted">{{ exp.created_at | date:'short' }}</td>
+                                <td class="text-muted">{{ exp.expense_date | date:'mediumDate' }}</td>
                                 <td>
-                                    <div class="font-medium">{{ exp.products?.name }}</div>
-                                    <div class="text-xs text-muted">{{ exp.products?.category }}</div>
+                                    <span class="badge" [class.badge-blue]="exp.expense_type === 'stock_purchase'"
+                                        [class.badge-green]="exp.expense_type === 'misc'">
+                                        {{ getExpenseTypeLabel(exp) }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="font-medium">{{ exp.description }}</div>
+                                    <div class="text-xs text-muted" *ngIf="exp.quantity">
+                                        {{ exp.quantity }} {{ exp.unit_type }}
+                                    </div>
+                                    <div class="text-xs text-muted" *ngIf="exp.notes">{{ exp.notes }}</div>
+                                </td>
+                                <td class="text-xs text-muted">
+                                    {{ exp.category }}
                                 </td>
                                 <td class="text-right">
-                                    {{ exp.quantity }} {{ exp.unit_type }}
-                                </td>
-                                <td class="text-xs text-right text-muted">
-                                    {{ exp.unit_cost | currency:'NGN':'symbol-narrow' }}
-                                </td>
-                                <td class="text-right">
-                                    {{ exp.total_cost | currency:'NGN':'symbol-narrow' }}
+                                    {{ (exp.goods_cost || 0) | currency:'NGN':'symbol-narrow' }}
                                 </td>
                                 <td class="font-medium text-right text-teal-700">
                                     {{ (exp.logistics_fee || 0) | currency:'NGN':'symbol-narrow' }}
                                 </td>
                                 <td class="font-bold text-right text-orange-900">
-                                    {{ ((exp.total_cost || 0) + (exp.logistics_fee || 0)) |
-                                    currency:'NGN':'symbol-narrow'
-                                    }}
+                                    {{ (exp.amount || 0) | currency:'NGN':'symbol-narrow' }}
                                 </td>
                             </tr>
                             <tr *ngIf="expenses.length === 0">
-                                <td colspan="8" class="text-center py-8 text-muted">
+                                <td colspan="7" class="text-center py-8 text-muted">
                                     No expense records found for this period.
                                 </td>
                             </tr>
@@ -433,20 +454,20 @@
                 <div class="mobile-view p-4">
                     <div class="exp-card-mobile" *ngFor="let exp of expenses">
                         <div class="e-card-top">
-                            <span class="e-date">{{ exp.created_at | date:'shortDate' }}</span>
-                            <span class="e-total">{{ ((exp.total_cost || 0) + (exp.logistics_fee || 0)) |
-                                currency:'NGN':'symbol-narrow' }}</span>
+                            <span class="e-date">{{ exp.expense_date | date:'shortDate' }}</span>
+                            <span class="e-total">{{ (exp.amount || 0) | currency:'NGN':'symbol-narrow' }}</span>
                         </div>
                         <div class="e-card-mid">
                             <div class="e-prod">
-                                <span class="font-medium">{{ exp.products?.name }}</span>
-                                <span class="e-qty text-muted">{{ exp.quantity }} {{ exp.unit_type }}</span>
+                                <span class="font-medium">{{ exp.description }}</span>
+                                <span class="e-qty text-muted">{{ getExpenseTypeLabel(exp) }} · {{ exp.category }}</span>
+                                <span class="e-qty text-muted" *ngIf="exp.quantity">{{ exp.quantity }} {{ exp.unit_type }}</span>
                             </div>
                         </div>
                         <div class="e-card-bot">
                             <span class="e-log">Logistics: {{ (exp.logistics_fee || 0) | currency:'NGN':'symbol-narrow'
                                 }}</span>
-                            <span class="e-cost">Goods: {{ exp.total_cost | currency:'NGN':'symbol-narrow' }}</span>
+                            <span class="e-cost">Goods: {{ (exp.goods_cost || 0) | currency:'NGN':'symbol-narrow' }}</span>
                         </div>
                     </div>
                     <div *ngIf="expenses.length === 0" class="text-center py-4 text-muted">
@@ -454,6 +475,60 @@
                     </div>
                 </div>
 
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" *ngIf="isExpenseModalOpen" (click)="closeExpenseModal()">
+    <div class="modal-container expense-modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+            <h3>Add Expense</h3>
+            <button class="btn-icon" type="button" (click)="closeExpenseModal()" [disabled]="isSavingExpense">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+
+        <div class="modal-body">
+            <div class="form-grid">
+                <div class="form-field form-field-full">
+                    <label for="expense-description">Description</label>
+                    <input id="expense-description" type="text" class="form-input-sm" [(ngModel)]="expenseForm.description"
+                        placeholder="Diesel for generator" [disabled]="isSavingExpense">
+                </div>
+
+                <div class="form-field">
+                    <label for="expense-category">Category</label>
+                    <input id="expense-category" type="text" class="form-input-sm" [(ngModel)]="expenseForm.category"
+                        placeholder="Utilities" [disabled]="isSavingExpense">
+                </div>
+
+                <div class="form-field">
+                    <label for="expense-amount">Amount</label>
+                    <input id="expense-amount" type="number" step="0.01" min="0.01" class="form-input-sm"
+                        [(ngModel)]="expenseForm.amount" [disabled]="isSavingExpense">
+                </div>
+
+                <div class="form-field">
+                    <label for="expense-date">Expense Date</label>
+                    <input id="expense-date" type="date" class="form-input-sm" [(ngModel)]="expenseForm.expenseDate"
+                        [disabled]="isSavingExpense">
+                </div>
+
+                <div class="form-field form-field-full">
+                    <label for="expense-notes">Notes</label>
+                    <textarea id="expense-notes" rows="3" class="form-input-sm expense-notes"
+                        [(ngModel)]="expenseForm.notes" placeholder="Optional note" [disabled]="isSavingExpense"></textarea>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-outline" type="button" (click)="closeExpenseModal()" [disabled]="isSavingExpense">
+                    Cancel
+                </button>
+                <button class="btn btn-primary" type="button" (click)="submitExpense()" [disabled]="isSavingExpense">
+                    {{ isSavingExpense ? 'Saving...' : 'Save Expense' }}
+                </button>
             </div>
         </div>
     </div>

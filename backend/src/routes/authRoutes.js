@@ -12,7 +12,12 @@ const {
   changePasswordHandler,
 } = require('../controllers/authController');
 const { requireAuth } = require('../middlewares/authMiddleware');
-const { authLimiter, refreshLimiter } = require('../middlewares/rateLimitMiddleware');
+const {
+  authLimiter,
+  refreshLimiter,
+  inviteLimiter,
+  passwordResetLimiter,
+} = require('../middlewares/rateLimitMiddleware');
 
 const router = Router();
 
@@ -21,10 +26,10 @@ router.post('/refresh', refreshLimiter, refreshHandler);
 router.get('/me', requireAuth, meHandler);
 router.post('/logout', requireAuth, logoutHandler);
 router.post('/staff', requireAuth, createStaffHandler);
-router.post('/staff/invite', requireAuth, createStaffInviteHandler);
+router.post('/staff/invite', requireAuth, inviteLimiter, createStaffInviteHandler);
 router.get('/staff/invite/preview', previewStaffInviteHandler);
 router.post('/staff/invite/complete', authLimiter, completeStaffInviteHandler);
-router.post('/staff/:userId/password', requireAuth, resetPasswordHandler);
-router.post('/change-password', requireAuth, changePasswordHandler);
+router.post('/staff/:userId/password', requireAuth, passwordResetLimiter, resetPasswordHandler);
+router.post('/change-password', requireAuth, passwordResetLimiter, changePasswordHandler);
 
 module.exports = { authRoutes: router };

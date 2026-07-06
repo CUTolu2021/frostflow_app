@@ -2,6 +2,7 @@ const { Router } = require('express');
 const { requireAuth } = require('../middlewares/authMiddleware');
 const {
   archiveProductHandler,
+  createExpenseHandler,
   createProductHandler,
   getChartDataHandler,
   getDailyEntryStatusHandler,
@@ -63,5 +64,6 @@ router.get('/sales/recent', listRecentSalesHandler);
 router.get('/staff-stock/recent', listRecentStaffEntriesHandler);
 router.get('/sales/history', listSalesHistoryHandler);
 router.get('/expenses', listExpensesHandler);
+router.post('/expenses', createExpenseHandler);
 
 module.exports = { appRoutes: router };

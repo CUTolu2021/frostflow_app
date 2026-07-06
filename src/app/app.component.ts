@@ -8,6 +8,7 @@ import { LoadingService } from './services/loading.service'
 import { AutoLogoutService } from './services/auto-logout.service'
 import { DialogComponent } from './components/dialog/dialog.component'
 import { ToastService } from './services/toast.service'
+import { RouteWarmupService } from './services/route-warmup.service'
 
 @Component({
     selector: 'app-root',
@@ -26,7 +27,8 @@ export class AppComponent implements OnInit, OnDestroy {
         public loadingService: LoadingService,
         private autoLogout: AutoLogoutService,
         private injector: Injector,
-        private toast: ToastService
+        private toast: ToastService,
+        private routeWarmup: RouteWarmupService
     ) {
 
     }
@@ -55,6 +57,7 @@ export class AppComponent implements OnInit, OnDestroy {
             await this.checkUserStatus();
             this.setupProfileSubscription(user.id);
             this.autoLogout.initListener();
+            this.routeWarmup.preloadForRole(localStorage.getItem('user_role'));
         }
 
 
@@ -63,6 +66,7 @@ export class AppComponent implements OnInit, OnDestroy {
                 await this.checkUserStatus();
                 this.setupProfileSubscription(session.user.id);
                 this.autoLogout.initListener();
+                this.routeWarmup.preloadForRole(localStorage.getItem('user_role'));
             } else if (event === 'SIGNED_OUT') {
                 this.cleanupSubscription();
                 this.autoLogout.cleanup();

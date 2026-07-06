@@ -4,10 +4,12 @@ const {
   getUserProfileById,
   getUserProfile,
   insertProduct,
+  insertMiscExpense,
   listAiReports,
   listChartProducts,
   countDailyEntries,
-  listExpenses,
+  listMiscExpenseAmounts,
+  listMiscExpenses,
   listInventoryLogs,
   listNotifications,
   listPendingMismatches,
@@ -18,6 +20,8 @@ const {
   listRecentStaffEntries,
   listSalesHistory,
   listSalesMetrics,
+  listStockExpenseAmounts,
+  listStockPurchaseExpenses,
   listStaff,
   markNotificationRead: markNotificationReadRepo,
   updateProduct,
@@ -197,13 +201,23 @@ const updateOrganizationSettings = async ({ actor, organizationId, inventoryMode
 
 const getDashboardMetrics = async ({ actor, organizationId }) => {
   const orgId = resolveOrganizationId(actor, organizationId);
-  const products = await listProductUnits({ organizationId: orgId });
+  const [products, stockExpenses, miscExpenses] = await Promise.all([
+    listProductUnits({ organizationId: orgId }),
+    listStockExpenseAmounts({ organizationId: orgId }),
+    listMiscExpenseAmounts({ organizationId: orgId }),
+  ]);
   const totalValue = products.reduce((sum, item) => sum + (Number(item.unit || 0) * Number(item.unit_price || 0)), 0);
   const lowStock = products.filter((item) => Number(item.unit || 0) < 10).length;
+  const stockExpenseTotal = stockExpenses.reduce(
+    (sum, item) => sum + Number(item.total_cost || 0) + Number(item.logistics_fee || 0),
+    0,
+  );
+  const miscExpenseTotal = miscExpenses.reduce((sum, item) => sum + Number(item.amount || 0), 0);
   return {
     totalValue,
     lowStock,
     totalItems: products.length,
+    totalExpenses: stockExpenseTotal + miscExpenseTotal,
   };
 };
 
@@ -330,11 +344,122 @@ const getExpenses = async ({ actor, organizationId, startDate, endDate }) => {
   if (!startDate || !endDate) {
     throw new HttpError(400, 'startDate and endDate are required');
   }
-  return listExpenses({ organizationId: orgId, startDate, endDate });
+  const [stockPurchaseExpenses, miscExpenses] = await Promise.all([
+    listStockPurchaseExpenses({ organizationId: orgId, startDate, endDate }),
+    listMiscExpenses({ organizationId: orgId, startDate, endDate }),
+  ]);
+
+  const normalizedPurchases = stockPurchaseExpenses.map((entry) => ({
+    id: entry.id,
+    expense_type: 'stock_purchase',
+    expense_date: entry.logged_date || String(entry.created_at || '').slice(0, 10),
+    created_at: entry.created_at,
+    description: entry.products?.name || 'Stock purchase',
+    category: entry.products?.category || 'inventory',
+    quantity: Number(entry.input_quantity || entry.quantity || 0),
+    unit_type: entry.input_unit || entry.unit_type || 'kg',
+    unit_cost: Number(entry.unit_cost || 0),
+    goods_cost: Number(entry.total_cost || 0),
+    logistics_fee: Number(entry.logistics_fee || 0),
+    amount: Number(entry.total_cost || 0) + Number(entry.logistics_fee || 0),
+    notes: entry.reference_note || '',
+    products: entry.products || null,
+    created_by_name: null,
+  }));
+
+  const normalizedMiscExpenses = miscExpenses.map((entry) => ({
+    id: entry.id,
+    expense_type: 'misc',
+    expense_date: entry.expense_date,
+    created_at: entry.created_at,
+    description: entry.description,
+    category: entry.category || 'miscellaneous',
+    quantity: null,
+    unit_type: null,
+    unit_cost: null,
+    goods_cost: 0,
+    logistics_fee: 0,
+    amount: Number(entry.amount || 0),
+    notes: entry.notes || '',
+    products: null,
+    created_by_name: entry.users?.name || null,
+  }));
+
+  return [...normalizedPurchases, ...normalizedMiscExpenses].sort((a, b) => {
+    const left = new Date(b.created_at || b.expense_date).getTime();
+    const right = new Date(a.created_at || a.expense_date).getTime();
+    return left - right;
+  });
+};
+
+const createExpense = async ({ actor, organizationId, payload }) => {
+  if (!['admin', 'manager', 'superadmin'].includes(actor.role)) {
+    throw new HttpError(403, 'Only admin or manager can record expenses');
+  }
+
+  const orgId = resolveOrganizationId(actor, organizationId);
+  const description = String(payload?.description || '').trim();
+  const category = String(payload?.category || '').trim();
+  const amount = Number(payload?.amount);
+  const expenseDate = String(payload?.expenseDate || '').trim();
+  const notes = String(payload?.notes || '').trim();
+
+  if (!description || !category || !expenseDate || !Number.isFinite(amount)) {
+    throw new HttpError(400, 'description, category, amount and expenseDate are required');
+  }
+
+  if (amount <= 0) {
+    throw new HttpError(400, 'Expense amount must be greater than zero');
+  }
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(expenseDate)) {
+    throw new HttpError(400, 'expenseDate must be a valid date');
+  }
+
+  const record = await insertMiscExpense({
+    organizationId: orgId,
+    createdBy: actor.id,
+    payload: {
+      description,
+      category,
+      amount,
+      expenseDate,
+      notes,
+    },
+  });
+
+  await insertAuditLog({
+    tableName: 'expenses',
+    recordId: record.id,
+    action: `Created Expense: ${description}`,
+    changedBy: actor.id,
+    organizationId: orgId,
+    beforeData: null,
+    afterData: record,
+  });
+
+  return {
+    id: record.id,
+    expense_type: 'misc',
+    expense_date: record.expense_date,
+    created_at: record.created_at,
+    description: record.description,
+    category: record.category || 'miscellaneous',
+    quantity: null,
+    unit_type: null,
+    unit_cost: null,
+    goods_cost: 0,
+    logistics_fee: 0,
+    amount: Number(record.amount || 0),
+    notes: record.notes || '',
+    products: null,
+    created_by_name: record.users?.name || null,
+  };
 };
 
 module.exports = {
   archiveProduct,
+  createExpense,
   createProduct,
   editProduct,
   getAiReports,

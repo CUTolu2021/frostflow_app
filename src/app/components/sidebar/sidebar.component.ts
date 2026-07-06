@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, effect } from '@angular/core';
+import { Component, EventEmitter, OnDestroy, OnInit, Output, effect } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { SupabaseService } from '../../services/supabase.service';
@@ -13,6 +13,7 @@ import { Router } from '@angular/router';
   styleUrl: './sidebar.component.css'
 })
 export class SidebarComponent implements OnInit, OnDestroy {
+  @Output() navigationRequested = new EventEmitter<void>();
   private mismatchRefreshTimer: ReturnType<typeof setInterval> | null = null;
   private modeChangedListener = (event: Event) => {
     const customEvent = event as CustomEvent<{ inventoryMode?: string }>;
@@ -105,4 +106,9 @@ export class SidebarComponent implements OnInit, OnDestroy {
     this.toast.show('Logout successful!', 'logout');
     this.router.navigate(['/login']);
   }
+
+  handleNavigationRequested() {
+    this.navigationRequested.emit();
+  }
 }
+

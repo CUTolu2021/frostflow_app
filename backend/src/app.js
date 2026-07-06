@@ -10,6 +10,7 @@ const { appRoutes } = require('./routes/appRoutes');
 const { errorHandler, notFound } = require('./middlewares/errorMiddleware');
 
 const app = express();
+app.set('trust proxy', 1);
 
 app.use(
   cors({

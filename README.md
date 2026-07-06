@@ -1,35 +1,39 @@
 # FrostFlow Inventory SaaS
 
-FrostFlow is a multi-tenant inventory and reconciliation system for retail operations.  
-Primary objective: reduce shrinkage by requiring double-entry stock records and surfacing mismatches quickly.
+FrostFlow is a multi-tenant inventory, sales, and reconciliation system for retail and cold-room operations.
+Its core goal is simple: reduce shrinkage, improve accountability, and give operators a clean way to track stock, sales, expenses, and mismatches across organizations.
 
 ## Features
 
-- Multi-tenant organizations (`organizations`) with role-based users (`superadmin`, `admin`, `manager`, `sales`)
-- In-house authentication (JWT access + refresh sessions), no third-party auth dependency
-- Superadmin organization provisioning with owner bootstrap flow
+- Multi-tenant organizations with role-based users: `superadmin`, `admin`, `manager`, `sales`
+- In-house authentication with JWT access tokens and refresh sessions
+- Superadmin organization provisioning and owner bootstrap flow
 - Staff invite flow with expiring signup links
-- Forced password reset on first login / admin reset
+- Forced password reset on first login or admin reset
+- Route-level rate limiting on login, invite creation, and password reset endpoints
+- Product catalog with organization-scoped categories
 - Stock-in and staff-receive capture
-- Reconciliation engine using:
-  - `product_id`
-  - daily/session window (`window_date`)
-  - cutoff escalation (`is_escalated`, `escalated_at`)
-- Manual “Run Check Now” reconciliation trigger for immediate verification
-- Audit log trails and role-protected write endpoints
+- `dual_control` and `single_operator` inventory modes per organization
+- Reconciliation engine with manual "Run Check Now" support
+- Delivery-session based stock matching between owner and staff intake
+- Mixed-payment sales: `cash`, `transfer`, `card`, `credit`, `mixed`
+- Decimal-safe quantities and prices for stock and sales
+- Manual miscellaneous expenses with backdated entry support
+- Analytics screens for overview, sales history, expenses, and AI insights
+- Audit logs for important write actions
 
 ## Tech Stack
 
 - Frontend: Angular 19
 - Backend: Node.js + Express
-- Database: Supabase Postgres (`frostflow_data` schema)
-- Security: JWT, refresh token rotation, route-level authorization, rate limiting
+- Database: Supabase Postgres using the `frostflow_data` schema
+- Security: JWT, refresh token rotation, role checks, rate limiting, RLS-aware schema design
 
 ## Local Setup
 
 ### 1. Prerequisites
 
-- Node.js LTS recommended (20.x or 22.x)
+- Node.js LTS recommended: `20.x` or `22.x`
 - npm
 - Supabase project with `frostflow_data` schema
 
@@ -41,7 +45,7 @@ npm install
 
 ### 3. Backend environment
 
-Create `backend/.env` from `backend/.env.example` and fill real values.
+Create `backend/.env` from `backend/.env.example` and fill in real values.
 
 ```env
 API_PORT=3001
@@ -62,6 +66,8 @@ SMTP_USER=your-email@gmail.com
 SMTP_PASS=your-google-app-password
 SMTP_FROM="Frostflow <your-email@gmail.com>"
 RECONCILIATION_CUTOFF_HOUR_UTC=20
+RECONCILIATION_DEFAULT_GRACE_HOURS=24
+RECONCILIATION_AUTO_ACCEPT_TOLERANCE_KG=0.5
 ```
 
 ### 4. Frontend environment
@@ -97,6 +103,11 @@ Run in order:
 8. `backend/sql/008_staff_invites.sql`
 9. `backend/sql/009_staff_invites_hardening.sql`
 10. `backend/sql/010_reconciliation_engine.sql`
+11. `backend/sql/011_delivery_sessions.sql`
+12. `backend/sql/012_inventory_mode.sql`
+13. `backend/sql/013_decimal_precision.sql`
+14. `backend/sql/014_mixed_sale_payments.sql`
+15. `backend/sql/015_misc_expenses.sql`
 
 ## Run
 
@@ -104,7 +115,7 @@ Run in order:
 npm run dev
 ```
 
-Or split:
+Or split frontend and backend:
 
 ```bash
 npm run start
@@ -135,18 +146,39 @@ npm run start:api
   - `POST /api/inventory/staff-stock-in`
   - `POST /api/inventory/reconciliation/resolve`
   - `POST /api/inventory/reconciliation/run`
+- App:
+  - `GET /api/app/metrics/dashboard`
+  - `GET /api/app/sales/history`
+  - `GET /api/app/expenses`
+  - `POST /api/app/expenses`
 - Admin:
   - `GET /api/admin/organizations`
   - `POST /api/admin/organizations`
   - `GET /api/admin/users`
 
+## Analytics Notes
+
+- `Inventory Value` currently represents estimated sale value on hand:
+  - `current stock units * product.unit_price`
+- `Overview` is intentionally snapshot-style:
+  - it does not follow the History or Expenses tab filters
+  - it refreshes when the page reloads, the user re-enters the page, or the user clicks `Sync metrics`
+- `History` and `Expenses` each maintain their own filter state
+- Expense analytics includes:
+  - stock purchase costs
+  - logistics costs
+  - miscellaneous manually entered expenses
+
 ## Security Notes
 
-- Never commit real secrets (`backend/.env`, private keys, production tokens).
-- `backend/.env` and root `.env` are ignored by git.
-- If anything sensitive is exposed, rotate it immediately.
+- Never commit real secrets like `backend/.env`, private keys, or production tokens
+- `backend/.env` and root `.env` are ignored by git
+- If anything sensitive is exposed, rotate it immediately
+- Current rate limiting uses the in-memory store from `express-rate-limit`
+  - good for a single backend instance
+  - move to Redis if you later run multiple API instances
 
 ## Contribution Workflow
 
-Use feature branches + pull requests.  
+Use feature branches and pull requests.
 See [CONTRIBUTING.md](CONTRIBUTING.md) for naming, PR checklist, and review expectations.

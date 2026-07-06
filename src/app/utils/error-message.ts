@@ -60,6 +60,7 @@ const normalizeStatusMessage = (status: number | undefined, fallback: string): s
   if (status === 403) return 'You do not have permission to perform this action.';
   if (status === 404) return 'Requested record was not found.';
   if (status === 409) return fallback || 'This action conflicts with existing data.';
+  if (status === 429) return fallback || 'Too many attempts. Please wait a bit and try again.';
   if (status >= 500) return fallback || 'Server error. Please try again.';
 
   return fallback || 'Request failed. Please try again.';

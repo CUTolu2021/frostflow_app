@@ -339,7 +339,27 @@ const listSalesHistory = async ({ organizationId, startDate, endDate }) => {
   return data || [];
 };
 
-const listExpenses = async ({ organizationId, startDate, endDate }) => {
+const listStockExpenseAmounts = async ({ organizationId }) => {
+  const { data, error } = await table('stock_in')
+    .select('total_cost, logistics_fee')
+    .eq('organization_id', organizationId);
+  if (error) {
+    throw new HttpError(500, 'Unable to fetch stock expense totals');
+  }
+  return data || [];
+};
+
+const listMiscExpenseAmounts = async ({ organizationId }) => {
+  const { data, error } = await table('expenses')
+    .select('amount')
+    .eq('organization_id', organizationId);
+  if (error) {
+    throw new HttpError(500, 'Unable to fetch miscellaneous expense totals');
+  }
+  return data || [];
+};
+
+const listStockPurchaseExpenses = async ({ organizationId, startDate, endDate }) => {
   const { data, error } = await table('stock_in')
     .select('*, products (name, category)')
     .eq('organization_id', organizationId)
@@ -351,6 +371,48 @@ const listExpenses = async ({ organizationId, startDate, endDate }) => {
     throw new HttpError(500, 'Unable to fetch expenses');
   }
   return data || [];
+};
+
+const listMiscExpenses = async ({ organizationId, startDate, endDate }) => {
+  const startDateOnly = String(startDate || '').slice(0, 10);
+  const endDateOnly = String(endDate || '').slice(0, 10);
+
+  const { data, error } = await table('expenses')
+    .select('*, users!created_by(name)')
+    .eq('organization_id', organizationId)
+    .gte('expense_date', startDateOnly)
+    .lte('expense_date', endDateOnly)
+    .order('expense_date', { ascending: false })
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    throw new HttpError(500, 'Unable to fetch miscellaneous expenses');
+  }
+
+  return data || [];
+};
+
+const insertMiscExpense = async ({ organizationId, createdBy, payload }) => {
+  const record = {
+    description: payload.description,
+    category: payload.category,
+    amount: payload.amount,
+    expense_date: payload.expenseDate,
+    notes: payload.notes || null,
+    organization_id: organizationId,
+    created_by: createdBy,
+  };
+
+  const { data, error } = await table('expenses')
+    .insert(record)
+    .select('*, users!created_by(name)')
+    .single();
+
+  if (error || !data) {
+    throw new HttpError(500, 'Unable to create expense');
+  }
+
+  return data;
 };
 
 const getUserProfile = async ({ organizationId, userId }) =>
@@ -369,8 +431,9 @@ module.exports = {
   insertProduct,
   listAiReports,
   listChartProducts,
-  listExpenses,
+  listMiscExpenses,
   listInventoryLogs,
+  listMiscExpenseAmounts,
   listNotifications,
   listPendingMismatches,
   listProductHistory,
@@ -380,9 +443,12 @@ module.exports = {
   listRecentStaffEntries,
   listSalesHistory,
   listSalesMetrics,
+  listStockExpenseAmounts,
+  listStockPurchaseExpenses,
   listStaff,
   countDailyEntries,
   markNotificationRead,
+  insertMiscExpense,
   updateProduct,
   updateStaffStatus,
 };

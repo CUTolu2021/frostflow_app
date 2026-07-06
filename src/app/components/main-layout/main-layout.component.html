@@ -12,7 +12,11 @@
     </header>
 
     <!-- Sidebar with dynamic class for mobile -->
-    <app-sidebar class="sidebar" [class.mobile-open]="isMobileMenuOpen"></app-sidebar>
+    <app-sidebar
+        class="sidebar"
+        [class.mobile-open]="isMobileMenuOpen"
+        (navigationRequested)="closeMobileMenu()"
+    ></app-sidebar>
 
     <!-- Backdrop for mobile -->
     <div *ngIf="isMobileMenuOpen" class="mobile-backdrop" (click)="closeMobileMenu()"></div>

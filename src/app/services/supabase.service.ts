@@ -10,6 +10,7 @@ import { AIStockReport } from '../interfaces/ai-report'
 import { DailySales, Sale } from '../interfaces/sales'
 import { ReconciliationMismatch } from '../interfaces/reconciliation'
 import { AuthUser } from '../interfaces/auth-user'
+import { CreateExpensePayload, ExpenseRecord } from '../interfaces/expense'
 import {
     AdminUser,
     AuthSessionLike,
@@ -508,11 +509,16 @@ export class SupabaseService {
     async getDashboardMetrics() {
         this.loadingService.show();
         try {
-            const metrics = await this.requestWithAuth<{ totalValue: number; lowStock: number; totalItems: number }>(
+            const metrics = await this.requestWithAuth<{ totalValue: number; lowStock: number; totalItems: number; totalExpenses?: number }>(
                 'get',
                 '/api/app/metrics/dashboard'
             );
-            return metrics || { totalValue: 0, lowStock: 0, totalItems: 0 };
+            return {
+                totalValue: Number(metrics?.totalValue || 0),
+                lowStock: Number(metrics?.lowStock || 0),
+                totalItems: Number(metrics?.totalItems || 0),
+                totalExpenses: Number(metrics?.totalExpenses || 0),
+            };
         } finally {
             this.loadingService.hide();
         }
@@ -857,16 +863,30 @@ export class SupabaseService {
         }
     }
 
-    async getExpenses(startDate: string, endDate: string): Promise<StockEntry[]> {
+    async getExpenses(startDate: string, endDate: string): Promise<ExpenseRecord[]> {
         this.loadingService.show();
         try {
-            const res = await this.withTimeout(this.requestWithAuth<{ expenses: StockEntry[] }>(
+            const res = await this.withTimeout(this.requestWithAuth<{ expenses: ExpenseRecord[] }>(
                 'get',
                 '/api/app/expenses',
                 undefined,
                 { startDate, endDate }
             ));
-            return (res.expenses || []) as StockEntry[];
+            return (res.expenses || []) as ExpenseRecord[];
+        } finally {
+            this.loadingService.hide();
+        }
+    }
+
+    async createExpense(payload: CreateExpensePayload): Promise<ExpenseRecord> {
+        this.loadingService.show();
+        try {
+            const res = await this.requestWithAuth<{ expense: ExpenseRecord }>(
+                'post',
+                '/api/app/expenses',
+                payload
+            );
+            return res.expense;
         } finally {
             this.loadingService.hide();
         }

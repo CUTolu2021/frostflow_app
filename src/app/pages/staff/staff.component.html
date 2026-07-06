@@ -16,7 +16,7 @@
 
     <div class="system-id-box" *ngIf="latestInviteLink">
         <label class="text-xs text-muted mb-1 block">Latest Staff Invite Link (share with {{ latestInviteEmail }})</label>
-        <div class="id-display">{{ latestInviteLink }}</div>
+        <div class="id-display" [title]="latestInviteLink">{{ latestInviteLink }}</div>
         <button class="btn-sm btn-outline mt-2" (click)="copyInviteLink()" [disabled]="!latestInviteLink || isCreatingInvite">Copy Link</button>
     </div>
 
